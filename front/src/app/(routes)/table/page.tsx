@@ -7,7 +7,7 @@ import { Breadcrumbs } from '@/components/Breadcrumbs'
 import Image from 'next/image'
 
 function VerticalScorers() {
-  const { scorers, loading, error } = useTopScorers()
+  const { topScorers, loading, error } = useTopScorers()
 
   if (loading) {
     return (
@@ -32,7 +32,7 @@ function VerticalScorers() {
   return (
     <div className="space-y-4">
       <h3 className="pb-1 text-left text-lg font-semibold">Лучшие бомбардиры</h3>
-      {scorers.slice(0, 3).map((player) => (
+      {topScorers.slice(0, 3).map((player) => (
         <div key={player.id} className="card p-4">
           <div className="flex items-center gap-3">
             <span className="rounded-full bg-brand-primary/20 px-2 py-1 text-brand-accent text-xs">#{player.number || 0}</span>

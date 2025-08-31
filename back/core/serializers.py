@@ -85,17 +85,37 @@ class PartnerSerializer(serializers.ModelSerializer):
 class MediaSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Media."""
     
+    image_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Media
         fields = '__all__'
+    
+    def get_image_url(self, obj):
+        if obj.image:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.image.url)
+            return obj.image.url
+        return None
 
 
 class RefereeSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Referee."""
     
+    photo_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Referee
         fields = '__all__'
+    
+    def get_photo_url(self, obj):
+        if obj.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+            return obj.photo.url
+        return None
 
 
 class RefereeCreateSerializer(serializers.ModelSerializer):

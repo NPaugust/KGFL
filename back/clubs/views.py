@@ -7,6 +7,7 @@ from .serializers import (
     ClubSerializer, ClubListSerializer, ClubDetailSerializer,
     CoachSerializer, ClubSeasonSerializer, TableRowSerializer
 )
+import rest_framework.parsers
 
 
 class ClubViewSet(viewsets.ModelViewSet):
@@ -26,6 +27,14 @@ class ClubViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
+    
+    def get_parsers(self):
+        return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
     
     @action(detail=False, methods=['get'])
     def search(self, request):

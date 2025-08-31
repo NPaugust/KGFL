@@ -106,6 +106,12 @@ class ApiClient {
             }
           }
         }
+        
+        // Улучшенная обработка ошибок
+        if (error.response?.data) {
+          error.message = error.response.data.message || error.response.data.detail || error.message
+        }
+        
         return Promise.reject(error)
       }
     )
@@ -211,8 +217,8 @@ export const API_ENDPOINTS = {
   CLUB_DETAIL: (id: string) => `/clubs/${id}/`,
   CLUB_PLAYERS: (id: string) => `/clubs/${id}/players/`,
   CLUB_MATCHES: (id: string) => `/clubs/${id}/matches/`,
-  COACHES: '/coaches/',
-  CLUB_SEASONS: '/club-seasons/',
+  COACHES: '/clubs/coaches/',
+  CLUB_SEASONS: '/clubs/seasons/',
   TABLE: '/clubs/table/',
   
   // Матчи

@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { apiClient } from '@/services/api'
 import { API_ENDPOINTS } from '@/services/api'
-import { Club, TableRow } from '@/types'
+import { Club, TableRow, PaginatedResponse } from '@/types'
 import { useApi } from './useApi'
 
 export function useClubs() {
@@ -23,10 +23,13 @@ export function useClubs() {
     try {
       setClubsLoading(true)
       setClubsError(null)
-      const result = await apiClient.get<any>(API_ENDPOINTS.CLUBS)
+      const result = await apiClient.get<PaginatedResponse<Club> | Club[]>(API_ENDPOINTS.CLUBS)
       // Обрабатываем пагинацию
-      const clubsData = result.results || result || []
-      setClubs(clubsData)
+      if (result && typeof result === 'object' && 'results' in result) {
+        setClubs((result as PaginatedResponse<Club>).results)
+      } else {
+        setClubs(result as Club[] || [])
+      }
     } catch (err) {
       setClubsError(err instanceof Error ? err.message : 'Произошла ошибка')
     } finally {
@@ -38,10 +41,8 @@ export function useClubs() {
     try {
       setTableLoading(true)
       setTableError(null)
-      const result = await apiClient.get<any>(API_ENDPOINTS.TABLE)
-      // Обрабатываем пагинацию
-      const tableData = result.results || result || []
-      setTable(tableData)
+      const result = await apiClient.get<TableRow[]>(API_ENDPOINTS.TABLE)
+      setTable(result || [])
     } catch (err) {
       setTableError(err instanceof Error ? err.message : 'Произошла ошибка')
     } finally {

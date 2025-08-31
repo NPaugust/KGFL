@@ -3,10 +3,10 @@ from rest_framework.routers import DefaultRouter
 from .views import PlayerViewSet, PlayerStatsViewSet
 
 router = DefaultRouter()
-router.register(r'', PlayerViewSet)
 router.register(r'stats', PlayerStatsViewSet)
+router.register(r'', PlayerViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),
     path('top-scorers/', PlayerViewSet.as_view({'get': 'top_scorers'}), name='player-top-scorers'),
+    path('', include(router.urls)),
 ] 

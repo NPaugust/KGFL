@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { apiClient } from '@/services/api'
+import { PaginatedResponse } from '@/types'
 
 export function useApi<T>(
   url: string,
@@ -15,12 +16,15 @@ export function useApi<T>(
     try {
       setLoading(true)
       setError(null)
-      console.log('Fetching data from:', url, 'with params:', params)
-      const result = await apiClient.get<T>(url, params)
-      console.log('Data received:', result)
-      setData(result)
+      const result = await apiClient.get<T | PaginatedResponse<T>>(url, params)
+      
+      // Обрабатываем пагинацию
+      if (result && typeof result === 'object' && 'results' in result) {
+        setData((result as PaginatedResponse<T>).results as T)
+      } else {
+        setData(result as T)
+      }
     } catch (err) {
-      console.error('Error in useApi:', err)
       setError(err instanceof Error ? err.message : 'Произошла ошибка')
     } finally {
       setLoading(false)
@@ -38,38 +42,34 @@ export function useApi<T>(
   return { data, loading, error, refetch }
 }
 
-export function useApiMutation<T, D = any>(url: string, method: 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'POST') {
+export function useApiMutation<T = any>(url?: string, method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE') {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const mutateAsync = async (data?: D) => {
+  const mutate = async (requestUrl: string, requestMethod: 'POST' | 'PUT' | 'PATCH' | 'DELETE', data?: any): Promise<T> => {
     try {
       setLoading(true)
       setError(null)
-      console.log(`Making ${method} request to:`, url, 'with data:', data)
-      
-      let result: T
-      switch (method) {
+
+      let result: any
+      switch (requestMethod) {
         case 'POST':
-          result = await apiClient.post<T>(url, data)
+          result = await apiClient.post<T>(requestUrl, data)
           break
         case 'PUT':
-          result = await apiClient.put<T>(url, data)
+          result = await apiClient.put<T>(requestUrl, data)
           break
         case 'PATCH':
-          result = await apiClient.patch<T>(url, data)
+          result = await apiClient.patch<T>(requestUrl, data)
           break
         case 'DELETE':
-          result = await apiClient.delete<T>(url)
+          result = await apiClient.delete<T>(requestUrl)
           break
         default:
           throw new Error('Неподдерживаемый метод')
       }
-      
-      console.log(`${method} request successful:`, result)
       return result
     } catch (err: any) {
-      console.error(`Error in ${method} request:`, err)
       const errorMessage = err?.response?.data?.message || err?.message || 'Произошла ошибка'
       setError(errorMessage)
       throw err
@@ -78,5 +78,9 @@ export function useApiMutation<T, D = any>(url: string, method: 'POST' | 'PUT' |
     }
   }
 
-  return { mutateAsync, loading, error }
+  const mutateAsync = async (requestUrl: string, requestMethod: 'POST' | 'PUT' | 'PATCH' | 'DELETE', data?: any): Promise<T> => {
+    return mutate(requestUrl, requestMethod, data)
+  }
+
+  return { mutate, mutateAsync, loading, error }
 } 

@@ -1,27 +1,43 @@
 "use client"
-import { useApi } from './useApi'
+import { useState, useEffect } from 'react'
+import { apiClient } from '@/services/api'
 import { API_ENDPOINTS } from '@/services/api'
-import { Player } from '@/types'
+import { Player, PaginatedResponse } from '@/types'
 
 export function usePlayers() {
-  const { data: players, loading, error, refetch } = useApi<any>(API_ENDPOINTS.PLAYERS)
-  
-  // Обрабатываем пагинацию
-  const playersData = players?.results || players || []
+  const [players, setPlayers] = useState<Player[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [refreshKey, setRefreshKey] = useState(0)
 
-  return {
-    players: playersData,
-    loading,
-    error,
-    refetch,
+  const fetchPlayers = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await apiClient.get<PaginatedResponse<Player> | Player[]>(API_ENDPOINTS.PLAYERS)
+      // Обрабатываем пагинацию
+      if (result && typeof result === 'object' && 'results' in result) {
+        setPlayers((result as PaginatedResponse<Player>).results)
+      } else {
+        setPlayers(result as Player[] || [])
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Произошла ошибка')
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
-export function useTopScorers() {
-  const { data: scorers, loading, error, refetch } = useApi<Player[]>(API_ENDPOINTS.TOP_SCORERS)
-  
+  useEffect(() => {
+    fetchPlayers()
+  }, [refreshKey])
+
+  const refetch = () => {
+    setRefreshKey(prev => prev + 1)
+  }
+
   return {
-    scorers: scorers || [],
+    players: players || [],
     loading,
     error,
     refetch,
@@ -29,12 +45,63 @@ export function useTopScorers() {
 }
 
 export function usePlayer(id: string) {
-  const { data: player, loading, error, refetch } = useApi<Player>(API_ENDPOINTS.PLAYER_DETAIL(id))
-  
+  const [player, setPlayer] = useState<Player | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchPlayer = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await apiClient.get<Player>(API_ENDPOINTS.PLAYER_DETAIL(id))
+      setPlayer(result)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Произошла ошибка')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (id) {
+      fetchPlayer()
+    }
+  }, [id])
+
   return {
     player,
     loading,
     error,
-    refetch,
+    refetch: fetchPlayer,
+  }
+}
+
+export function useTopScorers() {
+  const [topScorers, setTopScorers] = useState<Player[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchTopScorers = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      const result = await apiClient.get<Player[]>(API_ENDPOINTS.TOP_SCORERS)
+      setTopScorers(result || [])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Произошла ошибка')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTopScorers()
+  }, [])
+
+  return {
+    topScorers: topScorers || [],
+    loading,
+    error,
+    refetch: fetchTopScorers,
   }
 } 

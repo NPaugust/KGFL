@@ -10,6 +10,7 @@ from .serializers import (
     SeasonSerializer, PartnerSerializer, MediaSerializer,
     RefereeSerializer, RefereeCreateSerializer, ManagementSerializer, ManagementCreateSerializer
 )
+import rest_framework.parsers
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -118,12 +119,20 @@ class MediaViewSet(viewsets.ModelViewSet):
         # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
     
+    def get_parsers(self):
+        return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
     @action(detail=False, methods=['get'])
     def by_category(self, request):
         """Получить медиа файлы по категории."""
         category = request.query_params.get('category', 'gallery')
         media = self.queryset.filter(category=category)
-        return Response(MediaSerializer(media, many=True).data)
+        return Response(MediaSerializer(media, many=True, context={'request': request}).data)
 
 
 class RefereeViewSet(viewsets.ModelViewSet):
@@ -142,6 +151,14 @@ class RefereeViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [permissions.IsAuthenticated()]
         return [permissions.AllowAny()]
+    
+    def get_parsers(self):
+        return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
 
 class ManagementViewSet(viewsets.ModelViewSet):

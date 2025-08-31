@@ -5,8 +5,6 @@ import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Player, Club } from '@/types'
 import { Loading } from '@/components/Loading'
-import Image from 'next/image'
-import { apiClient } from '@/services/api'
 
 interface PlayerFormData {
   first_name: string
@@ -36,15 +34,12 @@ export function PlayersManager() {
     date_of_birth: ''
   })
 
-  const createPlayerMutation = useApiMutation(API_ENDPOINTS.PLAYERS, 'POST')
-  const updatePlayerMutation = useApiMutation(API_ENDPOINTS.PLAYER_DETAIL(editingPlayer?.id?.toString() || ''), 'PUT')
+  const { mutate, loading: mutationLoading, error: mutationError } = useApiMutation<Player>()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
-      console.log('Submitting player data:', formData)
-      
       const formDataToSend = new FormData()
       formDataToSend.append('first_name', formData.first_name)
       formDataToSend.append('last_name', formData.last_name)
@@ -69,29 +64,24 @@ export function PlayersManager() {
       }
 
       if (editingPlayer) {
-        console.log('Updating player:', editingPlayer.id)
-        await updatePlayerMutation.mutateAsync(formDataToSend)
+        await mutate(API_ENDPOINTS.PLAYER_DETAIL(editingPlayer.id.toString()), 'PUT', formDataToSend)
       } else {
-        console.log('Creating new player')
-        await createPlayerMutation.mutateAsync(formDataToSend)
+        await mutate(API_ENDPOINTS.PLAYERS, 'POST', formDataToSend)
       }
 
       setIsModalOpen(false)
       setEditingPlayer(null)
       setFormData({ first_name: '', last_name: '', position: '', nationality: '', club: '', date_of_birth: '' })
       
-      // Принудительно обновляем данные
       setTimeout(() => {
         refetch()
       }, 500)
     } catch (error) {
-      console.error('Ошибка при сохранении игрока:', error)
       alert(`Ошибка при сохранении игрока: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     }
   }
 
   const handleEdit = (player: Player) => {
-    console.log('Редактируем игрока:', player)
     setEditingPlayer(player)
     setFormData({
       first_name: player.first_name || '',
@@ -111,12 +101,9 @@ export function PlayersManager() {
   const handleDelete = async (playerId: string) => {
     if (confirm('Вы уверены, что хотите удалить этого игрока?')) {
       try {
-        console.log('Deleting player:', playerId)
-        const response = await apiClient.delete(API_ENDPOINTS.PLAYER_DETAIL(playerId))
-        console.log('Игрок удален:', response)
+        await mutate(API_ENDPOINTS.PLAYER_DETAIL(playerId), 'DELETE')
         refetch()
       } catch (error) {
-        console.error('Ошибка при удалении игрока:', error)
         alert(`Ошибка при удалении игрока: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
       }
     }
@@ -128,8 +115,6 @@ export function PlayersManager() {
 
   const playersList = Array.isArray(players) ? players : []
   const clubsList = Array.isArray(clubs) ? clubs : []
-  console.log('Players list:', playersList)
-  console.log('Clubs list:', clubsList)
 
   return (
     <div className="p-6">
@@ -357,9 +342,9 @@ export function PlayersManager() {
                 <button
                   type="submit"
                   className="btn btn-primary flex-1"
-                  disabled={createPlayerMutation.loading || updatePlayerMutation.loading}
+                  disabled={mutationLoading}
                 >
-                  {createPlayerMutation.loading || updatePlayerMutation.loading ? 'Сохранение...' : 'Сохранить'}
+                  {mutationLoading ? 'Сохранение...' : 'Сохранить'}
                 </button>
                 <button
                   type="button"

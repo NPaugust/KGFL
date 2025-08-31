@@ -1,8 +1,7 @@
 "use client"
 import { useState } from 'react'
 import { SelectMenu as Select } from '@/components/Filters'
-import { useApi } from '@/hooks/useApi'
-import { API_ENDPOINTS } from '@/services/api'
+import { usePlayers } from '@/hooks/usePlayers'
 import { Loading } from '@/components/Loading'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 
@@ -10,7 +9,7 @@ export default function StatsPage() {
   const [season, setSeason] = useState('2024')
   const [metric, setMetric] = useState<'goals_scored' | 'assists' | 'yellow_cards' | 'red_cards'>('goals_scored')
   
-  const { data: players, loading, error } = useApi(API_ENDPOINTS.PLAYERS)
+  const { players, loading, error } = usePlayers()
 
   if (loading) {
     return (
@@ -36,8 +35,7 @@ export default function StatsPage() {
     )
   }
 
-  const playersList = Array.isArray(players) ? players : []
-  const displayed = playersList
+  const displayed = players
     .filter((p) => p.season === season)
     .sort((a, b) => (b[metric] as number || 0) - (a[metric] as number || 0))
 
@@ -74,7 +72,7 @@ export default function StatsPage() {
           <tbody>
             {displayed.length > 0 ? displayed.map((p) => (
               <tr key={p.id}>
-                <td className="px-4 py-3 font-medium">{p.name}</td>
+                <td className="px-4 py-3 font-medium">{p.first_name} {p.last_name}</td>
                 <td className="px-4 py-3">{p.club?.name || 'Неизвестный клуб'}</td>
                 <td className="px-4 py-3">{p.games_played || 0}</td>
                 <td className="px-4 py-3">{p.season || '2024'}</td>

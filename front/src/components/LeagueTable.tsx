@@ -74,24 +74,24 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
           <tbody>
             {table.map((r, idx) => (
               <tr key={r.id} className={idx % 2 ? 'bg-white/[0.03]' : 'bg-white/[0.06]'}>
-                <td className="px-4 py-3 font-semibold text-white/80">{idx + 1}</td>
+                <td className="px-4 py-3 font-semibold text-white/80">{r.position || idx + 1}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
                     <Image 
-                      src={r.club?.logo || '/logo.png.png'} 
-                      alt={r.club?.name || 'Клуб'} 
+                      src={r.club_logo || '/logo.png.png'} 
+                      alt={r.club_name || 'Клуб'} 
                       width={28} 
                       height={28} 
                       className="rounded" 
                     />
-                    <span className="font-medium">{r.club?.name || 'Неизвестный клуб'}</span>
+                    <span className="font-medium">{r.club_name || 'Неизвестный клуб'}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3">{r.played}</td>
-                <td className="px-4 py-3">{r.win}</td>
-                <td className="px-4 py-3">{r.draw}</td>
-                <td className="px-4 py-3">{r.loss}</td>
-                <td className="px-4 py-3">{`${r.goals_for}:${r.goals_against}`}</td>
+                <td className="px-4 py-3">{r.matches_played || r.played || 0}</td>
+                <td className="px-4 py-3">{r.wins || r.win || 0}</td>
+                <td className="px-4 py-3">{r.draws || r.draw || 0}</td>
+                <td className="px-4 py-3">{r.losses || r.loss || 0}</td>
+                <td className="px-4 py-3">{r.goals_formatted || `${r.goals_for}:${r.goals_against}`}</td>
                 <td className="px-4 py-3 text-center font-medium">
                   <span className={r.goal_difference > 0 ? 'text-green-400' : r.goal_difference < 0 ? 'text-red-400' : 'text-gray-400'}>
                     {r.goal_difference > 0 ? '+' : ''}{r.goal_difference}

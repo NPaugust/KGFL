@@ -31,7 +31,7 @@ export function StatsManager() {
     minutes_played: 0
   })
 
-  const updatePlayerMutation = useApiMutation(API_ENDPOINTS.PLAYER_DETAIL(editingStats?.id || ''), 'PUT')
+  const updatePlayerMutation = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -50,7 +50,7 @@ export function StatsManager() {
       }
 
       console.log('Updating player stats:', editingStats?.id)
-      await updatePlayerMutation.mutateAsync(statsData)
+      await updatePlayerMutation.mutateAsync(API_ENDPOINTS.PLAYER_DETAIL(editingStats.id), 'PUT', statsData)
 
       setIsModalOpen(false)
       setEditingStats(null)
@@ -71,7 +71,8 @@ export function StatsManager() {
       }, 500)
     } catch (error) {
       console.error('Ошибка при сохранении статистики:', error)
-      alert(`Ошибка при сохранении статистики: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      alert(`Ошибка при сохранении статистики: ${errorMessage}`)
     }
   }
 

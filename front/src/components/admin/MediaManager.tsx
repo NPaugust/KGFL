@@ -24,8 +24,8 @@ export function MediaManager() {
     category: 'gallery'
   })
 
-  const createMediaMutation = useApiMutation(API_ENDPOINTS.MEDIA, 'POST')
-  const updateMediaMutation = useApiMutation(API_ENDPOINTS.MEDIA_DETAIL(editingMedia?.id?.toString() || ''), 'PUT')
+  const createMediaMutation = useApiMutation()
+  const updateMediaMutation = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,10 +48,10 @@ export function MediaManager() {
 
       if (editingMedia) {
         console.log('Updating media:', editingMedia.id)
-        await updateMediaMutation.mutateAsync(formDataToSend)
+        await updateMediaMutation.mutateAsync(API_ENDPOINTS.MEDIA_DETAIL(editingMedia.id), 'PUT', formDataToSend)
       } else {
         console.log('Creating new media')
-        await createMediaMutation.mutateAsync(formDataToSend)
+        await createMediaMutation.mutateAsync(API_ENDPOINTS.MEDIA, 'POST', formDataToSend)
       }
 
       setIsModalOpen(false)
@@ -64,7 +64,8 @@ export function MediaManager() {
       }, 500)
     } catch (error) {
       console.error('Ошибка при сохранении медиа:', error)
-      alert(`Ошибка при сохранении медиа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      alert(`Ошибка при сохранении медиа: ${errorMessage}`)
     }
   }
 
@@ -88,7 +89,8 @@ export function MediaManager() {
         refetch()
       } catch (error) {
         console.error('Ошибка при удалении медиа:', error)
-        alert(`Ошибка при удалении медиа: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+        alert(`Ошибка при удалении медиа: ${errorMessage}`)
       }
     }
   }
@@ -128,8 +130,8 @@ export function MediaManager() {
               {mediaList.length > 0 ? mediaList.map((media) => (
                 <tr key={media.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {media.image ? (
-                      <img src={media.image} alt={media.title} className="w-12 h-12 object-cover rounded" />
+                    {media.image_url ? (
+                      <img src={media.image_url} alt={media.title} className="w-12 h-12 object-cover rounded" />
                     ) : (
                       <div className="w-12 h-12 bg-gray-500 rounded flex items-center justify-center text-xs">
                         Нет фото
@@ -233,10 +235,10 @@ export function MediaManager() {
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                   required={!editingMedia}
                 />
-                {editingMedia && editingMedia.image && (
+                {editingMedia && editingMedia.image_url && (
                   <div className="mt-2">
                     <p className="text-sm text-white/60 mb-2">Текущее изображение:</p>
-                    <img src={editingMedia.image} alt={editingMedia.title} className="w-20 h-20 object-cover rounded" />
+                    <img src={editingMedia.image_url} alt={editingMedia.title} className="w-20 h-20 object-cover rounded" />
                   </div>
                 )}
               </div>

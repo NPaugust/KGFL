@@ -1,12 +1,11 @@
 "use client"
-import { useApi } from '@/hooks/useApi'
-import { API_ENDPOINTS } from '@/services/api'
+import { useMedia } from '@/hooks/useMedia'
 import { Loading } from '@/components/Loading'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import Image from 'next/image'
 
 export default function MediaPage() {
-  const { data: media, loading, error } = useApi(API_ENDPOINTS.MEDIA)
+  const { media, loading, error } = useMedia()
 
   if (loading) {
     return (
@@ -40,8 +39,6 @@ export default function MediaPage() {
     )
   }
 
-  const mediaList = Array.isArray(media) ? media : []
-
   return (
     <main>
       <section className="container-px py-10">
@@ -51,13 +48,13 @@ export default function MediaPage() {
       </section>
       
       <section className="container-px py-16">
-        {mediaList.length > 0 ? (
+        {media.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {mediaList.map((item: any) => (
+            {media.map((item) => (
               <div key={item.id} className="card overflow-hidden group cursor-pointer">
                 <div className="relative aspect-square overflow-hidden">
                   <Image
-                    src={item.image}
+                    src={item.image_url || item.image || '/placeholder.jpg'}
                     alt={item.title}
                     fill
                     className="object-cover transition-transform duration-300 group-hover:scale-110"

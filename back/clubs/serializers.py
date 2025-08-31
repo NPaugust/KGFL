@@ -5,17 +5,37 @@ from .models import Club, Coach, ClubSeason
 class ClubSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Club."""
     
+    logo_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Club
         fields = '__all__'
+    
+    def get_logo_url(self, obj):
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
 
 
 class ClubListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка клубов."""
     
+    logo_url = serializers.SerializerMethodField()
+    
     class Meta:
         model = Club
-        fields = ['id', 'name', 'short_name', 'logo', 'city', 'founded', 'is_active']
+        fields = ['id', 'name', 'short_name', 'logo', 'logo_url', 'city', 'founded', 'is_active']
+    
+    def get_logo_url(self, obj):
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
 
 
 class CoachSerializer(serializers.ModelSerializer):

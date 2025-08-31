@@ -7,7 +7,6 @@ import { API_ENDPOINTS } from '@/services/api'
 import { Match, Club } from '@/types'
 import { Loading } from '../Loading'
 import { formatDate } from '@/utils'
-import { apiClient } from '@/services/api'
 
 interface MatchFormData {
   date: string
@@ -34,16 +33,12 @@ export function MatchesManager() {
     away_score: undefined
   })
 
-  const createMatchMutation = useApiMutation(API_ENDPOINTS.MATCHES, 'POST')
-  const updateMatchMutation = useApiMutation(API_ENDPOINTS.MATCH_DETAIL(editingMatch?.id?.toString() || ''), 'PUT')
+  const { mutate, loading: mutationLoading, error } = useApiMutation<Match>()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
-      console.log('Submitting match data:', formData)
-      
-      // Подготавливаем данные для отправки
       const submitData = {
         ...formData,
         home_team: formData.home_team || null,
@@ -55,11 +50,9 @@ export function MatchesManager() {
       }
       
       if (editingMatch) {
-        console.log('Updating match:', editingMatch.id)
-        await updateMatchMutation.mutateAsync(submitData)
+        await mutate(API_ENDPOINTS.MATCH_DETAIL(editingMatch.id.toString()), 'PUT', submitData)
       } else {
-        console.log('Creating new match')
-        await createMatchMutation.mutateAsync(submitData)
+        await mutate(API_ENDPOINTS.MATCHES, 'POST', submitData)
       }
       
       setIsModalOpen(false)
@@ -74,18 +67,15 @@ export function MatchesManager() {
         away_score: undefined
       })
       
-      // Принудительно обновляем данные
       setTimeout(() => {
         refetch()
       }, 500)
     } catch (error) {
-      console.error('Ошибка при сохранении матча:', error)
       alert(`Ошибка при сохранении матча: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     }
   }
 
   const handleEdit = (match: Match) => {
-    console.log('Редактируем матч:', match)
     setEditingMatch(match)
     setFormData({
       date: match.date || '',
@@ -102,12 +92,9 @@ export function MatchesManager() {
   const handleDelete = async (matchId: string) => {
     if (confirm('Вы уверены, что хотите удалить этот матч?')) {
       try {
-        console.log('Deleting match:', matchId)
-        const response = await apiClient.delete(API_ENDPOINTS.MATCH_DETAIL(matchId))
-        console.log('Матч удален:', response)
+        await mutate(API_ENDPOINTS.MATCH_DETAIL(matchId), 'DELETE')
         refetch()
       } catch (error) {
-        console.error('Ошибка при удалении матча:', error)
         alert(`Ошибка при удалении матча: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
       }
     }
@@ -119,8 +106,6 @@ export function MatchesManager() {
 
   const matchesList = Array.isArray(matches) ? matches : []
   const clubsList = Array.isArray(clubs) ? clubs : []
-  console.log('Matches list:', matchesList)
-  console.log('Clubs list:', clubsList)
 
   return (
     <div className="p-6">
@@ -316,9 +301,9 @@ export function MatchesManager() {
                 <button
                   type="submit"
                   className="btn btn-primary flex-1"
-                  disabled={createMatchMutation.loading || updateMatchMutation.loading}
+                  disabled={mutationLoading}
                 >
-                  {createMatchMutation.loading || updateMatchMutation.loading ? 'Сохранение...' : 'Сохранить'}
+                  {mutationLoading ? 'Сохранение...' : 'Сохранить'}
                 </button>
                 <button
                   type="button"

@@ -26,8 +26,8 @@ export function RefereesManager() {
     bio: ''
   })
 
-  const createRefereeMutation = useApiMutation(API_ENDPOINTS.REFEREES, 'POST')
-  const updateRefereeMutation = useApiMutation(API_ENDPOINTS.REFEREES_DETAIL(editingReferee?.id?.toString() || ''), 'PUT')
+  const createRefereeMutation = useApiMutation()
+  const updateRefereeMutation = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -46,10 +46,10 @@ export function RefereesManager() {
 
       if (editingReferee) {
         console.log('Updating referee:', editingReferee.id)
-        await updateRefereeMutation.mutateAsync(formDataToSend)
+        await updateRefereeMutation.mutateAsync(API_ENDPOINTS.REFEREES_DETAIL(editingReferee.id), 'PUT', formDataToSend)
       } else {
         console.log('Creating new referee')
-        await createRefereeMutation.mutateAsync(formDataToSend)
+        await createRefereeMutation.mutateAsync(API_ENDPOINTS.REFEREES, 'POST', formDataToSend)
       }
 
       setIsModalOpen(false)
@@ -62,7 +62,8 @@ export function RefereesManager() {
       }, 500)
     } catch (error) {
       console.error('Ошибка при сохранении судьи:', error)
-      alert(`Ошибка при сохранении судьи: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      alert(`Ошибка при сохранении судьи: ${errorMessage}`)
     }
   }
 
@@ -87,7 +88,8 @@ export function RefereesManager() {
         refetch()
       } catch (error) {
         console.error('Ошибка при удалении судьи:', error)
-        alert(`Ошибка при удалении судьи: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+        alert(`Ошибка при удалении судьи: ${errorMessage}`)
       }
     }
   }
@@ -128,8 +130,8 @@ export function RefereesManager() {
               {refereesList.length > 0 ? refereesList.map((referee) => (
                 <tr key={referee.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {referee.photo ? (
-                      <img src={referee.photo} alt={referee.name} className="w-8 h-8 rounded" />
+                    {referee.photo_url ? (
+                      <img src={referee.photo_url} alt={referee.name} className="w-8 h-8 rounded" />
                     ) : (
                       <div className="w-8 h-8 bg-gray-500 rounded flex items-center justify-center text-xs">
                         {referee.name?.[0]}
@@ -242,10 +244,10 @@ export function RefereesManager() {
                   onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                 />
-                {editingReferee && editingReferee.photo && (
+                {editingReferee && editingReferee.photo_url && (
                   <div className="mt-2">
                     <p className="text-sm text-white/60 mb-2">Текущее фото:</p>
-                    <img src={editingReferee.photo} alt={editingReferee.name} className="w-20 h-20 object-cover rounded" />
+                    <img src={editingReferee.photo_url} alt={editingReferee.name} className="w-20 h-20 object-cover rounded" />
                   </div>
                 )}
               </div>

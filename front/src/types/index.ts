@@ -3,12 +3,15 @@
 export interface Club {
   id: string
   name: string
-  logo: string
+  short_name?: string
+  logo?: string
+  logo_url?: string
   city: string
   founded?: number
   stadium?: string
   coach?: string
   website?: string
+  is_active?: boolean
 }
 
 export interface Player {
@@ -23,13 +26,18 @@ export interface Player {
   goals_scored?: number
   assists?: number
   yellowCards?: number
+  yellow_cards?: number
   redCards?: number
+  red_cards?: number
   age?: number
   nationality?: string
   date_of_birth?: string
   height?: number
   weight?: number
   bio?: string
+  games_played?: number
+  minutes_played?: number
+  season?: string
 }
 
 export interface Match {
@@ -51,11 +59,17 @@ export interface Match {
 
 export interface TableRow {
   id: string
+  club_name?: string
+  club_logo?: string
   club?: Club
-  played: number
-  win: number
-  draw: number
-  loss: number
+  played?: number
+  matches_played?: number
+  win?: number
+  wins?: number
+  draw?: number
+  draws?: number
+  loss?: number
+  losses?: number
   goals_for: number
   goals_against: number
   goal_difference: number
@@ -63,23 +77,31 @@ export interface TableRow {
   last_5?: Array<'W' | 'D' | 'L'>
   position: number
   season?: string
+  goals_formatted?: string
 }
 
 export interface Season {
   id: string
   name: string
-  startDate: string
-  endDate: string
-  isActive: boolean
+  startDate?: string
+  start_date?: string
+  endDate?: string
+  end_date?: string
+  isActive?: boolean
+  is_active?: boolean
 }
 
 export interface Referee {
   id: string
   name: string
-  photo: string
-  category: string
-  experience: number
-  matches: number
+  photo?: string
+  photo_url?: string
+  category?: string
+  position?: string
+  experience?: number
+  matches?: number
+  bio?: string
+  is_active?: boolean
 }
 
 export interface Manager {
@@ -97,6 +119,16 @@ export interface Partner {
   logo: string
   website?: string
   category: 'main' | 'official' | 'technical'
+}
+
+export interface Media {
+  id: string
+  title: string
+  description?: string
+  image?: string
+  image_url?: string
+  category?: string
+  is_active?: boolean
 }
 
 // Типы для фильтров и поиска
@@ -125,6 +157,13 @@ export interface ApiResponse<T> {
     total: number
     totalPages: number
   }
+}
+
+export interface PaginatedResponse<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
 }
 
 export interface ApiError {

@@ -4,8 +4,6 @@ import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
-import Image from 'next/image'
-import { apiClient } from '@/services/api'
 
 interface ManagementFormData {
   name: string
@@ -28,15 +26,12 @@ export function ManagementManager() {
     phone: ''
   })
 
-  const createManagementMutation = useApiMutation(API_ENDPOINTS.MANAGEMENT, 'POST')
-  const updateManagementMutation = useApiMutation(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManagement?.id?.toString() || ''), 'PUT')
+  const { mutate, loading: mutationLoading, error } = useApiMutation<any>()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     try {
-      console.log('Submitting management data:', formData)
-      
       const formDataToSend = new FormData()
       formDataToSend.append('name', formData.name)
       formDataToSend.append('position', formData.position)
@@ -48,29 +43,24 @@ export function ManagementManager() {
       }
 
       if (editingManagement) {
-        console.log('Updating management:', editingManagement.id)
-        await updateManagementMutation.mutateAsync(formDataToSend)
+        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManagement.id.toString()), 'PUT', formDataToSend)
       } else {
-        console.log('Creating new management')
-        await createManagementMutation.mutateAsync(formDataToSend)
+        await mutate(API_ENDPOINTS.MANAGEMENT, 'POST', formDataToSend)
       }
 
       setIsModalOpen(false)
       setEditingManagement(null)
       setFormData({ name: '', position: '', bio: '', email: '', phone: '' })
       
-      // Принудительно обновляем данные
       setTimeout(() => {
         refetch()
       }, 500)
     } catch (error) {
-      console.error('Ошибка при сохранении руководства:', error)
       alert(`Ошибка при сохранении руководства: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     }
   }
 
   const handleEdit = (management: any) => {
-    console.log('Editing management:', management)
     setEditingManagement(management)
     setFormData({
       name: management.name,
@@ -85,12 +75,9 @@ export function ManagementManager() {
   const handleDelete = async (managementId: string) => {
     if (confirm('Вы уверены, что хотите удалить этого сотрудника?')) {
       try {
-        console.log('Deleting management:', managementId)
-        const response = await apiClient.delete(API_ENDPOINTS.MANAGEMENT_DETAIL(managementId))
-        console.log('Сотрудник удален:', response)
+        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(managementId), 'DELETE')
         refetch()
       } catch (error) {
-        console.error('Ошибка при удалении сотрудника:', error)
         alert(`Ошибка при удалении сотрудника: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
       }
     }
@@ -101,7 +88,6 @@ export function ManagementManager() {
   }
 
   const managementList = Array.isArray(management) ? management : []
-  console.log('Management list:', managementList)
 
   return (
     <div className="p-6">
@@ -269,9 +255,9 @@ export function ManagementManager() {
                 <button
                   type="submit"
                   className="btn btn-primary flex-1"
-                  disabled={createManagementMutation.loading || updateManagementMutation.loading}
+                  disabled={mutationLoading}
                 >
-                  {createManagementMutation.loading || updateManagementMutation.loading ? 'Сохранение...' : 'Сохранить'}
+                  {mutationLoading ? 'Сохранение...' : 'Сохранить'}
                 </button>
                 <button
                   type="button"

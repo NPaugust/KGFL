@@ -1,12 +1,11 @@
 "use client"
-import { useApi } from '@/hooks/useApi'
-import { API_ENDPOINTS } from '@/services/api'
+import { useReferees } from '@/hooks/useReferees'
 import { Loading } from '@/components/Loading'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import Image from 'next/image'
 
 export default function RefereesPage() {
-  const { data: referees, loading, error } = useApi(API_ENDPOINTS.REFEREES)
+  const { referees, loading, error } = useReferees()
 
   if (loading) {
     return (
@@ -32,20 +31,18 @@ export default function RefereesPage() {
     )
   }
 
-  const refereesList = Array.isArray(referees) ? referees : []
-
   return (
     <main className="container-px py-10">
       <Breadcrumbs items={[{ label: 'Судьи' }]} />
       <h1 className="text-3xl font-bold text-center">Судьи</h1>
-      {refereesList.length > 0 ? (
+      {referees.length > 0 ? (
         <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {refereesList.map((referee) => (
+          {referees.map((referee) => (
             <div key={referee.id} className="card p-5">
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative w-16 h-16 overflow-hidden rounded-full">
                   <Image
-                    src={referee.photo || '/1.png'}
+                    src={referee.photo_url || referee.photo || '/1.png'}
                     alt={referee.name}
                     fill
                     className="object-cover"
@@ -57,7 +54,7 @@ export default function RefereesPage() {
                 </div>
               </div>
               <div className="mt-2 rounded bg-white/10 px-2 py-1 text-sm w-fit">
-                Опыт: {referee.experience} лет
+                Опыт: {referee.experience || 0} лет
               </div>
               {referee.bio && (
                 <p className="mt-3 text-sm text-white/70">{referee.bio}</p>

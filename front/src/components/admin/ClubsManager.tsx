@@ -27,8 +27,8 @@ export function ClubsManager() {
     stadium: ''
   })
 
-  const createClubMutation = useApiMutation(API_ENDPOINTS.CLUBS, 'POST')
-  const updateClubMutation = useApiMutation(API_ENDPOINTS.CLUB_DETAIL(editingClub?.id?.toString() || ''), 'PUT')
+  const createClubMutation = useApiMutation()
+  const updateClubMutation = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -36,12 +36,25 @@ export function ClubsManager() {
     try {
       console.log('Submitting club data:', formData)
       
+      const formDataToSend = new FormData()
+      formDataToSend.append('name', formData.name)
+      formDataToSend.append('city', formData.city)
+      if (formData.founded) {
+        formDataToSend.append('founded', formData.founded.toString())
+      }
+      if (formData.stadium) {
+        formDataToSend.append('stadium', formData.stadium)
+      }
+      if (formData.logo) {
+        formDataToSend.append('logo', formData.logo)
+      }
+      
       if (editingClub) {
         console.log('Updating club:', editingClub.id)
-        await updateClubMutation.mutateAsync(formData)
+        await updateClubMutation.mutateAsync(API_ENDPOINTS.CLUB_DETAIL(editingClub.id), 'PUT', formDataToSend)
       } else {
         console.log('Creating new club')
-        await createClubMutation.mutateAsync(formData)
+        await createClubMutation.mutateAsync(API_ENDPOINTS.CLUBS, 'POST', formDataToSend)
       }
       
       setIsModalOpen(false)
@@ -54,7 +67,8 @@ export function ClubsManager() {
       }, 500)
     } catch (error) {
       console.error('Ошибка при сохранении клуба:', error)
-      alert(`Ошибка при сохранении клуба: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+      alert(`Ошибка при сохранении клуба: ${errorMessage}`)
     }
   }
 
@@ -82,7 +96,8 @@ export function ClubsManager() {
         }, 500)
       } catch (error) {
         console.error('Ошибка при удалении клуба:', error)
-        alert(`Ошибка при удалении клуба: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
+        alert(`Ошибка при удалении клуба: ${errorMessage}`)
       }
     }
   }
@@ -123,8 +138,8 @@ export function ClubsManager() {
               {clubsList.length > 0 ? clubsList.map((club) => (
                 <tr key={club.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {club.logo && (
-                      <img src={club.logo} alt={club.name} className="w-8 h-8 rounded" />
+                    {club.logo_url && (
+                      <img src={club.logo_url} alt={club.name} className="w-8 h-8 rounded" />
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{club.name}</td>
@@ -209,6 +224,25 @@ export function ClubsManager() {
                   onChange={(e) => setFormData({ ...formData, stadium: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                 />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  {editingClub ? 'Новый логотип (необязательно)' : 'Логотип'}
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })}
+                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                  required={!editingClub}
+                />
+                {editingClub && editingClub.logo_url && (
+                  <div className="mt-2">
+                    <p className="text-sm text-white/60 mb-2">Текущий логотип:</p>
+                    <img src={editingClub.logo_url} alt={editingClub.name} className="w-20 h-20 object-cover rounded" />
+                  </div>
+                )}
               </div>
               
               <div className="flex gap-2 pt-4">
