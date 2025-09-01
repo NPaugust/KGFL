@@ -77,13 +77,19 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                 <td className="px-4 py-3 font-semibold text-white/80">{r.position || idx + 1}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <Image 
-                      src={r.club_logo || '/logo.png.png'} 
-                      alt={r.club_name || 'Клуб'} 
-                      width={28} 
-                      height={28} 
-                      className="rounded" 
-                    />
+                    {r.club_logo ? (
+                      <Image 
+                        src={r.club_logo.startsWith('http') ? r.club_logo : `/${r.club_logo}`} 
+                        alt={r.club_name || 'Клуб'} 
+                        width={28} 
+                        height={28} 
+                        className="rounded" 
+                      />
+                    ) : (
+                      <div className="w-7 h-7 bg-white/10 rounded flex items-center justify-center text-xs text-white/40">
+                        {r.club_name?.[0] || 'К'}
+                      </div>
+                    )}
                     <span className="font-medium">{r.club_name || 'Неизвестный клуб'}</span>
                   </div>
                 </td>
@@ -93,8 +99,8 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                 <td className="px-4 py-3">{r.losses || r.loss || 0}</td>
                 <td className="px-4 py-3">{r.goals_formatted || `${r.goals_for}:${r.goals_against}`}</td>
                 <td className="px-4 py-3 text-center font-medium">
-                  <span className={r.goal_difference > 0 ? 'text-green-400' : r.goal_difference < 0 ? 'text-red-400' : 'text-gray-400'}>
-                    {r.goal_difference > 0 ? '+' : ''}{r.goal_difference}
+                  <span className={(r.goal_difference || 0) > 0 ? 'text-green-400' : (r.goal_difference || 0) < 0 ? 'text-red-400' : 'text-gray-400'}>
+                    {(r.goal_difference || 0) > 0 ? '+' : ''}{r.goal_difference || 0}
                   </span>
                 </td>
                 <td className="px-4 py-3 text-center font-bold text-[#F0D9C3]">{r.points}</td>

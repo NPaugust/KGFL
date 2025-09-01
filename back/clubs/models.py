@@ -26,6 +26,7 @@ class Club(models.Model):
     
     city = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Город')
     )
     
@@ -92,11 +93,13 @@ class Coach(models.Model):
     
     first_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Имя')
     )
     
     last_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Фамилия')
     )
     

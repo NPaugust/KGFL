@@ -151,7 +151,18 @@ class ApiClient {
   async post<T>(url: string, data?: any): Promise<T> {
     try {
       console.log('API POST Request:', `${this.client.defaults.baseURL}${url}`, data)
-      const response: AxiosResponse<T> = await this.client.post(url, data)
+      
+      // Определяем Content-Type в зависимости от типа данных
+      let config = {}
+      if (data instanceof FormData) {
+        config = {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      }
+      
+      const response: AxiosResponse<T> = await this.client.post(url, data, config)
       console.log('API POST Response:', response.data)
       return response.data
     } catch (error) {
@@ -163,7 +174,18 @@ class ApiClient {
   async put<T>(url: string, data?: any): Promise<T> {
     try {
       console.log('API PUT Request:', `${this.client.defaults.baseURL}${url}`, data)
-      const response: AxiosResponse<T> = await this.client.put(url, data)
+      
+      // Определяем Content-Type в зависимости от типа данных
+      let config = {}
+      if (data instanceof FormData) {
+        config = {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      }
+      
+      const response: AxiosResponse<T> = await this.client.put(url, data, config)
       console.log('API PUT Response:', response.data)
       return response.data
     } catch (error) {
@@ -175,7 +197,18 @@ class ApiClient {
   async patch<T>(url: string, data?: any): Promise<T> {
     try {
       console.log('API PATCH Request:', `${this.client.defaults.baseURL}${url}`, data)
-      const response: AxiosResponse<T> = await this.client.patch(url, data)
+      
+      // Определяем Content-Type в зависимости от типа данных
+      let config = {}
+      if (data instanceof FormData) {
+        config = {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      }
+      
+      const response: AxiosResponse<T> = await this.client.patch(url, data, config)
       console.log('API PATCH Response:', response.data)
       return response.data
     } catch (error) {
@@ -210,7 +243,7 @@ export const API_ENDPOINTS = {
   SEASONS: '/seasons/',
   ACTIVE_SEASON: '/seasons/active/',
   PARTNERS: '/partners/',
-  PARTNERS_BY_CATEGORY: '/partners/by_category/',
+  PARTNER_DETAIL: (id: string) => `/partners/${id}/`,
   
   // Клубы
   CLUBS: '/clubs/',
@@ -233,7 +266,7 @@ export const API_ENDPOINTS = {
   // Игроки
   PLAYERS: '/players/',
   PLAYER_DETAIL: (id: string) => `/players/${id}/`,
-  TOP_SCORERS: '/players/top-scorers/',
+  TOP_SCORERS: '/players/top_scorers/',
   PLAYER_STATS: '/player-stats/',
   
   // Судьи

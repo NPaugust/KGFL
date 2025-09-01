@@ -9,7 +9,6 @@ import { apiClient } from '@/services/api'
 
 interface MediaFormData {
   title: string
-  description: string
   category: string
   image?: File
 }
@@ -20,7 +19,6 @@ export function MediaManager() {
   const [editingMedia, setEditingMedia] = useState<any>(null)
   const [formData, setFormData] = useState<MediaFormData>({
     title: '',
-    description: '',
     category: 'gallery'
   })
 
@@ -35,15 +33,14 @@ export function MediaManager() {
       
       const formDataToSend = new FormData()
       formDataToSend.append('title', formData.title)
-      formDataToSend.append('description', formData.description)
       formDataToSend.append('category', formData.category)
       if (formData.image) {
         formDataToSend.append('image', formData.image)
-      } else if (!editingMedia) {
-        // Если изображение не выбрано и это создание нового медиа
-        console.error('Изображение обязательно для загрузки')
-        alert('Пожалуйста, выберите изображение')
-        return
+      }
+
+      console.log('FormData entries:')
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}: ${value}`)
       }
 
       if (editingMedia) {
@@ -56,14 +53,12 @@ export function MediaManager() {
 
       setIsModalOpen(false)
       setEditingMedia(null)
-      setFormData({ title: '', description: '', category: 'gallery' })
+      setFormData({ title: '', category: 'gallery' })
       
-      // Принудительно обновляем данные
-      setTimeout(() => {
-        refetch()
-      }, 500)
+      // Обновляем данные сразу
+      refetch()
     } catch (error) {
-      console.error('Ошибка при сохранении медиа:', error)
+      console.error('Error saving media:', error)
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
       alert(`Ошибка при сохранении медиа: ${errorMessage}`)
     }
@@ -74,7 +69,6 @@ export function MediaManager() {
     setEditingMedia(media)
     setFormData({
       title: media.title,
-      description: media.description || '',
       category: media.category
     })
     setIsModalOpen(true)
@@ -190,57 +184,43 @@ export function MediaManager() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Название</label>
+                <label className="block text-sm font-medium mb-1">Название *</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                  placeholder="Например: Фото с матча, Логотип команды, Портрет игрока"
                   required
                 />
+
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Описание</label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  rows={3}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Категория</label>
+                <label className="block text-sm font-medium mb-1">Категория *</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                   required
                 >
-                  <option value="gallery">Галерея</option>
-                  <option value="news">Новости</option>
-                  <option value="other">Другое</option>
+                  <option value="gallery">Галерея - общие фотографии</option>
+                  <option value="news">Новости - фото для новостей</option>
+                  <option value="events">События - фото с мероприятий</option>
+                  <option value="other">Другое - прочие изображения</option>
                 </select>
+
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {editingMedia ? 'Новое изображение (необязательно)' : 'Изображение'}
-                </label>
+                <label className="block text-sm font-medium mb-1">Изображение</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required={!editingMedia}
                 />
-                {editingMedia && editingMedia.image_url && (
-                  <div className="mt-2">
-                    <p className="text-sm text-white/60 mb-2">Текущее изображение:</p>
-                    <img src={editingMedia.image_url} alt={editingMedia.title} className="w-20 h-20 object-cover rounded" />
-                  </div>
-                )}
+
               </div>
               
               <div className="flex gap-2 pt-4">
@@ -256,7 +236,7 @@ export function MediaManager() {
                   onClick={() => {
                     setIsModalOpen(false)
                     setEditingMedia(null)
-                    setFormData({ title: '', description: '', category: 'gallery' })
+                    setFormData({ title: '', category: 'gallery' })
                   }}
                   className="btn btn-outline flex-1"
                 >

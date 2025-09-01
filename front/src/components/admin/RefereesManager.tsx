@@ -11,7 +11,7 @@ interface RefereeFormData {
   name: string
   position: string
   experience: number
-  bio: string
+  bio?: string
   photo?: File
 }
 
@@ -22,8 +22,7 @@ export function RefereesManager() {
   const [formData, setFormData] = useState<RefereeFormData>({
     name: '',
     position: '',
-    experience: 0,
-    bio: ''
+    experience: 0
   })
 
   const createRefereeMutation = useApiMutation()
@@ -39,7 +38,6 @@ export function RefereesManager() {
       formDataToSend.append('name', formData.name)
       formDataToSend.append('position', formData.position)
       formDataToSend.append('experience', formData.experience.toString())
-      formDataToSend.append('bio', formData.bio)
       if (formData.photo) {
         formDataToSend.append('photo', formData.photo)
       }
@@ -54,12 +52,11 @@ export function RefereesManager() {
 
       setIsModalOpen(false)
       setEditingReferee(null)
-      setFormData({ name: '', position: '', experience: 0, bio: '' })
+      setFormData({ name: '', position: '', experience: 0 })
       
       // Принудительно обновляем данные
-      setTimeout(() => {
-        refetch()
-      }, 500)
+      // Обновляем данные сразу
+      refetch()
     } catch (error) {
       console.error('Ошибка при сохранении судьи:', error)
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
@@ -73,8 +70,7 @@ export function RefereesManager() {
     setFormData({
       name: referee.name,
       position: referee.position,
-      experience: referee.experience || 0,
-      bio: referee.bio || ''
+      experience: referee.experience || 0
     })
     setIsModalOpen(true)
   }
@@ -185,34 +181,38 @@ export function RefereesManager() {
             
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Имя</label>
+                <label className="block text-sm font-medium mb-1">ФИО *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                  placeholder="Например: Иванов Иван Иванович, Петров Петр Петрович"
                   required
                 />
+
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Позиция</label>
+                <label className="block text-sm font-medium mb-1">Должность *</label>
                 <select
                   value={formData.position}
                   onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                   required
                 >
-                  <option value="">Выберите позицию</option>
+                  <option value="">Выберите должность</option>
                   <option value="Главный судья">Главный судья</option>
                   <option value="Помощник судьи">Помощник судьи</option>
                   <option value="Четвертый судья">Четвертый судья</option>
-                  <option value="VAR">VAR</option>
+                  <option value="VAR судья">VAR судья</option>
+                  <option value="Инспектор">Инспектор</option>
                 </select>
+
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">Опыт (лет)</label>
+                <label className="block text-sm font-medium mb-1">Опыт работы (лет) *</label>
                 <input
                   type="number"
                   min="0"
@@ -220,8 +220,10 @@ export function RefereesManager() {
                   value={formData.experience}
                   onChange={(e) => setFormData({ ...formData, experience: parseInt(e.target.value) || 0 })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                  placeholder="0"
                   required
                 />
+
               </div>
               
               <div>
@@ -231,25 +233,20 @@ export function RefereesManager() {
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                   rows={3}
+                  placeholder="Краткая информация о судье, образование, достижения..."
                 />
+
               </div>
               
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {editingReferee ? 'Новое фото (необязательно)' : 'Фото'}
-                </label>
+                <label className="block text-sm font-medium mb-1">Фото</label>
                 <input
                   type="file"
                   accept="image/*"
                   onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                 />
-                {editingReferee && editingReferee.photo_url && (
-                  <div className="mt-2">
-                    <p className="text-sm text-white/60 mb-2">Текущее фото:</p>
-                    <img src={editingReferee.photo_url} alt={editingReferee.name} className="w-20 h-20 object-cover rounded" />
-                  </div>
-                )}
+
               </div>
               
               <div className="flex gap-2 pt-4">
@@ -265,7 +262,7 @@ export function RefereesManager() {
                   onClick={() => {
                     setIsModalOpen(false)
                     setEditingReferee(null)
-                    setFormData({ name: '', position: '', experience: 0, bio: '' })
+                    setFormData({ name: '', position: '', experience: 0 })
                   }}
                   className="btn btn-outline flex-1"
                 >

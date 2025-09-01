@@ -66,9 +66,8 @@ export function StatsManager() {
       })
       
       // Принудительно обновляем данные
-      setTimeout(() => {
-        refetch()
-      }, 500)
+      // Обновляем данные сразу
+      refetch()
     } catch (error) {
       console.error('Ошибка при сохранении статистики:', error)
       const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'

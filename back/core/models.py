@@ -4,19 +4,12 @@ from django.utils.translation import gettext_lazy as _
 
 
 class User(AbstractUser):
-    """Кастомная модель пользователя для KGFL."""
+    """Кастомная модель пользователя для KGFL - только админ."""
     
-    class Role(models.TextChoices):
-        ADMIN = 'admin', _('Администратор')
-        MODERATOR = 'moderator', _('Модератор')
-        EDITOR = 'editor', _('Редактор')
-        VIEWER = 'viewer', _('Просмотр')
-    
-    role = models.CharField(
-        max_length=20,
-        choices=Role.choices,
-        default=Role.VIEWER,
-        verbose_name=_('Роль')
+    # Убираем все роли, оставляем только админа
+    is_admin = models.BooleanField(
+        default=True,
+        verbose_name=_('Администратор')
     )
     
     phone = models.CharField(
@@ -58,19 +51,19 @@ class User(AbstractUser):
         ordering = ['-created_at']
     
     def __str__(self):
-        return f"{self.username} ({self.get_role_display()})"
+        return f"{self.username} (Администратор)"
     
     @property
     def is_admin(self):
-        return self.role == self.Role.ADMIN
+        return True  # Всегда админ
     
     @property
     def is_moderator(self):
-        return self.role in [self.Role.ADMIN, self.Role.MODERATOR]
+        return True  # Всегда модератор
     
     @property
     def is_editor(self):
-        return self.role in [self.Role.ADMIN, self.Role.MODERATOR, self.Role.EDITOR]
+        return True  # Всегда редактор
 
 
 class Season(models.Model):
@@ -78,14 +71,19 @@ class Season(models.Model):
     
     name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Название')
     )
     
     start_date = models.DateField(
+        blank=True,
+        null=True,
         verbose_name=_('Дата начала')
     )
     
     end_date = models.DateField(
+        blank=True,
+        null=True,
         verbose_name=_('Дата окончания')
     )
     
@@ -134,11 +132,14 @@ class Partner(models.Model):
     
     name = models.CharField(
         max_length=200,
+        blank=True,
         verbose_name=_('Название')
     )
     
     logo = models.ImageField(
         upload_to='partners/',
+        blank=True,
+        null=True,
         verbose_name=_('Логотип')
     )
     
@@ -146,6 +147,7 @@ class Partner(models.Model):
         max_length=20,
         choices=Category.choices,
         default=Category.OFFICIAL,
+        blank=True,
         verbose_name=_('Категория')
     )
     
@@ -193,16 +195,14 @@ class Media(models.Model):
     
     title = models.CharField(
         max_length=200,
-        verbose_name=_('Название')
-    )
-    
-    description = models.TextField(
         blank=True,
-        verbose_name=_('Описание')
+        verbose_name=_('Название')
     )
     
     image = models.ImageField(
         upload_to='media/',
+        blank=True,
+        null=True,
         verbose_name=_('Изображение')
     )
     
@@ -215,6 +215,7 @@ class Media(models.Model):
             ('other', 'Другое'),
         ],
         default='gallery',
+        blank=True,
         verbose_name=_('Категория')
     )
     
@@ -252,17 +253,20 @@ class Referee(models.Model):
     
     name = models.CharField(
         max_length=200,
+        blank=True,
         verbose_name=_('ФИО')
     )
     
     photo = models.ImageField(
         upload_to='referees/',
         blank=True,
+        null=True,
         verbose_name=_('Фото')
     )
     
     position = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Должность')
     )
     
@@ -310,17 +314,20 @@ class Management(models.Model):
     
     name = models.CharField(
         max_length=200,
+        blank=True,
         verbose_name=_('ФИО')
     )
     
     photo = models.ImageField(
         upload_to='management/',
         blank=True,
+        null=True,
         verbose_name=_('Фото')
     )
     
     position = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Должность')
     )
     

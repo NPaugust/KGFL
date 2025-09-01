@@ -27,7 +27,7 @@ class ClubListSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = Club
-        fields = ['id', 'name', 'short_name', 'logo', 'logo_url', 'city', 'founded', 'is_active']
+        fields = ['id', 'name', 'short_name', 'logo', 'logo_url', 'city', 'founded', 'stadium', 'is_active']
     
     def get_logo_url(self, obj):
         if obj.logo:

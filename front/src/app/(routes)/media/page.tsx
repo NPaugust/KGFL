@@ -53,12 +53,21 @@ export default function MediaPage() {
             {media.map((item) => (
               <div key={item.id} className="card overflow-hidden group cursor-pointer">
                 <div className="relative aspect-square overflow-hidden">
-                  <Image
-                    src={item.image_url || item.image || '/placeholder.jpg'}
-                    alt={item.title}
-                    fill
-                    className="object-cover transition-transform duration-300 group-hover:scale-110"
-                  />
+                  {item.image_url || item.image ? (
+                    <Image
+                      src={(() => {
+                        const image = item.image_url || item.image
+                        return image?.startsWith('http') ? image : `/${image}`
+                      })()}
+                      alt={item.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-110"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-white/10 flex items-center justify-center text-4xl text-white/40 font-bold">
+                      {item.title?.[0] || 'М'}
+                    </div>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-semibold mb-2">{item.title}</h3>
@@ -71,9 +80,11 @@ export default function MediaPage() {
           </div>
         ) : (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">📸</div>
-            <h2 className="text-2xl font-bold mb-2">Галерея пуста</h2>
-            <p className="text-white/70">Фотографии будут добавлены в ближайшее время</p>
+            <div className="w-20 h-20 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
+              <span className="text-brand-primary font-bold text-3xl">М</span>
+            </div>
+            <h3 className="text-xl font-semibold mb-2">Фотографии не найдены</h3>
+            <p className="text-white/70">Галерея будет обновлена новыми фотографиями</p>
           </div>
         )}
       </section>

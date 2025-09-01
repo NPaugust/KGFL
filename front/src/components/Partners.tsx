@@ -42,13 +42,19 @@ export function Partners() {
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">
         {partnersList.length > 0 ? partnersList.map((partner: any, i: number) => (
           <Reveal key={partner.id || i} className="card p-4" delay={150 + i * 50}>
-            <Image 
-              src={partner.logo || "/logo.png.png"} 
-              alt={partner.name || "Партнер"} 
-              width={80} 
-              height={80} 
-              className="mx-auto h-20 w-20" 
-            />
+            {partner.logo ? (
+              <Image 
+                src={partner.logo.startsWith('http') ? partner.logo : `/${partner.logo}`} 
+                alt={partner.name || "Партнер"} 
+                width={80} 
+                height={80} 
+                className="mx-auto h-20 w-20" 
+              />
+            ) : (
+              <div className="mx-auto h-20 w-20 bg-white/10 rounded flex items-center justify-center text-2xl text-white/40 font-bold">
+                {partner.name?.[0] || 'П'}
+              </div>
+            )}
             <div className="mt-2 text-center">
               <p className="text-sm font-medium">{partner.name}</p>
               {partner.category && (

@@ -8,12 +8,12 @@ class ClubAdmin(admin.ModelAdmin):
     
     list_display = ['name', 'short_name', 'city', 'founded', 'is_active', 'created_at']
     list_filter = ['is_active', 'city', 'founded', 'created_at']
-    search_fields = ['name', 'short_name', 'city', 'description']
+    search_fields = ['name', 'short_name', 'city']
     ordering = ['name']
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'short_name', 'description')
+            'fields': ('name', 'short_name')
         }),
         ('Местоположение', {
             'fields': ('city', 'stadium', 'stadium_capacity')
@@ -36,7 +36,7 @@ class CoachAdmin(admin.ModelAdmin):
     
     list_display = ['first_name', 'last_name', 'club', 'season', 'nationality', 'is_active']
     list_filter = ['is_active', 'nationality', 'season', 'club', 'created_at']
-    search_fields = ['first_name', 'last_name', 'bio']
+    search_fields = ['first_name', 'last_name']
     ordering = ['last_name', 'first_name']
     
     fieldsets = (
@@ -45,9 +45,6 @@ class CoachAdmin(admin.ModelAdmin):
         }),
         ('Клуб и сезон', {
             'fields': ('club', 'season')
-        }),
-        ('Биография', {
-            'fields': ('bio',)
         }),
         ('Медиа', {
             'fields': ('photo',)

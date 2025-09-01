@@ -42,8 +42,8 @@ export default function ClubsPage() {
           {clubsList.map((club) => (
             <Link key={club.id} href={`/clubs/${club.id}`} className="card p-5 hover:bg-white/10 transition-colors">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-brand-primary rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-lg">⚽</span>
+                <div className="w-12 h-12 bg-brand-primary/20 rounded-lg flex items-center justify-center">
+                  <span className="text-brand-primary font-bold text-lg">К</span>
                 </div>
                 <div>
                   <div className="font-semibold">{club.name}</div>
@@ -54,10 +54,12 @@ export default function ClubsPage() {
           ))}
         </div>
       ) : (
-        <div className="mt-6 text-center py-16">
-          <div className="text-6xl mb-4">⚽</div>
+        <div className="text-center py-16">
+          <div className="w-20 h-20 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
+            <span className="text-brand-primary font-bold text-3xl">К</span>
+          </div>
           <h3 className="text-xl font-semibold mb-2">Клубы не найдены</h3>
-          <p className="text-white/70">Клубы будут добавлены в ближайшее время</p>
+          <p className="text-white/70">Информация о клубах будет добавлена позже</p>
         </div>
       )}
     </main>

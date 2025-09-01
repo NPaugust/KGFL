@@ -21,9 +21,6 @@ class ManagerAdmin(admin.ModelAdmin):
         ('Контакты', {
             'fields': ('email', 'phone')
         }),
-        ('Биография', {
-            'fields': ('bio',)
-        }),
         ('Медиа', {
             'fields': ('photo',)
         }),

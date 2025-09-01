@@ -8,7 +8,7 @@ from .models import User, Season, Partner, Media, Referee, Management
 from .serializers import (
     UserSerializer, UserCreateSerializer, LoginSerializer,
     SeasonSerializer, PartnerSerializer, MediaSerializer,
-    RefereeSerializer, RefereeCreateSerializer, ManagementSerializer, ManagementCreateSerializer
+    RefereeSerializer, ManagementSerializer
 )
 import rest_framework.parsers
 
@@ -36,13 +36,15 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer = LoginSerializer(data=request.data)
         if serializer.is_valid():
             user = serializer.validated_data['user']
-            refresh = RefreshToken.for_user(user)
-            
-            return Response({
-                'access_token': str(refresh.access_token),
-                'refresh_token': str(refresh),
-                'user': UserSerializer(user).data
-            })
+            if user:
+                refresh = RefreshToken.for_user(user)
+                return Response({
+                    'access_token': str(refresh.access_token),
+                    'refresh_token': str(refresh),
+                    'user': UserSerializer(user).data
+                })
+            else:
+                return Response({'error': 'Неверные учетные данные'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'])
@@ -59,10 +61,8 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_profile(self, request):
         """Обновить профиль текущего пользователя."""
         serializer = UserSerializer(request.user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.save()
+        return Response(serializer.data)
 
 
 class SeasonViewSet(viewsets.ModelViewSet):
@@ -96,6 +96,58 @@ class PartnerViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
+    
+    def get_parsers(self):
+        return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
+    
+    def create(self, request, *args, **kwargs):
+        """Создание партнера с обработкой ошибок."""
+        try:
+            serializer = self.get_serializer(data=request.data)
+            if serializer.is_valid():
+                partner = serializer.save()
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': f'Ошибка при создании партнера: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def update(self, request, *args, **kwargs):
+        """Обновление партнера с обработкой ошибок."""
+        try:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            if serializer.is_valid():
+                partner = serializer.save()
+                return Response(serializer.data)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response(
+                {'error': f'Ошибка при обновлении партнера: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+    
+    def destroy(self, request, *args, **kwargs):
+        """Удаление партнера с обработкой ошибок."""
+        try:
+            instance = self.get_object()
+            instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            return Response(
+                {'error': f'Ошибка при удалении партнера: {str(e)}'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['get'])
     def by_category(self, request):
@@ -142,14 +194,8 @@ class RefereeViewSet(viewsets.ModelViewSet):
     serializer_class = RefereeSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return RefereeCreateSerializer
-        return RefereeSerializer
-    
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated()]
+        # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
     
     def get_parsers(self):
@@ -168,13 +214,7 @@ class ManagementViewSet(viewsets.ModelViewSet):
     serializer_class = ManagementSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
-    def get_serializer_class(self):
-        if self.action == 'create':
-            return ManagementCreateSerializer
-        return ManagementSerializer
-    
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated()]
+        # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
  

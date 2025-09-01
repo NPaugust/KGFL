@@ -1,46 +1,43 @@
 from rest_framework import serializers
 from .models import Match, Goal, Card, Substitution
+from clubs.models import Club
+from core.models import Season
 from datetime import datetime
 
 
 class MatchCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания матчей."""
     
-    date = serializers.DateField(required=False, allow_null=True)
-    season = serializers.PrimaryKeyRelatedField(read_only=True)
-    home_team = serializers.PrimaryKeyRelatedField(queryset=Match._meta.get_field('home_team').related_model.objects.all(), required=False)
-    away_team = serializers.PrimaryKeyRelatedField(queryset=Match._meta.get_field('away_team').related_model.objects.all(), required=False)
-    
-    def validate_date(self, value):
-        """Преобразуем datetime в date."""
-        if not value:
-            return None
-        if isinstance(value, str):
-            try:
-                # Парсим date строку
-                from datetime import datetime
-                dt = datetime.strptime(value, '%Y-%m-%d')
-                return dt.date()
-            except ValueError:
-                raise serializers.ValidationError("Неверный формат даты")
-        elif hasattr(value, 'date'):
-            return value.date()
-        return value
-    
-    def create(self, validated_data):
-        """Автоматически назначаем активный сезон."""
-        from core.models import Season
-        try:
-            active_season = Season.objects.get(is_active=True)
-            validated_data['season'] = active_season
-        except Season.DoesNotExist:
-            raise serializers.ValidationError("Активный сезон не найден")
-        
-        return super().create(validated_data)
-    
     class Meta:
         model = Match
         fields = '__all__'
+    
+    def validate(self, attrs):
+        """Валидация данных матча."""
+        status = attrs.get('status')
+        
+        # Если статус "Завершен", счет обязателен
+        if status == 'finished':
+            home_score = attrs.get('home_score')
+            away_score = attrs.get('away_score')
+            
+            if home_score is None or away_score is None:
+                raise serializers.ValidationError(
+                    "Для завершенных матчей счет обязателен"
+                )
+            
+            # Счет не может быть отрицательным
+            if home_score < 0 or away_score < 0:
+                raise serializers.ValidationError(
+                    "Счет не может быть отрицательным"
+                )
+        
+        # Если статус "Запланирован", счет должен быть null
+        elif status == 'scheduled':
+            attrs['home_score'] = None
+            attrs['away_score'] = None
+        
+        return attrs
 
 
 class MatchSerializer(serializers.ModelSerializer):
@@ -99,8 +96,8 @@ class CardSerializer(serializers.ModelSerializer):
 class SubstitutionSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Substitution."""
     
-    player_in_name = serializers.CharField(source='player_in.full_name', read_only=True)
     player_out_name = serializers.CharField(source='player_out.full_name', read_only=True)
+    player_in_name = serializers.CharField(source='player_in.full_name', read_only=True)
     team_name = serializers.CharField(source='team.name', read_only=True)
     
     class Meta:

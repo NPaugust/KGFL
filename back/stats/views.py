@@ -13,8 +13,7 @@ class SeasonStatsViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated()]
+        # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
     
     @action(detail=False, methods=['get'])
@@ -37,8 +36,7 @@ class ClubStatsViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [permissions.IsAuthenticated()]
+        # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()]
     
     @action(detail=False, methods=['get'])

@@ -17,7 +17,6 @@ interface PlayerFormData {
   number?: number
   height?: number
   weight?: number
-  bio?: string
 }
 
 export function PlayersManager() {
@@ -59,13 +58,18 @@ export function PlayersManager() {
       if (formData.weight) {
         formDataToSend.append('weight', formData.weight.toString())
       }
-      if (formData.bio) {
-        formDataToSend.append('bio', formData.bio)
+
+      console.log('Submitting player data:', formData)
+      console.log('FormData entries:')
+      for (let [key, value] of formDataToSend.entries()) {
+        console.log(`${key}: ${value}`)
       }
 
       if (editingPlayer) {
+        console.log('Updating player:', editingPlayer.id)
         await mutate(API_ENDPOINTS.PLAYER_DETAIL(editingPlayer.id.toString()), 'PUT', formDataToSend)
       } else {
+        console.log('Creating new player')
         await mutate(API_ENDPOINTS.PLAYERS, 'POST', formDataToSend)
       }
 
@@ -73,10 +77,17 @@ export function PlayersManager() {
       setEditingPlayer(null)
       setFormData({ first_name: '', last_name: '', position: '', nationality: '', club: '', date_of_birth: '' })
       
-      setTimeout(() => {
-        refetch()
-      }, 500)
+      // Обновляем данные сразу
+      refetch()
+      
+      // Автоматически обновляем связанные данные
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('data-updated', { 
+          detail: { url: '/players/top_scorers/', method: 'POST' } 
+        }))
+      }
     } catch (error) {
+      console.error('Error saving player:', error)
       alert(`Ошибка при сохранении игрока: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     }
   }
@@ -89,11 +100,10 @@ export function PlayersManager() {
       position: player.position || '',
       nationality: player.nationality || '',
       club: player.club?.id ? player.club.id.toString() : '',
-      date_of_birth: player.date_of_birth || '',
+      date_of_birth: player.date_of_birth ? new Date(player.date_of_birth).toISOString().split('T')[0] : '',
       number: player.number,
       height: player.height,
       weight: player.weight,
-      bio: player.bio
     })
     setIsModalOpen(true)
   }
@@ -203,81 +213,91 @@ export function PlayersManager() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Имя</label>
+                  <label className="block text-sm font-medium mb-1">Имя *</label>
                   <input
                     type="text"
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    placeholder="Например: Айбек, Данияр"
                     required
                   />
+
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Фамилия</label>
+                  <label className="block text-sm font-medium mb-1">Фамилия *</label>
                   <input
                     type="text"
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    placeholder="Например: Абдыкадыров, Усенов"
                     required
                   />
+
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Позиция</label>
-                <select
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
-                >
-                  <option value="">Выберите позицию</option>
-                  <option value="Вратарь">Вратарь</option>
-                  <option value="Защитник">Защитник</option>
-                  <option value="Полузащитник">Полузащитник</option>
-                  <option value="Нападающий">Нападающий</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Позиция *</label>
+                  <select
+                    value={formData.position}
+                    onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    required
+                  >
+                    <option value="">Выберите позицию</option>
+                    <option value="GK">Вратарь (GK)</option>
+                    <option value="DF">Защитник (DF)</option>
+                    <option value="MF">Полузащитник (MF)</option>
+                    <option value="FW">Нападающий (FW)</option>
+                  </select>
+
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Клуб</label>
+                  <select
+                    value={formData.club}
+                    onChange={(e) => setFormData({ ...formData, club: e.target.value })}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                  >
+                    <option value="">Выберите клуб</option>
+                    {clubsList.map((club) => (
+                      <option key={club.id} value={club.id}>
+                        {club.name}
+                      </option>
+                    ))}
+                  </select>
+
+                </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Клуб</label>
-                <select
-                  value={formData.club}
-                  onChange={(e) => setFormData({ ...formData, club: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
-                >
-                  <option value="">Выберите клуб</option>
-                  {clubsList.map((club) => (
-                    <option key={club.id} value={club.id}>
-                      {club.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Национальность</label>
-                <input
-                  type="text"
-                  value={formData.nationality}
-                  onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Дата рождения</label>
-                <input
-                  type="date"
-                  value={formData.date_of_birth}
-                  onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Национальность</label>
+                  <input
+                    type="text"
+                    value={formData.nationality}
+                    onChange={(e) => setFormData({ ...formData, nationality: e.target.value })}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    placeholder="Например: Кыргыз, Узбек, Русский"
+                  />
+
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium mb-1">Дата рождения</label>
+                  <input
+                    type="date"
+                    value={formData.date_of_birth}
+                    onChange={(e) => setFormData({ ...formData, date_of_birth: e.target.value })}
+                    className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                  />
+
+                </div>
               </div>
               
               <div className="grid grid-cols-3 gap-4">
@@ -290,42 +310,38 @@ export function PlayersManager() {
                     value={formData.number || ''}
                     onChange={(e) => setFormData({ ...formData, number: parseInt(e.target.value) || undefined })}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    placeholder="1-99"
                   />
+
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium mb-1">Рост (см)</label>
                   <input
                     type="number"
-                    min="150"
-                    max="220"
+                    min="100"
+                    max="250"
                     value={formData.height || ''}
                     onChange={(e) => setFormData({ ...formData, height: parseInt(e.target.value) || undefined })}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    placeholder="170"
                   />
+
                 </div>
                 
                 <div>
                   <label className="block text-sm font-medium mb-1">Вес (кг)</label>
                   <input
                     type="number"
-                    min="50"
-                    max="120"
+                    min="40"
+                    max="150"
                     value={formData.weight || ''}
                     onChange={(e) => setFormData({ ...formData, weight: parseInt(e.target.value) || undefined })}
                     className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
+                    placeholder="70"
                   />
+
                 </div>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Биография</label>
-                <textarea
-                  value={formData.bio || ''}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  rows={3}
-                />
               </div>
               
               <div>
@@ -336,6 +352,7 @@ export function PlayersManager() {
                   onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
                 />
+
               </div>
               
               <div className="flex gap-2 pt-4">

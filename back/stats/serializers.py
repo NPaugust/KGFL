@@ -17,6 +17,7 @@ class ClubStatsSerializer(serializers.ModelSerializer):
     
     club_name = serializers.CharField(source='club.name', read_only=True)
     season_name = serializers.CharField(source='season.name', read_only=True)
+    goal_difference = serializers.IntegerField(read_only=True)
     
     class Meta:
         model = ClubStats

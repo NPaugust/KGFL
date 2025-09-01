@@ -47,12 +47,18 @@ function VerticalScorers() {
           </div>
           <div className="mt-3 flex justify-center">
             <div className="relative h-12 w-12 overflow-hidden rounded-full">
-              <Image
-                src={player.photo || '/1.png'}
-                alt={`${player.first_name} ${player.last_name}`}
-                fill
-                className="object-cover"
-              />
+              {player.photo ? (
+                <Image
+                  src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`}
+                  alt={`${player.first_name} ${player.last_name}`}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-white/10 flex items-center justify-center text-lg text-white/40 font-bold">
+                  {player.first_name?.[0]}{player.last_name?.[0]}
+                </div>
+              )}
             </div>
           </div>
         </div>

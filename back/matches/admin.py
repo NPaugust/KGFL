@@ -22,7 +22,7 @@ class MatchAdmin(admin.ModelAdmin):
             'fields': ('status', 'home_score', 'away_score', 'home_score_ht', 'away_score_ht')
         }),
         ('Дополнительно', {
-            'fields': ('attendance', 'description')
+            'fields': ('attendance',)
         }),
     )
     
@@ -45,7 +45,7 @@ class GoalAdmin(admin.ModelAdmin):
             'fields': ('match', 'scorer', 'assist', 'team')
         }),
         ('Детали гола', {
-            'fields': ('minute', 'goal_type', 'description')
+            'fields': ('minute', 'goal_type')
         }),
     )
 
@@ -64,7 +64,7 @@ class CardAdmin(admin.ModelAdmin):
             'fields': ('match', 'player', 'team')
         }),
         ('Детали карточки', {
-            'fields': ('card_type', 'minute', 'reason')
+            'fields': ('card_type', 'minute')
         }),
     )
 

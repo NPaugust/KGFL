@@ -21,9 +21,6 @@ class PlayerAdmin(admin.ModelAdmin):
         ('Физические данные', {
             'fields': ('height', 'weight')
         }),
-        ('Биография', {
-            'fields': ('bio',)
-        }),
         ('Медиа', {
             'fields': ('photo',)
         }),

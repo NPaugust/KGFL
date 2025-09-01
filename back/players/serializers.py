@@ -5,19 +5,6 @@ from .models import Player, PlayerStats
 class PlayerCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания игроков."""
     
-    season = serializers.PrimaryKeyRelatedField(read_only=True)
-    
-    def create(self, validated_data):
-        """Автоматически назначаем активный сезон."""
-        from core.models import Season
-        try:
-            active_season = Season.objects.get(is_active=True)
-            validated_data['season'] = active_season
-        except Season.DoesNotExist:
-            raise serializers.ValidationError("Активный сезон не найден")
-        
-        return super().create(validated_data)
-    
     class Meta:
         model = Player
         fields = '__all__'

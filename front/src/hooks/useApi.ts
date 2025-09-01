@@ -16,16 +16,23 @@ export function useApi<T>(
     try {
       setLoading(true)
       setError(null)
+      console.log('Fetching data from:', url, 'with params:', params)
+      
       const result = await apiClient.get<T | PaginatedResponse<T>>(url, params)
+      console.log('API response received:', result)
       
       // Обрабатываем пагинацию
       if (result && typeof result === 'object' && 'results' in result) {
+        console.log('Paginated response detected, setting results')
         setData((result as PaginatedResponse<T>).results as T)
       } else {
+        console.log('Direct response detected, setting data')
         setData(result as T)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Произошла ошибка')
+      console.error('Error in useApi hook:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -37,6 +44,21 @@ export function useApi<T>(
 
   useEffect(() => {
     fetchData()
+    
+    // Слушаем события обновления данных
+    const handleDataUpdate = (event: CustomEvent) => {
+      const { url: updatedUrl, method } = event.detail
+      // Если обновление касается нашего URL или связанных данных, обновляем
+      if (updatedUrl.includes(url) || method === 'DELETE') {
+        fetchData()
+      }
+    }
+    
+    window.addEventListener('data-updated', handleDataUpdate as EventListener)
+    
+    return () => {
+      window.removeEventListener('data-updated', handleDataUpdate as EventListener)
+    }
   }, [url, params, refreshTrigger, ...dependencies])
 
   return { data, loading, error, refetch }
@@ -50,6 +72,12 @@ export function useApiMutation<T = any>(url?: string, method?: 'POST' | 'PUT' | 
     try {
       setLoading(true)
       setError(null)
+      
+      console.log('API mutation request:', {
+        url: requestUrl,
+        method: requestMethod,
+        data: data
+      })
 
       let result: any
       switch (requestMethod) {
@@ -68,8 +96,20 @@ export function useApiMutation<T = any>(url?: string, method?: 'POST' | 'PUT' | 
         default:
           throw new Error('Неподдерживаемый метод')
       }
+      
+      console.log('API mutation response:', result)
+      
+      // Автоматически обновляем данные после успешной мутации
+      if (typeof window !== 'undefined') {
+        // Триггерим событие для обновления связанных данных
+        window.dispatchEvent(new CustomEvent('data-updated', { 
+          detail: { url: requestUrl, method: requestMethod } 
+        }))
+      }
+      
       return result
     } catch (err: any) {
+      console.error('API mutation error:', err)
       const errorMessage = err?.response?.data?.message || err?.message || 'Произошла ошибка'
       setError(errorMessage)
       throw err

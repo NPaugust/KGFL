@@ -12,11 +12,13 @@ class Referee(models.Model):
     
     first_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Имя')
     )
     
     last_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Фамилия')
     )
     
@@ -28,11 +30,14 @@ class Referee(models.Model):
     )
     
     date_of_birth = models.DateField(
+        blank=True,
+        null=True,
         verbose_name=_('Дата рождения')
     )
     
     nationality = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Национальность')
     )
     

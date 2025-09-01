@@ -7,14 +7,15 @@ interface AdminSidebarProps {
 
 export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarProps) {
   const menuItems = [
-    { id: 'dashboard', label: 'Панель управления', icon: '📊' },
-    { id: 'clubs', label: 'Клубы', icon: '⚽' },
-    { id: 'matches', label: 'Матчи', icon: '🏆' },
-    { id: 'players', label: 'Игроки', icon: '👤' },
-    { id: 'media', label: 'Медиа', icon: '📸' },
-    { id: 'referees', label: 'Судьи', icon: '👨‍⚖️' },
-    { id: 'management', label: 'Руководство', icon: '👔' },
-    { id: 'stats', label: 'Статистика', icon: '📊' },
+    { id: 'dashboard', label: 'Панель управления', icon: '' },
+    { id: 'clubs', label: 'Клубы', icon: '' },
+    { id: 'matches', label: 'Матчи', icon: '' },
+    { id: 'players', label: 'Игроки', icon: '' },
+    { id: 'media', label: 'Медиа', icon: '' },
+    { id: 'referees', label: 'Судьи', icon: '' },
+    { id: 'management', label: 'Руководство', icon: '' },
+    { id: 'stats', label: 'Статистика', icon: '' },
+    { id: 'partners', label: 'Партнеры лиги', icon: '' },
   ]
 
   return (

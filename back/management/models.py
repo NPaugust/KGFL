@@ -14,17 +14,20 @@ class Manager(models.Model):
     
     first_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Имя')
     )
     
     last_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Фамилия')
     )
     
     position = models.CharField(
         max_length=20,
         choices=Position.choices,
+        blank=True,
         verbose_name=_('Должность')
     )
     

@@ -15,7 +15,9 @@ export function AnimationTest() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <Reveal key={i} className="card p-6 text-center" delay={300 + i * 100}>
-            <div className="text-2xl mb-2">🎯</div>
+            <div className="w-12 h-12 bg-brand-primary/20 rounded-lg mb-3 flex items-center justify-center mx-auto">
+              <span className="text-brand-primary font-bold text-lg">{i + 1}</span>
+            </div>
             <h3 className="font-semibold mb-2">Элемент {i + 1}</h3>
             <p className="text-sm text-white/70">
               Этот элемент появляется с задержкой {300 + i * 100}ms

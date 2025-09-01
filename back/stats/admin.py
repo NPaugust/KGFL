@@ -19,10 +19,10 @@ class SeasonStatsAdmin(admin.ModelAdmin):
             'fields': ('total_matches',)
         }),
         ('Голы', {
-            'fields': ('total_goals', 'average_goals_per_match')
+            'fields': ('total_goals',)
         }),
         ('Посещаемость', {
-            'fields': ('total_attendance', 'average_attendance_per_match')
+            'fields': ('total_attendance',)
         }),
     )
     
@@ -33,7 +33,7 @@ class SeasonStatsAdmin(admin.ModelAdmin):
 class ClubStatsAdmin(admin.ModelAdmin):
     """Админ-панель для модели ClubStats."""
     
-    list_display = ['club', 'season', 'position', 'points', 'matches_played', 'goals_for', 'goals_against']
+    list_display = ['club', 'season', 'position', 'points', 'matches_played', 'goals_for', 'goals_against', 'goal_difference']
     list_filter = ['season', 'club']
     search_fields = ['club__name', 'season__name']
     ordering = ['season', 'position']

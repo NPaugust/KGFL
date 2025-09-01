@@ -61,8 +61,8 @@ export default function AdminMatchesPage() {
   const fetchData = async () => {
     try {
       const [matchesRes, clubsRes] = await Promise.all([
-        fetch('/api/matches/'),
-        fetch('/api/clubs/')
+        fetch('http://localhost:8000/api/matches/'),
+        fetch('http://localhost:8000/api/clubs/')
       ]);
 
       const matchesData = await matchesRes.json();
@@ -90,7 +90,7 @@ export default function AdminMatchesPage() {
     if (!editingMatch) return;
 
     try {
-      const response = await fetch(`/api/matches/${editingMatch.id}/`, {
+      const response = await fetch(`http://localhost:8000/api/matches/${editingMatch.id}/`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',

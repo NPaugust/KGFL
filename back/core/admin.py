@@ -7,20 +7,20 @@ from .models import User, Season, Partner, Media, Referee, Management
 class UserAdmin(BaseUserAdmin):
     """Админ-панель для модели User."""
     
-    list_display = ['username', 'email', 'first_name', 'last_name', 'role', 'is_active', 'created_at']
-    list_filter = ['role', 'is_active', 'is_staff', 'created_at']
+    list_display = ['username', 'email', 'first_name', 'last_name', 'is_admin', 'is_active', 'created_at']
+    list_filter = ['is_active', 'is_staff', 'created_at']
     search_fields = ['username', 'email', 'first_name', 'last_name']
     ordering = ['-created_at']
     
     fieldsets = BaseUserAdmin.fieldsets + (
         ('KGFL Информация', {
-            'fields': ('role', 'phone', 'avatar', 'bio')
+            'fields': ('phone', 'avatar', 'bio')
         }),
     )
     
     add_fieldsets = BaseUserAdmin.add_fieldsets + (
         ('KGFL Информация', {
-            'fields': ('role', 'phone', 'avatar', 'bio')
+            'fields': ('phone', 'avatar', 'bio')
         }),
     )
 
@@ -53,12 +53,12 @@ class PartnerAdmin(admin.ModelAdmin):
     
     list_display = ['name', 'category', 'is_active', 'order', 'created_at']
     list_filter = ['category', 'is_active', 'created_at']
-    search_fields = ['name', 'description']
+    search_fields = ['name']
     ordering = ['order', 'name']
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'description', 'category')
+            'fields': ('name', 'category')
         }),
         ('Медиа', {
             'fields': ('logo', 'website')
@@ -75,12 +75,12 @@ class MediaAdmin(admin.ModelAdmin):
     
     list_display = ['title', 'category', 'is_active', 'order', 'created_at']
     list_filter = ['category', 'is_active', 'created_at']
-    search_fields = ['title', 'description']
+    search_fields = ['title']
     ordering = ['order', '-created_at']
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('title', 'description', 'category')
+            'fields': ('title', 'category')
         }),
         ('Медиа', {
             'fields': ('image',)
@@ -97,12 +97,12 @@ class RefereeAdmin(admin.ModelAdmin):
     
     list_display = ['name', 'position', 'experience', 'is_active', 'order', 'created_at']
     list_filter = ['is_active', 'experience', 'created_at']
-    search_fields = ['name', 'position', 'bio']
+    search_fields = ['name', 'position']
     ordering = ['order', 'name']
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'position', 'experience', 'bio')
+            'fields': ('name', 'position', 'experience')
         }),
         ('Медиа', {
             'fields': ('photo',)
@@ -119,12 +119,12 @@ class ManagementAdmin(admin.ModelAdmin):
     
     list_display = ['name', 'position', 'is_active', 'order', 'created_at']
     list_filter = ['is_active', 'created_at']
-    search_fields = ['name', 'position', 'bio']
+    search_fields = ['name', 'position']
     ordering = ['order', 'name']
     
     fieldsets = (
         ('Основная информация', {
-            'fields': ('name', 'position', 'bio')
+            'fields': ('name', 'position')
         }),
         ('Контакты', {
             'fields': ('email', 'phone')

@@ -18,9 +18,6 @@ class RefereeAdmin(admin.ModelAdmin):
         ('Категория и опыт', {
             'fields': ('category', 'experience_years', 'matches_officiated')
         }),
-        ('Биография', {
-            'fields': ('bio',)
-        }),
         ('Медиа', {
             'fields': ('photo',)
         }),

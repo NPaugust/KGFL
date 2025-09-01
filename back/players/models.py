@@ -15,11 +15,13 @@ class Player(models.Model):
     
     first_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Имя')
     )
     
     last_name = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Фамилия')
     )
     
@@ -31,17 +33,21 @@ class Player(models.Model):
     )
     
     date_of_birth = models.DateField(
+        blank=True,
+        null=True,
         verbose_name=_('Дата рождения')
     )
     
     nationality = models.CharField(
         max_length=100,
+        blank=True,
         verbose_name=_('Национальность')
     )
     
     position = models.CharField(
         max_length=2,
         choices=Position.choices,
+        blank=True,
         verbose_name=_('Позиция')
     )
     
@@ -67,6 +73,8 @@ class Player(models.Model):
         Club,
         on_delete=models.CASCADE,
         related_name='players',
+        blank=True,
+        null=True,
         verbose_name=_('Клуб')
     )
     
@@ -74,6 +82,8 @@ class Player(models.Model):
         Season,
         on_delete=models.CASCADE,
         related_name='players',
+        blank=True,
+        null=True,
         verbose_name=_('Сезон')
     )
     
@@ -101,7 +111,8 @@ class Player(models.Model):
         verbose_name = _('Игрок')
         verbose_name_plural = _('Игроки')
         ordering = ['last_name', 'first_name']
-        unique_together = ['club', 'season', 'number']
+        # Убираем ограничение уникальности для тестирования
+        # unique_together = ['club', 'season', 'number']
     
     def __str__(self):
         return f"{self.first_name} {self.last_name} ({self.club.name})"

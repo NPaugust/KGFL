@@ -8,7 +8,6 @@ import { Loading } from '../Loading'
 interface ManagementFormData {
   name: string
   position: string
-  bio: string
   email: string
   phone: string
   photo?: File
@@ -21,7 +20,6 @@ export function ManagementManager() {
   const [formData, setFormData] = useState<ManagementFormData>({
     name: '',
     position: '',
-    bio: '',
     email: '',
     phone: ''
   })
@@ -31,31 +29,57 @@ export function ManagementManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Валидация формы
+    if (!formData.name.trim()) {
+      alert('Пожалуйста, введите имя сотрудника')
+      return
+    }
+    
+    if (!formData.position) {
+      alert('Пожалуйста, выберите должность')
+      return
+    }
+
     try {
-      const formDataToSend = new FormData()
-      formDataToSend.append('name', formData.name)
-      formDataToSend.append('position', formData.position)
-      formDataToSend.append('bio', formData.bio)
-      formDataToSend.append('email', formData.email)
-      formDataToSend.append('phone', formData.phone)
+      let dataToSend: any
+      
+      // Если есть фото, используем FormData, иначе обычный объект
       if (formData.photo) {
+        const formDataToSend = new FormData()
+        // Разделяем имя на first_name и last_name
+        const nameParts = formData.name.trim().split(' ', 2)
+        formDataToSend.append('first_name', nameParts[0] || '')
+        formDataToSend.append('last_name', nameParts[1] || '')
+        formDataToSend.append('position', formData.position)
+        formDataToSend.append('email', formData.email)
+        formDataToSend.append('phone', formData.phone)
         formDataToSend.append('photo', formData.photo)
+        dataToSend = formDataToSend
+      } else {
+        dataToSend = {
+          // Разделяем имя на first_name и last_name
+          first_name: formData.name.trim().split(' ', 2)[0] || '',
+          last_name: formData.name.trim().split(' ', 2)[1] || '',
+          position: formData.position,
+          email: formData.email,
+          phone: formData.phone
+        }
       }
 
       if (editingManagement) {
-        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManagement.id.toString()), 'PUT', formDataToSend)
+        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManagement.id.toString()), 'PUT', dataToSend)
       } else {
-        await mutate(API_ENDPOINTS.MANAGEMENT, 'POST', formDataToSend)
+        await mutate(API_ENDPOINTS.MANAGEMENT, 'POST', dataToSend)
       }
 
       setIsModalOpen(false)
       setEditingManagement(null)
-      setFormData({ name: '', position: '', bio: '', email: '', phone: '' })
+      setFormData({ name: '', position: '', email: '', phone: '' })
       
-      setTimeout(() => {
-        refetch()
-      }, 500)
+      // Сразу обновляем данные без задержки
+      refetch()
     } catch (error) {
+      console.error('Ошибка при сохранении руководства:', error)
       alert(`Ошибка при сохранении руководства: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
     }
   }
@@ -63,9 +87,8 @@ export function ManagementManager() {
   const handleEdit = (management: any) => {
     setEditingManagement(management)
     setFormData({
-      name: management.name,
+      name: `${management.first_name || ''} ${management.last_name || ''}`.trim(),
       position: management.position,
-      bio: management.bio || '',
       email: management.email || '',
       phone: management.phone || ''
     })
@@ -120,14 +143,23 @@ export function ManagementManager() {
                 <tr key={management.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
                     {management.photo ? (
-                      <img src={management.photo} alt={management.name} className="w-8 h-8 rounded" />
+                      <img 
+                        src={management.photo.startsWith('http') ? management.photo : `/${management.photo}`} 
+                        alt={`${management.first_name || ''} ${management.last_name || ''}`.trim()} 
+                        className="w-8 h-8 rounded" 
+                      />
                     ) : (
                       <div className="w-8 h-8 bg-gray-500 rounded flex items-center justify-center text-xs">
-                        {management.name?.[0]}
+                        {management.first_name?.[0] || management.last_name?.[0] || '?'}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium">{management.name}</td>
+                  <td className="px-4 py-3 font-medium">
+                    {management.first_name && management.last_name 
+                      ? `${management.first_name} ${management.last_name}`
+                      : management.first_name || management.last_name || 'Без имени'
+                    }
+                  </td>
                   <td className="px-4 py-3">{management.position}</td>
                   <td className="px-4 py-3">{management.email || '-'}</td>
                   <td className="px-4 py-3">{management.phone || '-'}</td>
@@ -181,7 +213,6 @@ export function ManagementManager() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
                 />
               </div>
               
@@ -194,12 +225,11 @@ export function ManagementManager() {
                   required
                 >
                   <option value="">Выберите должность</option>
-                  <option value="Президент">Президент</option>
-                  <option value="Вице-президент">Вице-президент</option>
-                  <option value="Генеральный директор">Генеральный директор</option>
-                  <option value="Технический директор">Технический директор</option>
-                  <option value="Менеджер">Менеджер</option>
-                  <option value="Координатор">Координатор</option>
+                  <option value="president">Президент</option>
+                  <option value="vice_president">Вице-президент</option>
+                  <option value="general_secretary">Генеральный секретарь</option>
+                  <option value="director">Директор</option>
+                  <option value="manager">Менеджер</option>
                 </select>
               </div>
               
@@ -223,15 +253,7 @@ export function ManagementManager() {
                 />
               </div>
               
-              <div>
-                <label className="block text-sm font-medium mb-1">Биография</label>
-                <textarea
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  rows={3}
-                />
-              </div>
+
               
               <div>
                 <label className="block text-sm font-medium mb-1">
@@ -264,7 +286,7 @@ export function ManagementManager() {
                   onClick={() => {
                     setIsModalOpen(false)
                     setEditingManagement(null)
-                    setFormData({ name: '', position: '', bio: '', email: '', phone: '' })
+                    setFormData({ name: '', position: '', email: '', phone: '' })
                   }}
                   className="btn btn-outline flex-1"
                 >

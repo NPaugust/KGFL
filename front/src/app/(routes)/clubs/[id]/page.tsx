@@ -175,8 +175,8 @@ export default function ClubPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex-shrink-0"
             >
-              <div className="w-32 h-32 lg:w-40 lg:h-40 bg-brand-primary rounded-2xl shadow-lg flex items-center justify-center">
-                <span className="text-white font-bold text-4xl">⚽</span>
+              <div className="w-32 h-32 lg:w-40 lg:h-40 bg-brand-primary/20 rounded-2xl shadow-lg flex items-center justify-center">
+                <span className="text-brand-primary font-bold text-4xl">К</span>
               </div>
             </motion.div>
             
@@ -420,8 +420,8 @@ export default function ClubPage() {
               <div className="space-y-6">
                 {/* Player Photo */}
                 <div className="flex justify-center">
-                  <div className="w-32 h-32 bg-brand-primary rounded-full flex items-center justify-center">
-                    <User className="w-16 h-16 text-white" />
+                  <div className="w-24 h-24 bg-brand-primary/20 rounded-full flex items-center justify-center">
+                    <span className="text-brand-primary font-bold text-4xl">К</span>
                   </div>
                 </div>
 
