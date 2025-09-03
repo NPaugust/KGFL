@@ -104,4 +104,26 @@ export function useTopScorers() {
     error,
     refetch: fetchTopScorers,
   }
+}
+
+export function useTransfers() {
+  const [transfers, setTransfers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await apiClient.get<any[]>(API_ENDPOINTS.PLAYER_TRANSFERS)
+        setTransfers(Array.isArray(res) ? res : [])
+      } catch (e:any) {
+        setError(e?.message || 'Ошибка')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  return { transfers, loading, error }
 } 
