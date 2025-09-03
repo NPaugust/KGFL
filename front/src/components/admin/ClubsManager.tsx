@@ -11,7 +11,18 @@ interface ClubFormData {
   name: string
   city: string
   founded?: number
-  stadium?: string
+  primary_kit_color?: string
+  secondary_kit_color?: string
+  coach_full_name: string
+  assistant_full_name: string
+  captain_full_name?: string
+  contact_phone: string
+  contact_email?: string
+  social_media?: string
+  description?: string
+  participation_fee: 'yes' | 'no' | 'partial'
+  status: 'applied' | 'active' | 'disqualified' | 'withdrawn'
+  website?: string
   logo?: File
 }
 
@@ -24,7 +35,18 @@ export function ClubsManager() {
     name: '',
     city: '',
     founded: undefined,
-    stadium: ''
+    primary_kit_color: '',
+    secondary_kit_color: '',
+    coach_full_name: '',
+    assistant_full_name: '',
+    captain_full_name: '',
+    contact_phone: '',
+    contact_email: '',
+    social_media: '',
+    description: '',
+    participation_fee: 'no',
+    status: 'applied',
+    website: ''
   })
 
   const createClubMutation = useApiMutation()
@@ -32,74 +54,62 @@ export function ClubsManager() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     try {
-      console.log('Submitting club data:', formData)
-      
+      // Для совместимости с загрузкой логотипа используем FormData
+      const payload = new FormData()
+      payload.append('name', formData.name)
+      payload.append('city', formData.city)
+      if (formData.founded) payload.append('founded', String(formData.founded))
+      if (formData.primary_kit_color) payload.append('primary_kit_color', formData.primary_kit_color)
+      if (formData.secondary_kit_color) payload.append('secondary_kit_color', formData.secondary_kit_color)
+      payload.append('coach_full_name', formData.coach_full_name)
+      payload.append('assistant_full_name', formData.assistant_full_name)
+      if (formData.captain_full_name) payload.append('captain_full_name', formData.captain_full_name)
+      payload.append('contact_phone', formData.contact_phone)
+      if (formData.contact_email) payload.append('contact_email', formData.contact_email)
+      if (formData.social_media) payload.append('social_media', formData.social_media)
+      if (formData.description) payload.append('description', formData.description)
+      payload.append('participation_fee', formData.participation_fee)
+      payload.append('status', formData.status)
+      if (formData.website) payload.append('website', formData.website)
+      if (formData.logo) payload.append('logo', formData.logo)
+
       if (editingClub) {
-        console.log('Updating club:', editingClub.id)
-        // Для обновления используем обычный JSON
-        const updateData = {
-          name: formData.name,
-          city: formData.city,
-          founded: formData.founded,
-          stadium: formData.stadium
-        }
-        await updateClubMutation.mutateAsync(API_ENDPOINTS.CLUB_DETAIL(editingClub.id), 'PUT', updateData)
-        
-        // Если есть новый логотип, обновляем его отдельно
-        if (formData.logo) {
-          const logoFormData = new FormData()
-          logoFormData.append('logo', formData.logo)
-          await apiClient.patch(API_ENDPOINTS.CLUB_DETAIL(editingClub.id), logoFormData)
-        }
+        await updateClubMutation.mutateAsync(API_ENDPOINTS.CLUB_DETAIL(editingClub.id), 'PUT', payload)
       } else {
-        console.log('Creating new club')
-        // Для создания используем обычный JSON
-        const createData = {
-          name: formData.name,
-          city: formData.city,
-          founded: formData.founded,
-          stadium: formData.stadium
-        }
-        const response = await createClubMutation.mutateAsync(API_ENDPOINTS.CLUBS, 'POST', createData)
-        
-        // Если есть логотип, обновляем его отдельно
-        if (formData.logo && response.id) {
-          const logoFormData = new FormData()
-          logoFormData.append('logo', formData.logo)
-          await apiClient.patch(API_ENDPOINTS.CLUB_DETAIL(response.id), logoFormData)
-        }
+        await createClubMutation.mutateAsync(API_ENDPOINTS.CLUBS, 'POST', payload)
       }
-      
       setIsModalOpen(false)
       setEditingClub(null)
-      setFormData({ name: '', city: '', founded: undefined, stadium: '' })
-      
-      // Сразу обновляем данные без задержки
+      setFormData({ name: '', city: '', founded: undefined, primary_kit_color: '', secondary_kit_color: '', coach_full_name: '', assistant_full_name: '', captain_full_name: '', contact_phone: '', contact_email: '', social_media: '', description: '', participation_fee: 'no', status: 'applied', website: '' })
       refetchClubs()
-      
-      // Автоматически обновляем связанные данные
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('data-updated', { 
-          detail: { url: '/clubs/table/', method: 'POST' } 
-        }))
+        window.dispatchEvent(new CustomEvent('data-updated', { detail: { url: '/clubs/table/', method: 'POST' } }))
       }
     } catch (error) {
-      console.error('Ошибка при сохранении клуба:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-      alert(`Ошибка при сохранении клуба: ${errorMessage}`)
+      alert(`Ошибка при сохранении клуба`)
     }
   }
 
   const handleEdit = (club: Club) => {
-    console.log('Editing club:', club)
     setEditingClub(club)
     setFormData({
       name: club.name || '',
       city: club.city || '',
       founded: club.founded,
-      stadium: club.stadium || ''
+      primary_kit_color: (club as any).primary_kit_color || '',
+      secondary_kit_color: (club as any).secondary_kit_color || '',
+      coach_full_name: (club as any).coach_full_name || '',
+      assistant_full_name: (club as any).assistant_full_name || '',
+      captain_full_name: (club as any).captain_full_name || '',
+      contact_phone: (club as any).contact_phone || '',
+      contact_email: (club as any).contact_email || '',
+      social_media: (club as any).social_media || '',
+      description: (club as any).description || '',
+      participation_fee: ((club as any).participation_fee || 'no') as any,
+      status: ((club as any).status || 'applied') as any,
+      website: club.website || '',
+      logo: undefined,
     })
     setIsModalOpen(true)
   }
@@ -107,15 +117,10 @@ export function ClubsManager() {
   const handleDelete = async (clubId: string) => {
     if (confirm('Вы уверены, что хотите удалить этот клуб?')) {
       try {
-        console.log('Deleting club:', clubId)
-        const response = await apiClient.delete(API_ENDPOINTS.CLUB_DETAIL(clubId))
-        console.log('Клуб удален:', response)
-        // Сразу обновляем данные без задержки
+        await apiClient.delete(API_ENDPOINTS.CLUB_DETAIL(clubId))
         refetchClubs()
       } catch (error) {
-        console.error('Ошибка при удалении клуба:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-        alert(`Ошибка при удалении клуба: ${errorMessage}`)
+        alert(`Ошибка при удалении клуба`)
       }
     }
   }
@@ -125,18 +130,12 @@ export function ClubsManager() {
   }
 
   const clubsList = Array.isArray(clubs) ? clubs : []
-  console.log('Clubs list:', clubsList)
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Управление клубами</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn btn-primary"
-        >
-          Добавить клуб
-        </button>
+        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить клуб</button>
       </div>
 
       <div className="card overflow-hidden">
@@ -148,7 +147,9 @@ export function ClubsManager() {
                 <th className="px-4 py-3 text-left">Название</th>
                 <th className="px-4 py-3 text-left">Город</th>
                 <th className="px-4 py-3 text-left">Основан</th>
-                <th className="px-4 py-3 text-left">Стадион</th>
+                <th className="px-4 py-3 text-left">Тренер</th>
+                <th className="px-4 py-3 text-left">Телефон</th>
+                <th className="px-4 py-3 text-left">Статус</th>
                 <th className="px-4 py-3 text-left">Действия</th>
               </tr>
             </thead>
@@ -156,49 +157,28 @@ export function ClubsManager() {
               {clubsList.length > 0 ? clubsList.map((club) => (
                 <tr key={club.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {club.logo_url ? (
-                      <div className="relative group">
-                        <img 
-                          src={club.logo_url.startsWith('http') ? club.logo_url : `/${club.logo_url}`} 
-                          alt={club.name} 
-                          className="w-12 h-12 rounded-lg object-cover border-2 border-white/20 group-hover:border-brand-primary/50 transition-colors"
-                        />
-                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                          <span className="text-white text-xs">Просмотр</span>
-                        </div>
-                      </div>
+                    {(club as any).logo_url ? (
+                      <img src={(club as any).logo_url.startsWith('http') ? (club as any).logo_url : `/${(club as any).logo_url}`} alt={club.name} className="w-12 h-12 rounded-lg object-cover border-2 border-white/20" />
                     ) : (
-                      <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs">
-                        Нет
-                      </div>
+                      <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs">Нет</div>
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{club.name}</td>
                   <td className="px-4 py-3">{club.city}</td>
-                  <td className="px-4 py-3">{club.founded}</td>
-                  <td className="px-4 py-3">{club.stadium}</td>
+                  <td className="px-4 py-3">{club.founded || '-'}</td>
+                  <td className="px-4 py-3">{(club as any).coach_full_name || '-'}</td>
+                  <td className="px-4 py-3">{(club as any).contact_phone || '-'}</td>
+                  <td className="px-4 py-3">{(club as any).status || '-'}</td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(club)}
-                        className="btn btn-outline px-3 py-1 text-sm"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => handleDelete(club.id)}
-                        className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm"
-                      >
-                        Удалить
-                      </button>
+                      <button onClick={() => handleEdit(club)} className="btn btn-outline px-3 py-1 text-sm">Редактировать</button>
+                      <button onClick={() => handleDelete(club.id)} className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm">Удалить</button>
                     </div>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">
-                    Клубы не найдены
-                  </td>
+                  <td colSpan={8} className="px-4 py-8 text-center text-white/60">Клубы не найдены</td>
                 </tr>
               )}
             </tbody>
@@ -206,94 +186,105 @@ export function ClubsManager() {
         </div>
       </div>
 
-      {/* Модальное окно для добавления/редактирования */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="card p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingClub ? 'Редактировать клуб' : 'Добавить клуб'}
-            </h2>
-            
+          <div className="card p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold mb-4">{editingClub ? 'Редактировать клуб' : 'Добавить клуб'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Название</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Название *</label>
+                  <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input w-full" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Город / регион</label>
+                  <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Год основания</label>
+                  <input type="number" value={formData.founded || ''} onChange={(e) => setFormData({ ...formData, founded: parseInt(e.target.value) || undefined })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Веб‑сайт</label>
+                  <input type="url" value={formData.website || ''} onChange={(e) => setFormData({ ...formData, website: e.target.value })} className="input w-full" />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Город</label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Цвет формы (основная)</label>
+                  <input type="text" value={formData.primary_kit_color || ''} onChange={(e) => setFormData({ ...formData, primary_kit_color: e.target.value })} className="input w-full" placeholder="#FFCC00 или Yellow" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Цвет формы (запасная)</label>
+                  <input type="text" value={formData.secondary_kit_color || ''} onChange={(e) => setFormData({ ...formData, secondary_kit_color: e.target.value })} className="input w-full" placeholder="#000000 или Black" />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Год основания</label>
-                <input
-                  type="number"
-                  value={formData.founded || ''}
-                  onChange={(e) => setFormData({ ...formData, founded: parseInt(e.target.value) || undefined })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Тренер (ФИО) *</label>
+                  <input type="text" value={formData.coach_full_name} onChange={(e) => setFormData({ ...formData, coach_full_name: e.target.value })} className="input w-full" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Ассистент / Менеджер *</label>
+                  <input type="text" value={formData.assistant_full_name} onChange={(e) => setFormData({ ...formData, assistant_full_name: e.target.value })} className="input w-full" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Капитан</label>
+                  <input type="text" value={formData.captain_full_name || ''} onChange={(e) => setFormData({ ...formData, captain_full_name: e.target.value })} className="input w-full" />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Стадион</label>
-                <input
-                  type="text"
-                  value={formData.stadium}
-                  onChange={(e) => setFormData({ ...formData, stadium: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Телефон *</label>
+                  <input type="tel" value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} className="input w-full" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input type="email" value={formData.contact_email || ''} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Соцсети (URL)</label>
+                  <input type="url" value={formData.social_media || ''} onChange={(e) => setFormData({ ...formData, social_media: e.target.value })} className="input w-full" placeholder="https://instagram.com/club" />
+                </div>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">
-                  {editingClub ? 'Новый логотип (необязательно)' : 'Логотип'}
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
-                {editingClub && editingClub.logo_url && (
-                  <div className="mt-2">
-                    <p className="text-sm text-white/60 mb-2">Текущий логотип:</p>
-                    <img 
-                      src={editingClub.logo_url.startsWith('http') ? editingClub.logo_url : `/${editingClub.logo_url}`} 
-                      alt={editingClub.name} 
-                      className="w-20 h-20 object-cover rounded" 
-                    />
-                  </div>
-                )}
+                <label className="block text-sm font-medium mb-1">Описание</label>
+                <textarea value={formData.description || ''} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="textarea w-full" rows={3} />
               </div>
-              
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Взнос на участие *</label>
+                  <select value={formData.participation_fee} onChange={(e) => setFormData({ ...formData, participation_fee: e.target.value as any })} className="input w-full" required>
+                    <option value="yes">Есть</option>
+                    <option value="no">Нет</option>
+                    <option value="partial">Частично</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Статус команды</label>
+                  <select value={formData.status} onChange={(e) => setFormData({ ...formData, status: e.target.value as any })} className="input w-full">
+                    <option value="applied">Подана заявка</option>
+                    <option value="active">Активна</option>
+                    <option value="disqualified">Дисквалифицирована</option>
+                    <option value="withdrawn">Выбыла</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Логотип</label>
+                  <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })} className="input w-full" />
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={createClubMutation.loading || updateClubMutation.loading}
-                >
+                <button type="submit" className="btn btn-primary flex-1" disabled={createClubMutation.loading || updateClubMutation.loading}>
                   {createClubMutation.loading || updateClubMutation.loading ? 'Сохранение...' : 'Сохранить'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setEditingClub(null)
-                    setFormData({ name: '', city: '', founded: undefined, stadium: '' })
-                  }}
-                  className="btn btn-outline flex-1"
-                >
+                <button type="button" onClick={() => { setIsModalOpen(false); setEditingClub(null); setFormData({ name: '', city: '', founded: undefined, primary_kit_color: '', secondary_kit_color: '', coach_full_name: '', assistant_full_name: '', captain_full_name: '', contact_phone: '', contact_email: '', social_media: '', description: '', participation_fee: 'no', status: 'applied', website: '' }) }} className="btn btn-outline flex-1">
                   Отмена
                 </button>
               </div>

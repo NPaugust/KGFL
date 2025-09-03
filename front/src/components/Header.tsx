@@ -43,18 +43,19 @@ export function Header() {
       isVisible ? 'translate-y-0' : '-translate-y-full'
     }`}>
       <div className="container-px flex h-24 items-center justify-between">
-        <Link href="/" className="flex items-center gap-3" onClick={closeMobileMenu}>
+        <Link href="/" className="flex items-center gap-3 mr-8 md:mr-16" onClick={closeMobileMenu}>
           <Image src="/logotip.png" alt="KGFL" width={52} height={52} className="rounded" />
           <span className="text-2xl font-extrabold tracking-wide">KGFL</span>
         </Link>
         
         {/* Desktop Navigation */}
-        <nav className="hidden gap-6 md:flex">
+        <nav className="hidden md:flex gap-7">
           <Link href="/" className="text-white/80 hover:text-white transition-colors">Главная</Link>
           <Link href="/table" className="text-white/80 hover:text-white transition-colors">Таблица</Link>
           <Link href="/clubs" className="text-white/80 hover:text-white transition-colors">Клубы</Link>
           <Link href="/stats" className="text-white/80 hover:text-white transition-colors">Статистика</Link>
           <Link href="/schedule" className="text-white/80 hover:text-white transition-colors">Расписание</Link>
+          <Link href="/transfers" className="text-white/80 hover:text-white transition-colors">Трансферы</Link>
           <Link href="/referees" className="text-white/80 hover:text-white transition-colors">Судьи</Link>
           <Link href="/management" className="text-white/80 hover:text-white transition-colors">Руководство</Link>
           <Link href="/media" className="text-white/80 hover:text-white transition-colors">Медиа</Link>
@@ -65,7 +66,7 @@ export function Header() {
           )}
         </nav>
         
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 ml-4 md:ml-4">
           {isAuthenticated ? (
             <div className="flex items-center gap-3">
               <span className="text-white/70 text-sm hidden sm:block">
@@ -168,6 +169,13 @@ export function Header() {
               onClick={closeMobileMenu}
             >
               Медиа
+            </Link>
+            <Link 
+              href="/transfers" 
+              className="block py-2 text-white/80 hover:text-white transition-colors"
+              onClick={closeMobileMenu}
+            >
+              Трансферы
             </Link>
             {isAuthenticated && (
               <Link 

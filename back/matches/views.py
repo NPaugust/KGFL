@@ -4,10 +4,10 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
 from datetime import datetime, timedelta
-from .models import Match, Goal, Card, Substitution
+from .models import Match, Goal, Card, Substitution, Stadium
 from .serializers import (
     MatchSerializer, MatchListSerializer, MatchDetailSerializer, MatchCreateSerializer,
-    GoalSerializer, CardSerializer, SubstitutionSerializer
+    GoalSerializer, CardSerializer, SubstitutionSerializer, StadiumSerializer
 )
 
 
@@ -183,3 +183,9 @@ class SubstitutionViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         # Временно разрешаем все операции для тестирования
         return [permissions.AllowAny()] 
+
+
+class StadiumViewSet(viewsets.ModelViewSet):
+    queryset = Stadium.objects.all()
+    serializer_class = StadiumSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]

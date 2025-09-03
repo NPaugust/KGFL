@@ -6,11 +6,22 @@ import { formatDate } from '@/utils'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ArrowLeft, MapPin, Clock, Users } from 'lucide-react'
+import { useApi } from '@/hooks/useApi'
+import { API_ENDPOINTS } from '@/services/api'
 
 export default function MatchDetailsPage() {
   const params = useParams()
   const matchId = params.id as string
   const { match, loading, error } = useMatch(matchId)
+
+  // Загружаем события матча
+  const { data: goalsData } = useApi<any[]>(API_ENDPOINTS.GOALS, { match: matchId }, [matchId])
+  const { data: cardsData } = useApi<any[]>(API_ENDPOINTS.CARDS, { match: matchId }, [matchId])
+  const { data: subsData } = useApi<any[]>(API_ENDPOINTS.SUBSTITUTIONS, { match: matchId }, [matchId])
+
+  const goals = Array.isArray(goalsData) ? goalsData : []
+  const cards = Array.isArray(cardsData) ? cardsData : []
+  const substitutions = Array.isArray(subsData) ? subsData : []
 
   if (loading) {
     return (
@@ -36,6 +47,41 @@ export default function MatchDetailsPage() {
 
   const isFinished = match.status === 'finished'
   const isLive = match.status === 'live'
+
+  // Подсчёты по командам
+  const homeId = (match.home_team as any)?.id
+  const awayId = (match.away_team as any)?.id
+  const goalsHome = goals.filter(g => (g.team?.id ?? g.team) === homeId).length
+  const goalsAway = goals.filter(g => (g.team?.id ?? g.team) === awayId).length
+  const ycHome = cards.filter(c => c.card_type === 'yellow' && ((c.team?.id ?? c.team) === homeId)).length
+  const ycAway = cards.filter(c => c.card_type === 'yellow' && ((c.team?.id ?? c.team) === awayId)).length
+  const rcHome = cards.filter(c => c.card_type === 'red' && ((c.team?.id ?? c.team) === homeId)).length
+  const rcAway = cards.filter(c => c.card_type === 'red' && ((c.team?.id ?? c.team) === awayId)).length
+
+  // Лента событий по минутам
+  const timeline: Array<{ minute: number; type: 'goal' | 'yellow' | 'red' | 'sub'; side: 'home'|'away'; text: string }> = []
+  goals.forEach(g => {
+    const minute = Number(g.minute) || 0
+    const side = ((g.team?.id ?? g.team) === homeId) ? 'home' : 'away'
+    const scorer = g.scorer_full_name || g.scorer_name || g.scorer || 'Игрок'
+    const assist = g.assist_full_name || g.assist_name
+    const text = assist ? `${scorer} (ассист: ${assist})` : `${scorer}`
+    timeline.push({ minute, type: 'goal', side, text })
+  })
+  cards.forEach(c => {
+    const minute = Number(c.minute) || 0
+    const side = ((c.team?.id ?? c.team) === homeId) ? 'home' : 'away'
+    const player = c.player_full_name || c.player_name || c.player || 'Игрок'
+    timeline.push({ minute, type: c.card_type === 'red' ? 'red' : 'yellow', side, text: player })
+  })
+  substitutions.forEach(s => {
+    const minute = Number(s.minute) || 0
+    const side = ((s.team?.id ?? s.team) === homeId) ? 'home' : 'away'
+    const outName = s.player_out_name || s.player_out_full_name || s.player_out || 'Игрок'
+    const inName = s.player_in_name || s.player_in_full_name || s.player_in || 'Игрок'
+    timeline.push({ minute, type: 'sub', side, text: `${outName} → ${inName}` })
+  })
+  timeline.sort((a, b) => a.minute - b.minute)
 
   return (
     <div className="min-h-screen bg-brand-dark">
@@ -219,15 +265,49 @@ export default function MatchDetailsPage() {
           </div>
         </div>
         
-        {/* Statistics placeholder */}
-        {isFinished && (
-          <div className="mt-8 card p-6">
-            <h3 className="text-xl font-bold text-white mb-4">Статистика матча</h3>
-            <div className="text-center text-white/70 py-8">
-              Статистика матча будет добавлена в будущих обновлениях
+        {/* Statistics */}
+        <div className="mt-8 card p-6">
+          <h3 className="text-xl font-bold text-white mb-4">Статистика матча</h3>
+          {timeline.length === 0 ? (
+            <div className="text-center text-white/70 py-8">События матча отсутствуют</div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Лента событий */}
+              <div className="lg:col-span-2">
+                <div className="space-y-3">
+                  {timeline.map((ev, idx) => (
+                    <div key={idx} className="flex items-center gap-3 text-white">
+                      <div className="w-10 text-right text-white/70">{ev.minute}'</div>
+                      <div className={ev.side === 'home' ? 'text-brand-accent' : 'text-white'}>
+                        {ev.type === 'goal' ? '⚽ Гол' : ev.type === 'yellow' ? '🟨 Карточка' : ev.type === 'red' ? '🟥 Карточка' : '🔁 Замена'}
+                      </div>
+                      <div className="flex-1 text-white/90">{ev.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Сводка по командам */}
+              <div className="bg-white/5 rounded p-4">
+                <div className="text-white/80 mb-4 font-semibold">Сводка</div>
+                <div className="grid grid-cols-3 gap-3 text-center text-white">
+                  <div></div>
+                  <div className="text-white/60">Дом</div>
+                  <div className="text-white/60">Гости</div>
+                  <div className="text-white/80">Голы</div>
+                  <div className="font-bold">{goalsHome}</div>
+                  <div className="font-bold">{goalsAway}</div>
+                  <div className="text-white/80">Жёлтые</div>
+                  <div>{ycHome}</div>
+                  <div>{ycAway}</div>
+                  <div className="text-white/80">Красные</div>
+                  <div>{rcHome}</div>
+                  <div>{rcAway}</div>
+                </div>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   )

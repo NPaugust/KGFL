@@ -13,9 +13,8 @@ export function Hero() {
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight">Кыргызская футбольная лига</h1>
           <p className="mt-4 text-lg text-white/80">Официальная платформа соревнований Кыргызской футбольной лиги KGFL: 
           турнирные таблицы, расписание матчей и статистика.</p>
-          <div className="mt-8 flex items-center justify-center gap-4">
+          <div className="mt-8 flex items-center justify-center">
             <Link href="/table" className="btn btn-primary">Турниры</Link>
-            <Link href="#apply" className="btn btn-outline">Подать заявку</Link>
           </div>
         </div>
       </div>

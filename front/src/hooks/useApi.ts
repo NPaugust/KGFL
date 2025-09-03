@@ -1,10 +1,12 @@
-import { useState, useEffect } from 'react'
+"use client"
+
+import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '@/services/api'
 import { PaginatedResponse } from '@/types'
 
-export function useApi<T>(
-  url: string,
-  params?: any,
+export function useApi<T = any>(
+  url: string, 
+  params?: Record<string, any>, 
   dependencies: any[] = []
 ) {
   const [data, setData] = useState<T | null>(null)
@@ -12,19 +14,19 @@ export function useApi<T>(
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      console.log('Fetching data from:', url, 'with params:', params)
       
-      const result = await apiClient.get<T | PaginatedResponse<T>>(url, params)
-      console.log('API response received:', result)
+      console.log('Fetching data from:', url)
+      const result = await apiClient.get<T>(url, { params })
+      console.log('API response:', result)
       
-      // Обрабатываем пагинацию
+      // Проверяем, есть ли пагинация
       if (result && typeof result === 'object' && 'results' in result) {
         console.log('Paginated response detected, setting results')
-        setData((result as PaginatedResponse<T>).results as T)
+        setData((result as any).results as T)
       } else {
         console.log('Direct response detected, setting data')
         setData(result as T)
@@ -36,11 +38,11 @@ export function useApi<T>(
     } finally {
       setLoading(false)
     }
-  }
+  }, [url, params])
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     setRefreshTrigger(prev => prev + 1)
-  }
+  }, [])
 
   useEffect(() => {
     fetchData()
@@ -54,12 +56,14 @@ export function useApi<T>(
       }
     }
     
+    // Убираем слушатель season-changed чтобы избежать бесконечных циклов
+    
     window.addEventListener('data-updated', handleDataUpdate as EventListener)
     
     return () => {
       window.removeEventListener('data-updated', handleDataUpdate as EventListener)
     }
-  }, [url, params, refreshTrigger, ...dependencies])
+  }, [url, params, refreshTrigger, fetchData, ...dependencies])
 
   return { data, loading, error, refetch }
 }

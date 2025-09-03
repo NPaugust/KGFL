@@ -112,13 +112,21 @@ class ClubViewSet(viewsets.ModelViewSet):
         """Получить турнирную таблицу."""
         from core.models import Season
         try:
-            active_season = Season.objects.get(is_active=True)
+            # Получаем сезон из параметров запроса или используем активный
+            season_id = request.query_params.get('season')
+            if season_id:
+                # Если передан season_id, используем его
+                season = Season.objects.get(id=season_id)
+            else:
+                # Иначе используем активный сезон
+                season = Season.objects.get(is_active=True)
+            
             from .models import ClubSeason
-            table_rows = ClubSeason.objects.filter(season=active_season).order_by('position', '-points', '-goals_for', 'goals_against')
+            table_rows = ClubSeason.objects.filter(season=season).order_by('position', '-points', '-goals_for', 'goals_against')
             serializer = TableRowSerializer(table_rows, many=True)
             return Response(serializer.data)
         except Season.DoesNotExist:
-            return Response({'error': 'Активный сезон не найден'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'Сезон не найден'}, status=status.HTTP_404_NOT_FOUND)
     
     @action(detail=True, methods=['get'])
     def players(self, request, pk=None):

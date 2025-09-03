@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Match, Goal, Card, Substitution
+from .models import Match, Goal, Card, Substitution, Stadium
 from clubs.models import Club
 from core.models import Season
 from datetime import datetime
@@ -100,7 +100,7 @@ class MatchListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'home_team_name', 'away_team_name', 'home_team_logo', 'away_team_logo',
             'home_team', 'away_team',
-            'date', 'time', 'status', 'home_score', 'away_score', 'stadium', 'round'
+            'date', 'time', 'status', 'home_score', 'away_score', 'round', 'stadium'
         ]
 
     def _absolute_logo(self, logo):
@@ -264,6 +264,7 @@ class MatchDetailSerializer(serializers.ModelSerializer):
     home_team = serializers.SerializerMethodField()
     away_team = serializers.SerializerMethodField()
     season_name = serializers.CharField(source='season.name', read_only=True)
+    stadium_name = serializers.CharField(source='stadium.name', read_only=True)
     goals = GoalSerializer(many=True, read_only=True)
     cards = CardSerializer(many=True, read_only=True)
     substitutions = SubstitutionSerializer(many=True, read_only=True)
@@ -328,3 +329,9 @@ class MatchDetailSerializer(serializers.ModelSerializer):
 
     def get_away_team_logo(self, obj):
         return self._absolute_logo(getattr(obj.away_team, 'logo', None))
+
+
+class StadiumSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Stadium
+        fields = '__all__'

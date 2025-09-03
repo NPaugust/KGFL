@@ -3,10 +3,11 @@ import rest_framework.parsers
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Player, PlayerStats
+from .models import Player, PlayerStats, PlayerTransfer
 from .serializers import (
     PlayerSerializer, PlayerListSerializer, PlayerDetailSerializer,
-    PlayerStatsSerializer, TopScorerSerializer, PlayerCreateSerializer
+    PlayerStatsSerializer, TopScorerSerializer, PlayerCreateSerializer,
+    PlayerTransferSerializer
 )
 
 
@@ -136,6 +137,29 @@ class PlayerStatsViewSet(viewsets.ModelViewSet):
             stats = self.queryset
         serializer = self.get_serializer(stats, many=True)
         return Response(serializer.data)
+
+
+class PlayerTransferViewSet(viewsets.ModelViewSet):
+    """ViewSet для управления трансферами игроков."""
+
+    queryset = PlayerTransfer.objects.select_related('player', 'from_club', 'to_club').all()
+    serializer_class = PlayerTransferSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        player_id = self.request.query_params.get('player')
+        if player_id:
+            qs = qs.filter(player_id=player_id)
+        return qs
+
+    def perform_create(self, serializer):
+        transfer = serializer.save()
+        transfer.apply_if_confirmed()
+
+    def perform_update(self, serializer):
+        transfer = serializer.save()
+        transfer.apply_if_confirmed()
     
     @action(detail=False, methods=['get'])
     def by_season(self, request):

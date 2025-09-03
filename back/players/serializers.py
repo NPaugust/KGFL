@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Player, PlayerStats
+from .models import Player, PlayerStats, PlayerTransfer
 
 
 class PlayerCreateSerializer(serializers.ModelSerializer):
@@ -82,6 +82,18 @@ class PlayerStatsSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = PlayerStats
+        fields = '__all__'
+
+
+class PlayerTransferSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели PlayerTransfer."""
+
+    player_name = serializers.CharField(source='player.full_name', read_only=True)
+    from_club_name = serializers.CharField(source='from_club.name', read_only=True)
+    to_club_name = serializers.CharField(source='to_club.name', read_only=True)
+
+    class Meta:
+        model = PlayerTransfer
         fields = '__all__'
 
 

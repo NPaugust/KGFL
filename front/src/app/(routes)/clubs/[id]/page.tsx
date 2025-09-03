@@ -24,6 +24,8 @@ import { useClub } from '@/hooks/useClubs';
 import { useApi } from '@/hooks/useApi';
 import { API_ENDPOINTS } from '@/services/api';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { PlayerTransfer } from '@/types';
+import { apiClient, API_ENDPOINTS } from '@/services/api';
 
 interface Player {
   id: number;
@@ -91,6 +93,7 @@ export default function ClubPage() {
   );
   
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
+  const [playerTransfers, setPlayerTransfers] = useState<PlayerTransfer[]>([]);
   const [activeTab, setActiveTab] = useState<'squad' | 'matches' | 'management'>('squad');
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     GK: true,
@@ -115,6 +118,16 @@ export default function ClubPage() {
       [position]: !prev[position]
     }));
   };
+
+  useEffect(() => {
+    const loadTransfers = async () => {
+      if (selectedPlayer) {
+        const data = await apiClient.get<PlayerTransfer[]>(`${API_ENDPOINTS.PLAYER_TRANSFERS}?player=${selectedPlayer.id}`)
+        setPlayerTransfers(Array.isArray(data) ? data : [])
+      }
+    }
+    loadTransfers()
+  }, [selectedPlayer])
 
   if (loading) {
     return (
@@ -462,6 +475,16 @@ export default function ClubPage() {
                         <span className="text-white/70">Вес:</span>
                         <span className="text-white">{selectedPlayer.weight} кг</span>
                       </div>
+                      <div className="flex justify-between">
+                        <span className="text-white/70">Статус:</span>
+                        <span className="text-white">{(selectedPlayer as any).status || '—'}</span>
+                      </div>
+                      {(selectedPlayer as any).phone && (
+                        <div className="flex justify-between">
+                          <span className="text-white/70">Телефон:</span>
+                          <span className="text-white">{(selectedPlayer as any).phone}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -503,6 +526,31 @@ export default function ClubPage() {
                       <p className="text-white/70 text-sm">{selectedPlayer.bio}</p>
                     </div>
                   )}
+
+                  {/* Extra info: примечание */}
+                  {(selectedPlayer as any).bio && (
+                    <div className="card p-4">
+                      <h4 className="font-semibold text-white mb-3">Примечание</h4>
+                      <div className="text-sm text-white/80">{(selectedPlayer as any).bio}</div>
+                    </div>
+                  )}
+
+                  {/* Transfer History */}
+                  <div className="card p-4">
+                    <h4 className="font-semibold text-white mb-3">История трансферов</h4>
+                    {playerTransfers.length ? (
+                      <ul className="space-y-2">
+                        {playerTransfers.map(t => (
+                          <li key={t.id} className="flex justify-between text-sm">
+                            <span className="text-white/80">{(typeof t.from_club === 'object' ? t.from_club?.name : t.from_club) || 'Свободный агент'} → {typeof t.to_club === 'object' ? t.to_club?.name : t.to_club}</span>
+                            <span className="text-white/60">{new Date(t.transfer_date).toLocaleDateString('ru-RU')}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-white/60 text-sm">Нет записей</p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>

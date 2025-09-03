@@ -116,9 +116,7 @@ class Season(models.Model):
         return self.name
     
     def save(self, *args, **kwargs):
-        # Если этот сезон активный, деактивируем остальные
-        if self.is_active:
-            Season.objects.exclude(pk=self.pk).update(is_active=False)
+        # Сохраняем сезон (деактивация других сезонов обрабатывается сигналом)
         super().save(*args, **kwargs)
 
 
@@ -312,25 +310,47 @@ class Referee(models.Model):
 class Management(models.Model):
     """Модель руководства лиги."""
     
+    # 1. ID - автоматически создается Django
+    
+    # 2. ФИО
     name = models.CharField(
         max_length=200,
-        blank=True,
-        verbose_name=_('ФИО')
+        verbose_name=_('ФИО'),
+        help_text=_('Полное имя представителя руководства')
     )
     
+    # 3. Должность
+    position = models.CharField(
+        max_length=100,
+        verbose_name=_('Должность'),
+        help_text=_('Должность в руководстве лиги')
+    )
+    
+    # 4. Фото
     photo = models.ImageField(
         upload_to='management/',
         blank=True,
         null=True,
-        verbose_name=_('Фото')
+        verbose_name=_('Фото'),
+        help_text=_('Фотография представителя руководства')
     )
     
-    position = models.CharField(
-        max_length=100,
+    # 5. Телефон
+    phone = models.CharField(
+        max_length=20,
         blank=True,
-        verbose_name=_('Должность')
+        verbose_name=_('Телефон'),
+        help_text=_('Контактный телефон')
     )
     
+    # 6. Примечания
+    notes = models.TextField(
+        blank=True,
+        verbose_name=_('Примечания'),
+        help_text=_('Дополнительная информация')
+    )
+    
+    # Дополнительные поля для совместимости
     bio = models.TextField(
         blank=True,
         verbose_name=_('Биография')
@@ -339,12 +359,6 @@ class Management(models.Model):
     email = models.EmailField(
         blank=True,
         verbose_name=_('Email')
-    )
-    
-    phone = models.CharField(
-        max_length=20,
-        blank=True,
-        verbose_name=_('Телефон')
     )
     
     is_active = models.BooleanField(

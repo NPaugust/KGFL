@@ -260,6 +260,7 @@ export const API_ENDPOINTS = {
   // Матчи
   MATCHES: '/matches/',
   MATCH_DETAIL: (id: string) => `/matches/${id}/`,
+  STADIUMS: '/matches/stadiums/',
   UPCOMING_MATCHES: '/matches/upcoming/',
   LATEST_MATCHES: '/matches/latest/',
   GOALS: '/matches/goals/',
@@ -269,8 +270,9 @@ export const API_ENDPOINTS = {
   // Игроки
   PLAYERS: '/players/',
   PLAYER_DETAIL: (id: string) => `/players/${id}/`,
-  TOP_SCORERS: '/players/top-scorers/',
+  TOP_SCORERS: '/players/top_scorers/',
   PLAYER_STATS: '/players/stats/',
+  PLAYER_TRANSFERS: '/players/transfers/',
   
   // Судьи
   REFEREES: '/referees/',
