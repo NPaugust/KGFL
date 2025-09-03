@@ -277,7 +277,7 @@ export default function MatchDetailsPage() {
                 <div className="space-y-3">
                   {timeline.map((ev, idx) => (
                     <div key={idx} className="flex items-center gap-3 text-white">
-                      <div className="w-10 text-right text-white/70">{ev.minute}'</div>
+                      <div className="w-10 text-right text-white/70">{ev.minute}&apos;</div>
                       <div className={ev.side === 'home' ? 'text-brand-accent' : 'text-white'}>
                         {ev.type === 'goal' ? '⚽ Гол' : ev.type === 'yellow' ? '🟨 Карточка' : ev.type === 'red' ? '🟥 Карточка' : '🔁 Замена'}
                       </div>

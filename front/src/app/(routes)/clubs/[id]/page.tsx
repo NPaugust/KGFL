@@ -22,7 +22,6 @@ import {
 } from 'lucide-react';
 import { useClub } from '@/hooks/useClubs';
 import { useApi } from '@/hooks/useApi';
-import { API_ENDPOINTS } from '@/services/api';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { PlayerTransfer } from '@/types';
 import { apiClient, API_ENDPOINTS } from '@/services/api';
@@ -207,11 +206,7 @@ export default function ClubPage() {
                   {club.city}
                 </div>
                 
-                {club.stadium && (
-                  <div className="text-white/80 text-lg">
-                    {club.stadium}
-                  </div>
-                )}
+
                 
                 {club.founded && (
                   <div className="text-white/80 text-lg">

@@ -69,7 +69,7 @@ export default function RefereesPage() {
                       const photo = referee.photo_url || referee.photo
                       return photo?.startsWith('http') ? photo : `/${photo}`
                     })()} 
-                    alt={referee.name} 
+                    alt={referee.name || 'Судья'} 
                     width={80} 
                     height={80} 
                     className="rounded-full object-cover" 
@@ -84,7 +84,7 @@ export default function RefereesPage() {
               </div>
               
               <h3 className="text-xl font-semibold text-white mb-2">{referee.name}</h3>
-              <p className="text-brand-primary mb-3">{referee.position || 'Судья'}</p>
+              <p className="text-brand-primary mb-3">{referee.category || 'Судья'}</p>
               
               {referee.experience && (
                 <div className="text-white/70 text-sm mb-2">
