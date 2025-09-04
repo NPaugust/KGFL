@@ -72,7 +72,7 @@ export default function RefereesPage() {
                     alt={referee.name || 'Судья'} 
                     width={80} 
                     height={80} 
-                    className="rounded-full object-cover" 
+                    className="rounded-full object-contain bg-transparent" 
                   />
                 ) : (
                   <div className="w-20 h-20 bg-brand-primary/20 rounded-full flex items-center justify-center">

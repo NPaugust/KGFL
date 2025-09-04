@@ -9,13 +9,14 @@ interface DashboardOverviewProps {
 export function DashboardOverview({ onSectionChange }: DashboardOverviewProps) {
   return (
     <div className="p-6">
+      
       <h1 className="text-2xl font-bold mb-6">Панель управления KGFL</h1>
       <p className="text-white/70 mb-8">Управление футбольной лигой, матчами, клубами и игроками</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="card p-6 cursor-pointer hover:bg-white/10 transition-colors" onClick={() => onSectionChange('clubs')}>
           <div className="w-12 h-12 bg-brand-primary/20 rounded-lg mb-3 flex items-center justify-center">
-            <span className="text-brand-primary font-bold text-xl">⚽</span>
+            <span className="text-brand-primary font-bold text-xl">К</span>
           </div>
           <h3 className="text-lg font-semibold mb-2">Клубы</h3>
           <p className="text-white/70 text-sm">Добавление, редактирование и удаление футбольных клубов</p>

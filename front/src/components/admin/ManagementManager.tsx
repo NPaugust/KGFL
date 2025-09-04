@@ -40,30 +40,18 @@ export function ManagementManager() {
     if (!formData.position) return setFormError('Пожалуйста, укажите должность')
 
     try {
-      let dataToSend: any
-      if (formData.photo) {
-        const fd = new FormData()
-        fd.append('name', formData.name)
-        fd.append('position', formData.position)
-        if (formData.email) fd.append('email', formData.email)
-        if (formData.phone) fd.append('phone', formData.phone)
-        if (formData.notes) fd.append('notes', formData.notes)
-        fd.append('photo', formData.photo)
-        dataToSend = fd
-      } else {
-        dataToSend = {
-          name: formData.name,
-          position: formData.position,
-          email: formData.email,
-          phone: formData.phone,
-          notes: formData.notes
-        }
-      }
+      const fd = new FormData()
+      fd.append('name', formData.name)
+      fd.append('position', formData.position)
+      if (formData.email) fd.append('email', formData.email)
+      if (formData.phone) fd.append('phone', formData.phone)
+      if (formData.notes) fd.append('notes', formData.notes)
+      if (formData.photo) fd.append('photo', formData.photo)
 
       if (editingManagement) {
-        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManagement.id.toString()), 'PUT', dataToSend)
+        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManagement.id.toString()), 'PUT', fd)
       } else {
-        await mutate(API_ENDPOINTS.MANAGEMENT, 'POST', dataToSend)
+        await mutate(API_ENDPOINTS.MANAGEMENT, 'POST', fd)
       }
 
       setIsModalOpen(false)

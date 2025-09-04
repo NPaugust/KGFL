@@ -26,8 +26,11 @@ class ClubViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        # Для списков показываем только активные
-        if self.action in ['list', 'table', 'search']:
+        # Параметр ?all=1 возвращает все записи без фильтра is_active
+        if self.request.query_params.get('all'):
+            return qs
+        # Для публичных таблиц/поиска оставляем только активные
+        if self.action in ['table', 'search', 'list']:
             return qs.filter(is_active=True)
         return qs
     

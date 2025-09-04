@@ -14,8 +14,9 @@ import { PartnersManager } from './PartnersManager'
 import { TransfersManager } from './TransfersManager'
 import { SeasonsManager } from './SeasonsManager'
 import { DashboardOverview } from './DashboardOverview'
+import { StadiumsManager } from './StadiumsManager'
 
-export type AdminSection = 'dashboard' | 'clubs' | 'matches' | 'players' | 'media' | 'referees' | 'management' | 'stats' | 'partners' | 'transfers' | 'seasons'
+export type AdminSection = 'dashboard' | 'clubs' | 'matches' | 'players' | 'media' | 'referees' | 'management' | 'stats' | 'partners' | 'transfers' | 'seasons' | 'guide'
 
 export interface AdminSidebarProps {
   activeSection: AdminSection
@@ -29,6 +30,8 @@ export function AdminDashboard() {
     switch (activeSection) {
       case 'dashboard':
         return <DashboardOverview onSectionChange={setActiveSection} />
+      case 'guide':
+        return <StadiumsManager />
       case 'clubs':
         return <ClubsManager />
       case 'matches':

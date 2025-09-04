@@ -249,33 +249,56 @@ class Media(models.Model):
 class Referee(models.Model):
     """Модель судьи."""
     
+    # ФИО
     name = models.CharField(
         max_length=200,
         blank=True,
         verbose_name=_('ФИО')
     )
     
+    # Фото (для карточки)
     photo = models.ImageField(
         upload_to='referees/',
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
         verbose_name=_('Фото')
     )
     
-    position = models.CharField(
-        max_length=100,
+    # Категория (справочник): Главный судья, помощник, VAR, инспектор и т.п.
+    class Category(models.TextChoices):
+        MAIN = 'main', _('Главный судья')
+        ASSISTANT = 'assistant', _('Помощник')
+        VAR = 'var', _('VAR')
+        INSPECTOR = 'inspector', _('Инспектор')
+        OTHER = 'other', _('Другое')
+
+    category = models.CharField(
+        max_length=32,
+        choices=Category.choices,
+        default=Category.MAIN,
+        verbose_name=_('Категория'),
+        help_text=_('Главный судья / помощник / VAR / инспектор и т.п.')
+    )
+
+    # Регион / город (откуда судья)
+    region = models.CharField(
+        max_length=120,
         blank=True,
-        verbose_name=_('Должность')
+        verbose_name=_('Регион / город'),
+        help_text=_('Откуда судья')
     )
     
-    experience = models.PositiveIntegerField(
+    # Опыт в месяцах
+    experience_months = models.PositiveIntegerField(
         default=0,
-        verbose_name=_('Опыт работы (лет)')
+        verbose_name=_('Опыт (в месяцах)')
     )
     
-    bio = models.TextField(
+    # Телефон (при необходимости)
+    phone = models.CharField(
+        max_length=20,
         blank=True,
-        verbose_name=_('Биография')
+        verbose_name=_('Телефон')
     )
     
     is_active = models.BooleanField(
@@ -320,17 +343,25 @@ class Management(models.Model):
     )
     
     # 3. Должность
+    class PositionChoices(models.TextChoices):
+        PRESIDENT = 'president', _('Президент лиги')
+        FINANCIAL_DIRECTOR = 'financial_director', _('Финансовый директор')
+        TECHNICAL_DIRECTOR = 'technical_director', _('Технический директор')
+        DISCIPLINARY_HEAD = 'disciplinary_head', _('Руководитель дисциплинарного комитета')
+        OTHER = 'other', _('Другая должность')
+
     position = models.CharField(
-        max_length=100,
+        max_length=64,
+        choices=PositionChoices.choices,
         verbose_name=_('Должность'),
-        help_text=_('Должность в руководстве лиги')
+        help_text=_('Справочник должностей руководства')
     )
     
     # 4. Фото
     photo = models.ImageField(
         upload_to='management/',
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
         verbose_name=_('Фото'),
         help_text=_('Фотография представителя руководства')
     )

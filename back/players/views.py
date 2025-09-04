@@ -14,7 +14,7 @@ from .serializers import (
 class PlayerViewSet(viewsets.ModelViewSet):
     """ViewSet для управления игроками."""
     
-    queryset = Player.objects.filter(is_active=True)
+    queryset = Player.objects.all()
     serializer_class = PlayerSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
@@ -67,7 +67,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
                 Q(club__name__icontains=query)
             )
         else:
-            players = self.queryset
+            players = self.queryset.filter(is_active=True)
         serializer = self.get_serializer(players, many=True)
         return Response(serializer.data)
     
@@ -78,7 +78,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         if club_id:
             players = self.queryset.filter(club_id=club_id)
         else:
-            players = self.queryset
+            players = self.queryset.filter(is_active=True)
         serializer = self.get_serializer(players, many=True)
         return Response(serializer.data)
     
@@ -89,7 +89,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
         if position:
             players = self.queryset.filter(position=position)
         else:
-            players = self.queryset
+            players = self.queryset.filter(is_active=True)
         serializer = self.get_serializer(players, many=True)
         return Response(serializer.data)
     

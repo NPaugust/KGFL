@@ -24,14 +24,14 @@ interface PlayerFormData {
 
 export function PlayersManager() {
   const { data: players, loading, error, refetch } = useApi<Player[]>(API_ENDPOINTS.PLAYERS)
-  const { data: clubs, loading: clubsLoading } = useApi<Club[]>(API_ENDPOINTS.CLUBS)
+  const { data: clubs, loading: clubsLoading } = useApi<Club[]>(`${API_ENDPOINTS.CLUBS}?all=1`)
   const { data: transfers, refetch: refetchTransfers } = useApi<PlayerTransfer[]>(API_ENDPOINTS.PLAYER_TRANSFERS)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [formData, setFormData] = useState<PlayerFormData>({
     first_name: '',
     last_name: '',
-    position: '',
+    position: 'GK',
     nationality: '',
     club: '',
     date_of_birth: '',
@@ -53,7 +53,7 @@ export function PlayersManager() {
       formDataToSend.append('first_name', formData.first_name)
       formDataToSend.append('last_name', formData.last_name)
       formDataToSend.append('position', formData.position)
-      formDataToSend.append('nationality', formData.nationality)
+      if (formData.nationality) formDataToSend.append('nationality', formData.nationality)
       if (formData.club) formDataToSend.append('club', formData.club)
       formDataToSend.append('date_of_birth', formData.date_of_birth)
       if (formData.photo) formDataToSend.append('photo', formData.photo)
@@ -223,8 +223,8 @@ export function PlayersManager() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Номер</label>
-                  <input type="number" min="1" max="99" value={formData.number || ''} onChange={(e) => setFormData({ ...formData, number: parseInt(e.target.value) || undefined })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" placeholder="1-99" />
+                  <label className="block text-sm font-medium mb-1">Номер *</label>
+                  <input type="number" min="1" max="99" value={formData.number || ''} onChange={(e) => setFormData({ ...formData, number: parseInt(e.target.value) || undefined })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" required placeholder="1-99" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Рост (см)</label>
@@ -239,7 +239,7 @@ export function PlayersManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Телефон</label>
-                  <input type="tel" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" />
+                  <input type="tel" pattern="^[+\\d][\\d\\s()-]{6,}$" title="Например: +996 700 123 456" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Фото *</label>
@@ -266,7 +266,7 @@ export function PlayersManager() {
 
               <div className="flex gap-2 pt-4">
                 <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>{mutationLoading ? 'Сохранение...' : 'Сохранить'}</button>
-                <button type="button" onClick={() => { setIsModalOpen(false); setEditingPlayer(null); setFormData({ first_name: '', last_name: '', position: '', nationality: '', club: '', date_of_birth: '', number: undefined, height: undefined, weight: undefined, phone: '', notes: '', status: 'applied' }) }} className="btn btn-outline flex-1">Отмена</button>
+                <button type="button" onClick={() => { setIsModalOpen(false); setEditingPlayer(null); setFormData({ first_name: '', last_name: '', position: 'GK', nationality: '', club: '', date_of_birth: '', number: undefined, height: undefined, weight: undefined, phone: '', notes: '', status: 'applied' }) }} className="btn btn-outline flex-1">Отмена</button>
               </div>
             </form>
           </div>

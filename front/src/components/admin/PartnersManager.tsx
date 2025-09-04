@@ -17,7 +17,7 @@ interface Partner {
 
 interface PartnerFormData {
   name: string
-  category: string
+  category: 'main' | 'official' | 'technical'
   website?: string
   logo?: File
 }
@@ -26,27 +26,25 @@ export function PartnersManager() {
   const { data: partners, loading, error, refetch } = useApi<Partner[]>(API_ENDPOINTS.PARTNERS)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingPartner, setEditingPartner] = useState<Partner | null>(null)
-  const [formData, setFormData] = useState<PartnerFormData>({ name: '', category: '', website: '' })
+  const [formData, setFormData] = useState<PartnerFormData>({ name: '', category: 'official', website: '' })
   const { mutate, loading: mutationLoading } = useApiMutation<Partner>()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const payload = { name: formData.name, category: formData.category, website: formData.website }
-      let result: any
+      const fd = new FormData()
+      fd.append('name', formData.name)
+      fd.append('category', formData.category)
+      if (formData.website) fd.append('website', formData.website)
+      if (formData.logo) fd.append('logo', formData.logo)
       if (editingPartner) {
-        result = await mutate(API_ENDPOINTS.PARTNER_DETAIL(editingPartner.id), 'PUT', payload)
+        await mutate(API_ENDPOINTS.PARTNER_DETAIL(editingPartner.id), 'PUT', fd)
       } else {
-        result = await mutate(API_ENDPOINTS.PARTNERS, 'POST', payload)
-      }
-      if (formData.logo) {
-        const fd = new FormData()
-        fd.append('logo', formData.logo)
-        await mutate(API_ENDPOINTS.PARTNER_DETAIL((editingPartner?.id || result?.id) as any), 'PATCH', fd)
+        await mutate(API_ENDPOINTS.PARTNERS, 'POST', fd)
       }
       setIsModalOpen(false)
       setEditingPartner(null)
-      setFormData({ name: '', category: '', website: '' })
+      setFormData({ name: '', category: 'official', website: '' })
       refetch()
     } catch (error) {
       alert(`Ошибка при сохранении партнера`)
@@ -55,7 +53,10 @@ export function PartnersManager() {
 
   const handleEdit = (partner: Partner) => {
     setEditingPartner(partner)
-    setFormData({ name: partner.name || '', category: partner.category || '', website: partner.website || '' })
+    const safeCategory = (['main','official','technical'] as const).includes(partner.category as any)
+      ? (partner.category as 'main'|'official'|'technical')
+      : 'official'
+    setFormData({ name: partner.name || '', category: safeCategory, website: partner.website || '' })
     setIsModalOpen(true)
   }
 
@@ -132,8 +133,12 @@ export function PartnersManager() {
                 <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Категория</label>
-                <input type="text" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" placeholder="Например: главный спонсор" />
+                <label className="block text-sm font-medium mb-1">Категория *</label>
+                <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value as any })} className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded" required>
+                  <option value="main">Главный партнер</option>
+                  <option value="official">Официальный партнер</option>
+                  <option value="technical">Технический партнер</option>
+                </select>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Веб‑сайт</label>
@@ -145,7 +150,7 @@ export function PartnersManager() {
               </div>
               <div className="flex gap-2 pt-4">
                 <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>{mutationLoading ? 'Сохранение...' : 'Сохранить'}</button>
-                <button type="button" onClick={() => { setIsModalOpen(false); setEditingPartner(null); setFormData({ name: '', category: '', website: '' }) }} className="btn btn-outline flex-1">Отмена</button>
+                <button type="button" onClick={() => { setIsModalOpen(false); setEditingPartner(null); setFormData({ name: '', category: 'official', website: '' }) }} className="btn btn-outline flex-1">Отмена</button>
               </div>
             </form>
           </div>

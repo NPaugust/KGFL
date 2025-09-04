@@ -6,9 +6,10 @@ class Referee(models.Model):
     """Модель судьи."""
     
     class Category(models.TextChoices):
-        INTERNATIONAL = 'international', _('Международный')
-        NATIONAL = 'national', _('Национальный')
-        REGIONAL = 'regional', _('Региональный')
+        CHIEF = 'chief', _('Главный судья')
+        ASSISTANT = 'assistant', _('Помощник')
+        VAR = 'var', _('VAR')
+        INSPECTOR = 'inspector', _('Инспектор')
     
     # 1. ID судьи - автоматически создается Django
     
@@ -29,9 +30,9 @@ class Referee(models.Model):
     category = models.CharField(
         max_length=20,
         choices=Category.choices,
-        default=Category.NATIONAL,
+        default=Category.CHIEF,
         verbose_name=_('Категория'),
-        help_text=_('Категория судьи (международный, национальный, региональный)')
+        help_text=_('Главный судья / Помощник / VAR / Инспектор')
     )
     
     # 4. Регион/город
@@ -52,8 +53,8 @@ class Referee(models.Model):
     # 6. Фото
     photo = models.ImageField(
         upload_to='referees/photos/',
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
         verbose_name=_('Фото'),
         help_text=_('Фотография судьи')
     )

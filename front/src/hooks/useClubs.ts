@@ -27,7 +27,7 @@ export function useClubs() {
     try {
       setClubsLoading(true)
       setClubsError(null)
-      const result = await apiClient.get<PaginatedResponse<Club> | Club[]>(API_ENDPOINTS.CLUBS)
+      const result = await apiClient.get<PaginatedResponse<Club> | Club[]>(API_ENDPOINTS.CLUBS, { all: 1, _ts: Date.now() })
       // Обрабатываем пагинацию
       if (result && typeof result === 'object' && 'results' in result) {
         setClubs((result as PaginatedResponse<Club>).results)
@@ -81,7 +81,7 @@ export function useClubs() {
   useEffect(() => {
     fetchClubs()
     fetchActiveSeason()
-  }, [fetchClubs, fetchActiveSeason])
+  }, [fetchClubs, fetchActiveSeason, refreshKey])
 
   // Обновляем таблицу при изменении выбранного сезона
   useEffect(() => {
@@ -93,8 +93,11 @@ export function useClubs() {
   // Убираем слушатель season-changed чтобы избежать бесконечных циклов
 
   const refetchClubs = useCallback(() => {
+    // Мгновенно перечитываем список клубов
+    fetchClubs()
+    // и дергаем refreshKey на случай внешних зависимостей
     setRefreshKey(prev => prev + 1)
-  }, [])
+  }, [fetchClubs])
 
   const refetchTable = useCallback(() => {
     if (selectedSeasonId) {

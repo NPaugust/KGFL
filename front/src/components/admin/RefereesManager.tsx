@@ -8,7 +8,8 @@ import { Loading } from '../Loading'
 interface RefereeFormData {
   first_name: string
   last_name: string
-  category: 'international' | 'national' | 'regional'
+  // По ТЗ: Главный судья / Помощник / VAR / Инспектор
+  category: 'main' | 'assistant' | 'var' | 'inspector'
   region?: string
   experience_months: number
   phone?: string
@@ -22,7 +23,7 @@ export function RefereesManager() {
   const [formData, setFormData] = useState<RefereeFormData>({
     first_name: '',
     last_name: '',
-    category: 'national',
+    category: 'main',
     region: '',
     experience_months: 0,
     phone: ''
@@ -56,7 +57,7 @@ export function RefereesManager() {
 
       setIsModalOpen(false)
       setEditingReferee(null)
-      setFormData({ first_name: '', last_name: '', category: 'national', region: '', experience_months: 0, phone: '' })
+      setFormData({ first_name: '', last_name: '', category: 'main', region: '', experience_months: 0, phone: '' })
       refetch()
       setFormSuccess('Сохранено')
     } catch (error) {
@@ -70,7 +71,7 @@ export function RefereesManager() {
     setFormData({
       first_name: referee.first_name || '',
       last_name: referee.last_name || '',
-      category: referee.category || 'national',
+      category: (referee.category as any) || 'main',
       region: referee.region || '',
       experience_months: referee.experience_months || 0,
       phone: referee.phone || ''
@@ -173,14 +174,15 @@ export function RefereesManager() {
                 <div>
                   <label className="block text-sm font-medium mb-1">Категория *</label>
                   <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value as any })} className="input w-full" required>
-                    <option value="international">Международный</option>
-                    <option value="national">Национальный</option>
-                    <option value="regional">Региональный</option>
+                    <option value="main">Главный судья</option>
+                    <option value="assistant">Помощник</option>
+                    <option value="var">VAR</option>
+                    <option value="inspector">Инспектор</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Регион / город</label>
-                  <input type="text" value={formData.region || ''} onChange={(e) => setFormData({ ...formData, region: e.target.value })} className="input w-full" />
+                  <label className="block text-sm font-medium mb-1">Регион / город *</label>
+                  <input type="text" value={formData.region || ''} onChange={(e) => setFormData({ ...formData, region: e.target.value })} className="input w-full" required />
                 </div>
               </div>
 
@@ -191,18 +193,18 @@ export function RefereesManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Телефон</label>
-                  <input type="tel" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input w-full" />
+                  <input type="tel" pattern="^[+\\d][\\d\\s()-]{6,}$" title="Например: +996 700 123 456" value={formData.phone || ''} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input w-full" />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Фото</label>
-                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} className="input w-full" />
+                <label className="block text-sm font-medium mb-1">Фото *</label>
+                <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} className="input w-full" required={!editingReferee} />
               </div>
 
               <div className="flex gap-2 pt-4">
                 <button type="submit" className="btn btn-primary flex-1" disabled={createRefereeMutation.loading || updateRefereeMutation.loading}>{createRefereeMutation.loading || updateRefereeMutation.loading ? 'Сохранение...' : 'Сохранить'}</button>
-                <button type="button" onClick={() => { setIsModalOpen(false); setEditingReferee(null); setFormData({ first_name: '', last_name: '', category: 'national', region: '', experience_months: 0, phone: '' }) }} className="btn btn-outline flex-1">Отмена</button>
+                <button type="button" onClick={() => { setIsModalOpen(false); setEditingReferee(null); setFormData({ first_name: '', last_name: '', category: 'main', region: '', experience_months: 0, phone: '' }) }} className="btn btn-outline flex-1">Отмена</button>
               </div>
             </form>
           </div>

@@ -5,14 +5,16 @@ import { apiClient } from '@/services/api'
 import { PaginatedResponse } from '@/types'
 
 export function useApi<T = any>(
-  url: string, 
-  params?: Record<string, any>, 
+  url: string,
+  params?: Record<string, any>,
   dependencies: any[] = []
 ) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  // ВАЖНО: мемоизируем ключ параметров, чтобы избежать бесконечных перерендеров
+  const paramsKey = JSON.stringify(params || {})
 
   const fetchData = useCallback(async () => {
     try {
@@ -20,7 +22,9 @@ export function useApi<T = any>(
       setError(null)
       
       console.log('Fetching data from:', url)
-      const result = await apiClient.get<T>(url, { params })
+      const parsedParams = paramsKey ? JSON.parse(paramsKey) : undefined
+      // cache-buster чтобы не получать закешированный список после создания
+      const result = await apiClient.get<T>(url, { params: { ...(parsedParams || {}), _ts: Date.now() } })
       console.log('API response:', result)
       
       // Проверяем, есть ли пагинация
@@ -38,7 +42,7 @@ export function useApi<T = any>(
     } finally {
       setLoading(false)
     }
-  }, [url, params])
+  }, [url, paramsKey])
 
   const refetch = useCallback(() => {
     setRefreshTrigger(prev => prev + 1)
@@ -63,7 +67,7 @@ export function useApi<T = any>(
     return () => {
       window.removeEventListener('data-updated', handleDataUpdate as EventListener)
     }
-  }, [url, params, refreshTrigger, fetchData, ...dependencies])
+  }, [url, paramsKey, refreshTrigger, fetchData, ...dependencies])
 
   return { data, loading, error, refetch }
 }
@@ -105,10 +109,16 @@ export function useApiMutation<T = any>(url?: string, method?: 'POST' | 'PUT' | 
       
       // Автоматически обновляем данные после успешной мутации
       if (typeof window !== 'undefined') {
-        // Триггерим событие для обновления связанных данных
-        window.dispatchEvent(new CustomEvent('data-updated', { 
-          detail: { url: requestUrl, method: requestMethod } 
-        }))
+        const detail = { url: requestUrl, method: requestMethod }
+        window.dispatchEvent(new CustomEvent('data-updated', { detail }))
+        // Дополнительно: дергаем корневой список (например, /players/ для /players/123/)
+        try {
+          const normalized = requestUrl.endsWith('/') ? requestUrl : `${requestUrl}/`
+          const base = normalized.replace(/\d+\/?$/, '')
+          if (base && base !== requestUrl) {
+            window.dispatchEvent(new CustomEvent('data-updated', { detail: { url: base, method: requestMethod } }))
+          }
+        } catch {}
       }
       
       return result

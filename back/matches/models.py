@@ -24,11 +24,10 @@ class Match(models.Model):
     """Модель матча."""
     
     class Status(models.TextChoices):
-        SCHEDULED = 'scheduled', _('Запланирован')
-        LIVE = 'live', _('В прямом эфире')
-        FINISHED = 'finished', _('Завершен')
-        CANCELLED = 'cancelled', _('Отменен')
-        POSTPONED = 'postponed', _('Перенесен')
+        SCHEDULED = 'scheduled', _('Назначен')
+        LIVE = 'live', _('Идёт игра')
+        FINISHED = 'finished', _('Закончен')
+        POSTPONED = 'postponed', _('Перенос матча')
     
     # 1. ID матча - автоматически создается Django
     
@@ -46,8 +45,8 @@ class Match(models.Model):
         related_name='home_matches',
         verbose_name=_('Домашняя команда'),
         help_text=_('Команда, принимающая матч дома'),
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         default=None
     )
     
@@ -73,8 +72,8 @@ class Match(models.Model):
         related_name='away_matches',
         verbose_name=_('Гостевая команда'),
         help_text=_('Команда, играющая в гостях'),
-        null=True,
-        blank=True,
+        null=False,
+        blank=False,
         default=None
     )
     
@@ -97,8 +96,8 @@ class Match(models.Model):
     
     # 8. Время
     time = models.TimeField(
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
         verbose_name=_('Время'),
         help_text=_('ЧЧ:ММ Время начала матча')
     )
@@ -127,10 +126,10 @@ class Match(models.Model):
 
     stadium_ref = models.ForeignKey(
         Stadium,
-        on_delete=models.SET_NULL,
+        on_delete=models.PROTECT,
         related_name='matches',
-        blank=True,
-        null=True,
+        blank=False,
+        null=False,
         verbose_name=_('Стадион (справочник)')
     )
     

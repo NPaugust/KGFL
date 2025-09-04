@@ -72,7 +72,7 @@ export interface Match {
   home_score?: number
   away_score?: number
   stadium?: string
-  status: 'scheduled' | 'live' | 'finished' | 'cancelled' | 'postponed'
+  status: 'scheduled' | 'live' | 'finished' | 'postponed'
   round?: number
   season?: string
   referee?: Referee

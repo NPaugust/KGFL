@@ -23,7 +23,7 @@ export default function PlayerDetailsPage() {
         <div className="card p-6">
           <div className="flex items-center gap-4">
             {player.photo ? (
-              <Image src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`} alt={player.first_name} width={96} height={96} className="rounded-full object-cover" />
+              <Image src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`} alt={player.first_name} width={96} height={96} className="rounded-full object-contain bg-transparent" />
             ) : (
               <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center text-xl">{player.first_name?.[0]}{player.last_name?.[0]}</div>
             )}

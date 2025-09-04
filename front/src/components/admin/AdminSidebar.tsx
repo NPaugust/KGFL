@@ -14,6 +14,7 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
     { id: 'partners', label: 'Партнеры', icon: '🤝' },
     { id: 'transfers', label: 'Трансферы', icon: '🔄' },
     { id: 'seasons', label: 'Сезоны', icon: '📅' },
+    { id: 'guide', label: 'Справка', icon: '📚' },
   ]
 
   return (

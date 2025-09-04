@@ -82,10 +82,12 @@ export function ClubsManager() {
       setIsModalOpen(false)
       setEditingClub(null)
       setFormData({ name: '', city: '', founded: undefined, primary_kit_color: '', secondary_kit_color: '', coach_full_name: '', assistant_full_name: '', captain_full_name: '', contact_phone: '', contact_email: '', social_media: '', description: '', participation_fee: 'no', status: 'applied', website: '' })
-      refetchClubs()
+      // Гарантированно обновляем список и таблицу после сохранения
       if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('data-updated', { detail: { url: '/clubs/table/', method: 'POST' } }))
+        window.dispatchEvent(new CustomEvent('data-updated', { detail: { url: '/clubs/', method: editingClub ? 'PUT' : 'POST' } }))
+        window.dispatchEvent(new CustomEvent('data-updated', { detail: { url: '/clubs/table/', method: 'GET' } }))
       }
+      refetchClubs()
     } catch (error) {
       alert(`Ошибка при сохранении клуба`)
     }
@@ -158,7 +160,7 @@ export function ClubsManager() {
                 <tr key={club.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
                     {(club as any).logo_url ? (
-                      <img src={(club as any).logo_url.startsWith('http') ? (club as any).logo_url : `/${(club as any).logo_url}`} alt={club.name} className="w-12 h-12 rounded-lg object-cover border-2 border-white/20" />
+                      <img src={(club as any).logo_url.startsWith('http') ? (club as any).logo_url : `/${(club as any).logo_url}`} alt={club.name} className="w-12 h-12 rounded-lg object-contain bg-transparent border-2 border-white/20" />
                     ) : (
                       <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-white/40 text-xs">Нет</div>
                     )}
@@ -239,7 +241,7 @@ export function ClubsManager() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Телефон *</label>
-                  <input type="tel" value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} className="input w-full" required />
+                  <input type="tel" pattern="^[+\\d][\\d\\s()-]{6,}$" title="Например: +996 700 123 456" value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} className="input w-full" required />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Email</label>
@@ -247,7 +249,7 @@ export function ClubsManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Соцсети (URL)</label>
-                  <input type="url" value={formData.social_media || ''} onChange={(e) => setFormData({ ...formData, social_media: e.target.value })} className="input w-full" placeholder="https://instagram.com/club" />
+                  <input type="url" pattern="https?://.+" title="Полный URL, например: https://instagram.com/club" value={formData.social_media || ''} onChange={(e) => setFormData({ ...formData, social_media: e.target.value })} className="input w-full" placeholder="https://instagram.com/club" />
                 </div>
               </div>
 
@@ -275,8 +277,8 @@ export function ClubsManager() {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Логотип</label>
-                  <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })} className="input w-full" />
+                  <label className="block text-sm font-medium mb-1">Логотип {editingClub ? '' : '*'} </label>
+                  <input type="file" accept="image/png,image/jpeg,image/svg+xml,image/webp" onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })} className="input w-full" required={!editingClub} />
                 </div>
               </div>
 

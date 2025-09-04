@@ -93,16 +93,16 @@ class MediaAdmin(admin.ModelAdmin):
 
 @admin.register(Referee)
 class LegacyRefereeAdmin(admin.ModelAdmin):
-	"""Старый раздел Referee из core (оставляем для совместимости, но можно скрыть в будущем)."""
+	"""Админ-панель Referee (обновлено под актуальные поля)."""
 	
-	list_display = ['name', 'position', 'experience', 'is_active', 'order', 'created_at']
-	list_filter = ['is_active', 'experience', 'created_at']
-	search_fields = ['name', 'position']
+	list_display = ['name', 'category', 'region', 'experience_months', 'is_active', 'order', 'created_at']
+	list_filter = ['is_active', 'category', 'created_at']
+	search_fields = ['name', 'region']
 	ordering = ['order', 'name']
 	
 	fieldsets = (
 		('Основная информация', {
-			'fields': ('name', 'position', 'experience')
+			'fields': ('name', 'category', 'region', 'experience_months', 'phone')
 		}),
 		('Медиа', {
 			'fields': ('photo',)
