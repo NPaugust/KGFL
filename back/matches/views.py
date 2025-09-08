@@ -50,7 +50,6 @@ class MatchViewSet(viewsets.ModelViewSet):
         
         today = date.today()
         
-        # Получаем последние 5 завершенных матчей (finished или прошедшие по дате)
         latest_matches = self.queryset.filter(
             Q(status='finished') | 
             Q(date__lt=today, status__in=['scheduled', 'live'])
