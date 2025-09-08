@@ -28,6 +28,22 @@ export function usePlayers() {
     }
   }
 
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
+      if (refreshTypes.includes(event.detail.type)) {
+        console.log('Обновляем игроков...', event.detail.type)
+        fetchPlayers()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [])
+
   useEffect(() => {
     fetchPlayers()
   }, [refreshKey])
@@ -94,6 +110,22 @@ export function useTopScorers() {
     }
   }
 
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
+      if (refreshTypes.includes(event.detail.type)) {
+        console.log('Обновляем топ-бомбардиров...', event.detail.type)
+        fetchTopScorers()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [])
+
   useEffect(() => {
     fetchTopScorers()
   }, [])
@@ -104,4 +136,26 @@ export function useTopScorers() {
     error,
     refetch: fetchTopScorers,
   }
-} 
+}
+
+export function useTransfers() {
+  const [transfers, setTransfers] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        setLoading(true)
+        const res = await apiClient.get<any[]>(API_ENDPOINTS.PLAYER_TRANSFERS)
+        setTransfers(Array.isArray(res) ? res : [])
+      } catch (e:any) {
+        setError(e?.message || 'Ошибка')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [])
+
+  return { transfers, loading, error }
+}

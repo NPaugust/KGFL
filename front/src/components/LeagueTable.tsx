@@ -1,9 +1,20 @@
 "use client"
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import { SeasonFilter } from './SeasonFilter'
 import { useClubs } from '@/hooks/useClubs'
 import { Loading } from './Loading'
 import { TableRow } from '@/types'
+
+function Th({ title, hint }: { title: string; hint: string }) {
+  return (
+    <th className="px-4 py-3">
+      <span title={hint} className="cursor-help inline-block">
+        {title}
+      </span>
+    </th>
+  )
+}
 
 type HeaderMode = 'full' | 'compact' | 'none'
 export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitle = false }: { headerMode?: HeaderMode; embedded?: boolean; hideSubtitle?: boolean }) {
@@ -59,16 +70,16 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
         <table className="w-full text-left text-sm">
           <thead className="bg-white/5 text-white/70">
             <tr>
-              <th className="px-4 py-3">№</th>
-              <th className="px-4 py-3">Клуб</th>
-              <th className="px-4 py-3">И</th>
-              <th className="px-4 py-3">В</th>
-              <th className="px-4 py-3">Н</th>
-              <th className="px-4 py-3">П</th>
-              <th className="px-4 py-3">Мячи</th>
-              <th className="px-4 py-3 text-center">РГ</th>
-              <th className="px-4 py-3 text-center">О</th>
-              <th className="px-4 py-3 text-center">Р</th>
+              <Th title="№" hint="Позиция" />
+              <Th title="Клуб" hint="Название команды" />
+              <Th title="И" hint="Игры" />
+              <Th title="В" hint="Выигрыши" />
+              <Th title="Н" hint="Ничьи" />
+              <Th title="П" hint="Поражения" />
+              <Th title="Мячи" hint="Забитые:Пропущенные" />
+              <Th title="РГ" hint="Разница голов" />
+              <Th title="О" hint="Очки" />
+              <Th title="Р" hint="Последние 5 игр" />
             </tr>
           </thead>
           <tbody>
@@ -79,7 +90,7 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                   <div className="flex items-center gap-3">
                     {r.club_logo ? (
                       <Image 
-                        src={r.club_logo.startsWith('http') ? r.club_logo : `/${r.club_logo}`} 
+                        src={getImageUrl(r.club_logo)} 
                         alt={r.club_name || 'Клуб'} 
                         width={28} 
                         height={28} 
@@ -93,10 +104,10 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                     <span className="font-medium">{r.club_name || 'Неизвестный клуб'}</span>
                   </div>
                 </td>
-                <td className="px-4 py-3">{r.matches_played || r.played || 0}</td>
-                <td className="px-4 py-3">{r.wins || r.win || 0}</td>
-                <td className="px-4 py-3">{r.draws || r.draw || 0}</td>
-                <td className="px-4 py-3">{r.losses || r.loss || 0}</td>
+                <td className="px-4 py-3">{r.games ?? r.matches_played ?? r.played ?? 0}</td>
+                <td className="px-4 py-3">{r.wins ?? r.win ?? 0}</td>
+                <td className="px-4 py-3">{r.draws ?? r.draw ?? 0}</td>
+                <td className="px-4 py-3">{r.losses ?? r.loss ?? 0}</td>
                 <td className="px-4 py-3">{r.goals_formatted || `${r.goals_for}:${r.goals_against}`}</td>
                 <td className="px-4 py-3 text-center font-medium">
                   <span className={(r.goal_difference || 0) > 0 ? 'text-green-400' : (r.goal_difference || 0) < 0 ? 'text-red-400' : 'text-gray-400'}>

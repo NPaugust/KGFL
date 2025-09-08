@@ -4,6 +4,7 @@ import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
+import { Modal } from '../ui/Modal'
 
 interface PlayerStatsFormData {
   player: string
@@ -30,6 +31,8 @@ export function StatsManager() {
     red_cards: 0,
     minutes_played: 0
   })
+  const [formError, setFormError] = useState<string | null>(null)
+  const [formSuccess, setFormSuccess] = useState<string | null>(null)
 
   const updatePlayerMutation = useApiMutation()
 
@@ -37,8 +40,8 @@ export function StatsManager() {
     e.preventDefault()
 
     try {
-      console.log('Submitting player stats data:', formData)
-      
+      setFormError(null)
+      setFormSuccess(null)
       const statsData = {
         ...editingStats,
         games_played: formData.games_played,
@@ -49,29 +52,35 @@ export function StatsManager() {
         minutes_played: formData.minutes_played
       }
 
-      console.log('Updating player stats:', editingStats?.id)
       await updatePlayerMutation.mutateAsync(API_ENDPOINTS.PLAYER_DETAIL(editingStats.id), 'PUT', statsData)
 
       setIsModalOpen(false)
       setEditingStats(null)
-      setFormData({
-        player: '',
-        season: '2024',
-        games_played: 0,
-        goals_scored: 0,
-        assists: 0,
-        yellow_cards: 0,
-        red_cards: 0,
-        minutes_played: 0
-      })
       
-      // Принудительно обновляем данные
-      // Обновляем данные сразу
+      // Сбрасываем formData только при создании новой статистики
+      if (!editingStats) {
+        setFormData({
+          player: '',
+          season: '2024',
+          games_played: 0,
+          goals_scored: 0,
+          assists: 0,
+          yellow_cards: 0,
+          red_cards: 0,
+          minutes_played: 0
+        })
+      }
+      
       refetch()
+      setFormSuccess('Сохранено')
+      
+      // Отправляем событие обновления данных
+      window.dispatchEvent(new CustomEvent('data-refresh', { 
+        detail: { type: 'player_stats' } 
+      }))
     } catch (error) {
-      console.error('Ошибка при сохранении статистики:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-      alert(`Ошибка при сохранении статистики: ${errorMessage}`)
+      const errorMessage = (error as any)?.response?.data?.message || (error instanceof Error ? error.message : 'Неизвестная ошибка')
+      setFormError(errorMessage)
     }
   }
 
@@ -154,15 +163,20 @@ export function StatsManager() {
         </div>
       </div>
 
-      {/* Модальное окно для редактирования статистики */}
-      {isModalOpen && editingStats && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="card p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              Редактировать статистику игрока
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={isModalOpen && !!editingStats}
+        onClose={() => { setIsModalOpen(false); setEditingStats(null); }}
+        title="Редактировать статистику игрока"
+        size="md"
+      >
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+              {formError && (
+                <div className="text-red-400 text-sm">{formError}</div>
+              )}
+              {formSuccess && (
+                <div className="text-green-400 text-sm">{formSuccess}</div>
+              )}
               <div>
                 <label className="block text-sm font-medium mb-1">Игрок</label>
                 <input
@@ -251,39 +265,28 @@ export function StatsManager() {
                 </div>
               </div>
               
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={updatePlayerMutation.loading}
-                >
-                  {updatePlayerMutation.loading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setEditingStats(null)
-                    setFormData({
-                      player: '',
-                      season: '2024',
-                      games_played: 0,
-                      goals_scored: 0,
-                      assists: 0,
-                      yellow_cards: 0,
-                      red_cards: 0,
-                      minutes_played: 0
-                    })
-                  }}
-                  className="btn btn-outline flex-1"
-                >
-                  Отмена
-                </button>
-              </div>
-            </form>
-          </div>
+            <div className="flex gap-3 pt-4">
+              <button
+                type="submit"
+                className="btn btn-primary flex-1"
+                disabled={updatePlayerMutation.loading}
+              >
+                {updatePlayerMutation.loading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setEditingStats(null)
+                }}
+                className="btn btn-outline flex-1"
+              >
+                Отмена
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
     </div>
   )
 } 

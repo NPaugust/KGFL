@@ -4,6 +4,7 @@ import { Reveal } from './Reveal'
 import { useApi } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from './Loading'
+import { getImageUrl } from '@/utils'
 
 export function Partners() {
   const { data: partners, loading, error } = useApi(API_ENDPOINTS.PARTNERS)
@@ -44,11 +45,11 @@ export function Partners() {
           <Reveal key={partner.id || i} className="card p-4" delay={150 + i * 50}>
             {partner.logo ? (
               <Image 
-                src={partner.logo.startsWith('http') ? partner.logo : `/${partner.logo}`} 
+                src={getImageUrl(partner.logo)} 
                 alt={partner.name || "Партнер"} 
                 width={80} 
                 height={80} 
-                className="mx-auto h-20 w-20" 
+                className="mx-auto h-20 w-20 object-contain" 
               />
             ) : (
               <div className="mx-auto h-20 w-20 bg-white/10 rounded flex items-center justify-center text-2xl text-white/40 font-bold">
@@ -63,9 +64,7 @@ export function Partners() {
             </div>
           </Reveal>
         )) : (
-          <div className="col-span-full text-center text-white/60 py-8">
-            Партнеры не найдены
-          </div>
+          <div className="col-span-full text-center text-white/60 py-8">Партнёры пока не добавлены</div>
         )}
       </div>
     </Reveal>

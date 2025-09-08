@@ -1,4 +1,5 @@
 // Утилиты для форматирования данных
+export * from './formatting'
 
 export const formatDate = (date: string | Date): string => {
   const d = new Date(date)
@@ -126,6 +127,8 @@ export const paginate = <T>(items: T[], page: number, limit: number): T[] => {
 }
 
 // Утилиты для валидации
+export * from './validation'
+
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
@@ -156,8 +159,18 @@ export const cn = (...classes: (string | undefined | null | false)[]): string =>
 
 // Утилиты для работы с изображениями
 export const getImageUrl = (path: string): string => {
+  if (!path) return ''
   if (path.startsWith('http')) return path
-  return path.startsWith('/') ? path : `/${path}`
+  // Формируем абсолютный URL до бэкенда
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+  let origin: string
+  try {
+    origin = new URL(apiUrl).origin
+  } catch {
+    origin = 'http://localhost:8000'
+  }
+  const normalized = path.startsWith('/') ? path : `/${path}`
+  return `${origin}${normalized}`
 }
 
 // Утилиты для работы с числами

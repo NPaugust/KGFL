@@ -1,5 +1,6 @@
 "use client"
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import { useTopScorers } from '@/hooks/usePlayers'
 import { Loading } from './Loading'
 import Link from 'next/link'
@@ -51,7 +52,7 @@ export function Scorers() {
                 <div className="flex items-center gap-2">
                   {player.club?.logo ? (
                     <Image 
-                      src={player.club.logo.startsWith('http') ? player.club.logo : `/${player.club.logo}`} 
+                      src={getImageUrl(player.club.logo)} 
                       alt={player.club?.name || 'Клуб'} 
                       width={20} 
                       height={20} 
@@ -70,7 +71,7 @@ export function Scorers() {
                 <div className="relative h-40 w-40 overflow-hidden rounded-full ring-4 ring-white/10">
                   {player.photo ? (
                     <Image 
-                      src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`} 
+                      src={getImageUrl(player.photo)} 
                       alt={`${player.first_name} ${player.last_name}`}
                       fill 
                       className="object-cover" 

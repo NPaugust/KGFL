@@ -1,4 +1,5 @@
 "use client"
+import { useEffect } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Loading } from '@/components/Loading'
 import { usePlayers } from '@/hooks/usePlayers'
@@ -6,7 +7,23 @@ import Image from 'next/image'
 import { Trophy, Target, Users, Award } from 'lucide-react'
 
 export default function StatsPage() {
-  const { players, loading, error } = usePlayers()
+  const { players, loading, error, refetch } = usePlayers()
+  
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
+      if (refreshTypes.includes(event.detail.type)) {
+        console.log('Обновляем статистику игроков...', event.detail.type)
+        refetch()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [refetch])
 
   if (loading) {
     return (
@@ -97,7 +114,7 @@ export default function StatsPage() {
                           alt={`${player.first_name} ${player.last_name}`} 
                           width={48} 
                           height={48} 
-                          className="rounded-full object-cover"
+                          className="rounded-full object-contain bg-transparent"
                         />
                       ) : (
                         <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-lg text-white/40 font-bold">
@@ -150,7 +167,7 @@ export default function StatsPage() {
                           alt={`${player.first_name} ${player.last_name}`} 
                           width={48} 
                           height={48} 
-                          className="rounded-full object-cover"
+                          className="rounded-full object-contain bg-transparent"
                         />
                       ) : (
                         <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-lg text-white/40 font-bold">
@@ -212,7 +229,7 @@ export default function StatsPage() {
                             alt={`${player.first_name} ${player.last_name}`} 
                             width={32} 
                             height={32} 
-                            className="rounded-full object-cover"
+                            className="rounded-full object-contain bg-transparent"
                           />
                         ) : (
                           <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-xs text-white/40 font-bold">

@@ -273,8 +273,21 @@ CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
         'LOCATION': 'unique-snowflake',
+        'TIMEOUT': 300,  # 5 minutes
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        }
     }
 }
+
+# Cache middleware
+MIDDLEWARE.insert(1, 'django.middleware.cache.UpdateCacheMiddleware')
+MIDDLEWARE.append('django.middleware.cache.FetchFromCacheMiddleware')
+
+# Cache settings for views
+CACHE_MIDDLEWARE_ALIAS = 'default'
+CACHE_MIDDLEWARE_SECONDS = 300  # 5 minutes
+CACHE_MIDDLEWARE_KEY_PREFIX = 'kgfl'
 
 # Session settings
 SESSION_COOKIE_AGE = 3600  # 1 hour

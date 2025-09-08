@@ -3,20 +3,29 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, Season, Partner, Media, Referee, Management
+from .models import User, Season, Partner, Media
 
 
 class UserSerializer(serializers.ModelSerializer):
     """Сериализатор для модели User."""
     
+    avatar_url = serializers.SerializerMethodField()
+
     class Meta:
         model = User
         fields = [
             'id', 'username', 'email', 'first_name', 'last_name',
-            'phone', 'avatar', 'bio', 'is_active',
+            'phone', 'avatar', 'avatar_url', 'bio', 'is_active',
             'created_at', 'updated_at'
         ]
         read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_avatar_url(self, obj):
+        if obj.avatar:
+            request = self.context.get('request')
+            url = obj.avatar.url
+            return request.build_absolute_uri(url) if request else url
+        return None
 
 
 class UserCreateSerializer(serializers.ModelSerializer):
@@ -82,8 +91,15 @@ class PartnerSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def validate(self, attrs):
-        """Валидация данных партнера."""
-        # Убираем валидацию обязательных полей
+        """Базовая валидация данных партнёра."""
+        name = attrs.get('name') or getattr(self.instance, 'name', None)
+        logo = attrs.get('logo') or getattr(self.instance, 'logo', None)
+        if not name:
+            raise serializers.ValidationError({'name': 'Название обязательно'})
+        if not logo:
+            # Разрешаем пустой логотип при обновлении, если уже есть
+            if not self.instance:
+                raise serializers.ValidationError({'logo': 'Логотип обязателен'})
         return attrs
     
     def create(self, validated_data):
@@ -118,28 +134,3 @@ class MediaSerializer(serializers.ModelSerializer):
             return obj.image.url
         return None
 
-
-class RefereeSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Referee."""
-    
-    photo_url = serializers.SerializerMethodField()
-    
-    class Meta:
-        model = Referee
-        fields = '__all__'
-    
-    def get_photo_url(self, obj):
-        if obj.photo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.photo.url)
-            return obj.photo.url
-        return None
-
-
-class ManagementSerializer(serializers.ModelSerializer):
-    """Сериализатор для модели Management."""
-    
-    class Meta:
-        model = Management
-        fields = '__all__'

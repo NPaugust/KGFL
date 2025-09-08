@@ -5,87 +5,104 @@ import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
 import Image from 'next/image'
-import { apiClient } from '@/services/api'
+import { Modal, ConfirmModal } from '../ui/Modal'
 
 interface MediaFormData {
   title: string
-  category: string
-  image?: File
+  description: string
+  media_type: string
+  file?: File
+  url: string
+  is_active: boolean
 }
 
 export function MediaManager() {
-  const { data: media, loading, refetch } = useApi(API_ENDPOINTS.MEDIA)
+  const { data: media, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.MEDIA)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingMedia, setEditingMedia] = useState<any>(null)
+  const [editingMedia, setEditingMedia] = useState<any | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [mediaToDelete, setMediaToDelete] = useState<any | null>(null)
   const [formData, setFormData] = useState<MediaFormData>({
     title: '',
-    category: 'gallery'
+    description: '',
+    media_type: 'image',
+    url: '',
+    is_active: true
   })
 
-  const createMediaMutation = useApiMutation()
-  const updateMediaMutation = useApiMutation()
+  const { mutate, loading: mutationLoading } = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     try {
-      console.log('Submitting media data:', formData)
-      
-      const formDataToSend = new FormData()
-      formDataToSend.append('title', formData.title)
-      formDataToSend.append('category', formData.category)
-      if (formData.image) {
-        formDataToSend.append('image', formData.image)
-      }
-
-      console.log('FormData entries:')
-      for (let [key, value] of formDataToSend.entries()) {
-        console.log(`${key}: ${value}`)
-      }
+      const payload = new FormData()
+      payload.append('title', formData.title)
+      payload.append('description', formData.description || '')
+      payload.append('media_type', formData.media_type)
+      payload.append('url', formData.url || '')
+      payload.append('is_active', String(formData.is_active))
+      if (formData.file) payload.append('file', formData.file)
 
       if (editingMedia) {
-        console.log('Updating media:', editingMedia.id)
-        await updateMediaMutation.mutateAsync(API_ENDPOINTS.MEDIA_DETAIL(editingMedia.id), 'PUT', formDataToSend)
+        await mutate(API_ENDPOINTS.MEDIA_DETAIL(editingMedia.id), 'PUT', payload)
       } else {
-        console.log('Creating new media')
-        await createMediaMutation.mutateAsync(API_ENDPOINTS.MEDIA, 'POST', formDataToSend)
+        await mutate(API_ENDPOINTS.MEDIA, 'POST', payload)
       }
 
       setIsModalOpen(false)
       setEditingMedia(null)
-      setFormData({ title: '', category: 'gallery' })
       
-      // Обновляем данные сразу
+      // Сбрасываем formData только при создании нового медиа
+      if (!editingMedia) {
+        setFormData({
+          title: '',
+          description: '',
+          media_type: 'image',
+          url: '',
+          is_active: true
+        })
+      }
       refetch()
+      
+      // Отправляем событие обновления данных
+      window.dispatchEvent(new CustomEvent('data-refresh', { 
+        detail: { type: 'media' } 
+      }))
     } catch (error) {
-      console.error('Error saving media:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-      alert(`Ошибка при сохранении медиа: ${errorMessage}`)
+      console.error('Ошибка при сохранении медиа:', error)
+      alert('Ошибка при сохранении медиа')
     }
   }
 
-  const handleEdit = (media: any) => {
-    console.log('Редактируем медиа:', media)
-    setEditingMedia(media)
+  const handleEdit = (mediaItem: any) => {
+    setEditingMedia(mediaItem)
     setFormData({
-      title: media.title,
-      category: media.category
+      title: mediaItem.title || '',
+      description: mediaItem.description || '',
+      media_type: mediaItem.media_type || 'image',
+      url: mediaItem.url || '',
+      is_active: mediaItem.is_active !== false,
+      file: undefined // Файл не префиллим при редактировании
     })
     setIsModalOpen(true)
   }
 
-  const handleDelete = async (mediaId: string) => {
-    if (confirm('Вы уверены, что хотите удалить этот файл?')) {
-      try {
-        console.log('Deleting media:', mediaId)
-        const response = await apiClient.delete(API_ENDPOINTS.MEDIA_DETAIL(mediaId))
-        console.log('Медиа удалено:', response)
-        refetch()
-      } catch (error) {
-        console.error('Ошибка при удалении медиа:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-        alert(`Ошибка при удалении медиа: ${errorMessage}`)
-      }
+  const handleDelete = (mediaItem: any) => {
+    setMediaToDelete(mediaItem)
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!mediaToDelete) return
+    
+    try {
+      await mutate(API_ENDPOINTS.MEDIA_DETAIL(mediaToDelete.id), 'DELETE')
+      refetch()
+      setDeleteModalOpen(false)
+      setMediaToDelete(null)
+      alert('Медиа-файл успешно удален!')
+    } catch (error: any) {
+      alert(`Ошибка при удалении медиа: ${error?.response?.data?.detail || error?.message || 'Неизвестная ошибка'}`)
     }
   }
 
@@ -94,18 +111,12 @@ export function MediaManager() {
   }
 
   const mediaList = Array.isArray(media) ? media : []
-  console.log('Media list:', mediaList)
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Управление медиа</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn btn-primary"
-        >
-          Добавить медиа
-        </button>
+        <h1 className="text-2xl font-bold text-white">Управление медиа</h1>
+        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить медиа</button>
       </div>
 
       <div className="card overflow-hidden">
@@ -113,60 +124,52 @@ export function MediaManager() {
           <table className="w-full">
             <thead className="bg-white/5">
               <tr>
-                <th className="px-4 py-3 text-left">Изображение</th>
+                <th className="px-4 py-3 text-left">Превью</th>
                 <th className="px-4 py-3 text-left">Название</th>
-                <th className="px-4 py-3 text-left">Описание</th>
-                <th className="px-4 py-3 text-left">Категория</th>
+                <th className="px-4 py-3 text-left">Тип</th>
+                <th className="px-4 py-3 text-left">URL</th>
+                <th className="px-4 py-3 text-left">Статус</th>
                 <th className="px-4 py-3 text-left">Действия</th>
               </tr>
             </thead>
             <tbody>
-              {mediaList.length > 0 ? mediaList.map((media) => (
-                <tr key={media.id} className="border-b border-white/10">
+              {mediaList.length > 0 ? mediaList.map((mediaItem) => (
+                <tr key={mediaItem.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {media.image_url ? (
-                      <img src={media.image_url} alt={media.title} className="w-12 h-12 object-cover rounded" />
+                    {mediaItem.media_type === 'image' && ((mediaItem as any).image_url || mediaItem.file_url || mediaItem.url) ? (
+                      <Image 
+                        src={(mediaItem as any).image_url || mediaItem.file_url || mediaItem.url} 
+                        alt={mediaItem.title} 
+                        width={48} 
+                        height={48} 
+                        className="w-12 h-12 rounded object-cover" 
+                      />
                     ) : (
-                      <div className="w-12 h-12 bg-gray-500 rounded flex items-center justify-center text-xs">
-                        Нет фото
+                      <div className="w-12 h-12 bg-white/10 rounded flex items-center justify-center text-xs">
+                        {mediaItem.media_type === 'video' ? '🎥' : '📄'}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium">{media.title}</td>
-                  <td className="px-4 py-3">{media.description || '-'}</td>
+                  <td className="px-4 py-3 font-medium">{mediaItem.title}</td>
+                  <td className="px-4 py-3">{mediaItem.media_type}</td>
+                  <td className="px-4 py-3">{mediaItem.url || '-'}</td>
                   <td className="px-4 py-3">
                     <span className={`px-2 py-1 rounded text-xs ${
-                      media.category === 'gallery' ? 'bg-blue-500/20 text-blue-400' :
-                      media.category === 'news' ? 'bg-green-500/20 text-green-400' :
-                      'bg-gray-500/20 text-gray-400'
+                      mediaItem.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
                     }`}>
-                      {media.category === 'gallery' ? 'Галерея' :
-                       media.category === 'news' ? 'Новости' :
-                       media.category}
+                      {mediaItem.is_active ? 'Активно' : 'Неактивно'}
                     </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(media)}
-                        className="btn btn-outline px-3 py-1 text-sm"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => handleDelete(media.id)}
-                        className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm"
-                      >
-                        Удалить
-                      </button>
+                      <button onClick={() => handleEdit(mediaItem)} className="btn btn-outline px-3 py-1 text-sm">Редактировать</button>
+                      <button onClick={() => handleDelete(mediaItem)} className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm">Удалить</button>
                     </div>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-white/60">
-                    Медиа файлы не найдены
-                  </td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">Медиа-файлы не найдены</td>
                 </tr>
               )}
             </tbody>
@@ -174,79 +177,72 @@ export function MediaManager() {
         </div>
       </div>
 
-      {/* Модальное окно для добавления/редактирования */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="card p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingMedia ? 'Редактировать медиа' : 'Добавить медиа'}
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingMedia(null); }}
+        title={editingMedia ? 'Редактировать медиа' : 'Добавить медиа'}
+        size="md"
+      >
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Название *</label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  placeholder="Например: Фото с матча, Логотип команды, Портрет игрока"
-                  required
-                />
-
+                <input type="text" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="input w-full" required />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Категория *</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
-                >
-                  <option value="gallery">Галерея - общие фотографии</option>
-                  <option value="news">Новости - фото для новостей</option>
-                  <option value="events">События - фото с мероприятий</option>
-                  <option value="other">Другое - прочие изображения</option>
+                <label className="block text-sm font-medium mb-1">Описание</label>
+                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="textarea w-full" rows={3} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Тип медиа *</label>
+                <select value={formData.media_type} onChange={(e) => setFormData({ ...formData, media_type: e.target.value })} className="input w-full" required>
+                  <option value="image">Изображение</option>
+                  <option value="video">Видео</option>
+                  <option value="document">Документ</option>
                 </select>
-
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Изображение</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData({ ...formData, image: e.target.files?.[0] })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+                <label className="block text-sm font-medium mb-1">URL</label>
+                <input type="url" value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} className="input w-full" />
+              </div>
 
+              <div>
+                <label className="block text-sm font-medium mb-1">Файл {editingMedia ? '' : '*'}</label>
+                <input type="file" accept="image/*,video/*,.pdf,.doc,.docx" onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] })} className="input w-full" required={!editingMedia} />
               </div>
-              
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={createMediaMutation.loading || updateMediaMutation.loading}
-                >
-                  {createMediaMutation.loading || updateMediaMutation.loading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setEditingMedia(null)
-                    setFormData({ title: '', category: 'gallery' })
-                  }}
-                  className="btn btn-outline flex-1"
-                >
-                  Отмена
-                </button>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
+                  <span className="text-sm">Активно</span>
+                </label>
               </div>
-            </form>
-          </div>
+
+            <div className="flex gap-3 pt-4">
+              <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
+                {mutationLoading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button type="button" onClick={() => { setIsModalOpen(false); setEditingMedia(null); }} className="btn btn-outline flex-1">
+                Отмена
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
+
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setMediaToDelete(null) }}
+        onConfirm={confirmDelete}
+        title="Подтверждение удаления"
+        message={`Вы действительно хотите удалить медиа-файл "${mediaToDelete?.title}"?`}
+        confirmText="Да, удалить"
+        cancelText="Отмена"
+        variant="danger"
+      />
     </div>
   )
-} 
+}

@@ -4,34 +4,104 @@ from clubs.models import Club
 from core.models import Season
 
 
+class Stadium(models.Model):
+    """Справочник стадионов."""
+
+    name = models.CharField(max_length=200, verbose_name=_('Название'))
+    city = models.CharField(max_length=100, blank=True, verbose_name=_('Город/регион'))
+    capacity = models.PositiveIntegerField(blank=True, null=True, verbose_name=_('Вместимость'))
+
+    class Meta:
+        verbose_name = _('Стадион')
+        verbose_name_plural = _('Стадионы')
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Match(models.Model):
     """Модель матча."""
     
     class Status(models.TextChoices):
-        SCHEDULED = 'scheduled', _('Запланирован')
-        LIVE = 'live', _('В прямом эфире')
-        FINISHED = 'finished', _('Завершен')
-        CANCELLED = 'cancelled', _('Отменен')
-        POSTPONED = 'postponed', _('Перенесен')
+        SCHEDULED = 'scheduled', _('Назначен')
+        LIVE = 'live', _('Идёт игра')
+        FINISHED = 'finished', _('Закончен')
+        POSTPONED = 'postponed', _('Перенос матча')
     
+    # 1. ID матча - автоматически создается Django
+    
+    # 2. Дата
+    date = models.DateField(
+        default='2025-01-01',
+        verbose_name=_('Дата'),
+        help_text=_('ДД-ММ-ГГГГ Дата проведения матча')
+    )
+    
+    # 3. Домашняя команда
     home_team = models.ForeignKey(
         Club,
         on_delete=models.CASCADE,
         related_name='home_matches',
-        blank=True,
-        null=True,
-        verbose_name=_('Домашняя команда')
+        verbose_name=_('Домашняя команда'),
+        help_text=_('Команда, принимающая матч дома'),
+        null=False,
+        blank=False,
+        default=None
     )
     
+    # 4. Счет (делится на голы домашней и гостевой команды)
+    home_score = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name=_('Голы домашней команды'),
+        help_text=_('Количество голов домашней команды')
+    )
+    
+    away_score = models.PositiveIntegerField(
+        blank=True,
+        null=True,
+        verbose_name=_('Голы гостевой команды'),
+        help_text=_('Количество голов гостевой команды')
+    )
+    
+    # 5. Гостевая команда
     away_team = models.ForeignKey(
         Club,
         on_delete=models.CASCADE,
         related_name='away_matches',
-        blank=True,
-        null=True,
-        verbose_name=_('Гостевая команда')
+        verbose_name=_('Гостевая команда'),
+        help_text=_('Команда, играющая в гостях'),
+        null=False,
+        blank=False,
+        default=None
     )
     
+    # 6. Стадион
+    stadium = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name=_('Стадион'),
+        help_text=_('Название стадиона')
+    )
+    
+    # 7. Статус
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.SCHEDULED,
+        verbose_name=_('Статус'),
+        help_text=_('Статус матча (запланирован, в эфире, завершен и т.д.)')
+    )
+    
+    # 8. Время
+    time = models.TimeField(
+        default='15:00',
+        verbose_name=_('Время'),
+        help_text=_('ЧЧ:ММ Время начала матча')
+    )
+    
+    # Дополнительные поля для совместимости
     season = models.ForeignKey(
         Season,
         on_delete=models.CASCADE,
@@ -39,37 +109,6 @@ class Match(models.Model):
         blank=True,
         null=True,
         verbose_name=_('Сезон')
-    )
-    
-    date = models.DateField(
-        blank=True,
-        null=True,
-        verbose_name=_('Дата')
-    )
-    
-    time = models.TimeField(
-        blank=True,
-        null=True,
-        verbose_name=_('Время')
-    )
-    
-    status = models.CharField(
-        max_length=20,
-        choices=Status.choices,
-        default=Status.SCHEDULED,
-        verbose_name=_('Статус')
-    )
-    
-    home_score = models.PositiveIntegerField(
-        blank=True,
-        null=True,
-        verbose_name=_('Голы домашней команды')
-    )
-    
-    away_score = models.PositiveIntegerField(
-        blank=True,
-        null=True,
-        verbose_name=_('Голы гостевой команды')
     )
     
     home_score_ht = models.PositiveIntegerField(
@@ -83,11 +122,14 @@ class Match(models.Model):
         null=True,
         verbose_name=_('Голы гостевой команды (первый тайм)')
     )
-    
-    stadium = models.CharField(
-        max_length=200,
+
+    stadium_ref = models.ForeignKey(
+        Stadium,
+        on_delete=models.PROTECT,
+        related_name='matches',
         blank=True,
-        verbose_name=_('Стадион')
+        null=True,
+        verbose_name=_('Стадион (справочник)')
     )
     
     attendance = models.PositiveIntegerField(
@@ -125,7 +167,10 @@ class Match(models.Model):
         # unique_together = ['home_team', 'away_team', 'season']
     
     def __str__(self):
-        return f"{self.home_team.name} vs {self.away_team.name} ({self.date})"
+        home = getattr(self.home_team, 'name', '—') or '—'
+        away = getattr(self.away_team, 'name', '—') or '—'
+        date_str = str(self.date) if self.date else 'дата не указана'
+        return f"{home} vs {away} ({date_str})"
     
     @property
     def score_display(self):

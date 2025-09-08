@@ -1,5 +1,6 @@
 "use client"
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import Link from 'next/link'
 import { HorizontalCarousel } from './HorizontalCarousel'
 import { useLatestMatches, useUpcomingMatches, useMatches } from '@/hooks/useMatches'
@@ -10,62 +11,79 @@ import { MapPin } from 'lucide-react'
 type MatchCardProps = {
   id: string
   date: string
+  time?: string
   home: { name: string; logo: string; score?: number }
   away: { name: string; logo: string; score?: number }
   place?: string
 }
 
-function MatchCard({ id, date, home, away, place }: MatchCardProps) {
+function toHHMM(t?: string) {
+  if (!t) return ''
+  // ожидается форматы HH:MM или HH:MM:SS
+  const parts = t.split(':')
+  if (parts.length >= 2) return `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}`
+  return t
+}
+
+function MatchCard({ id, date, time, home, away, place }: MatchCardProps) {
   const isFinished = home.score != null && away.score != null
   return (
-    <div className="card p-4">
-      <div className="mb-3 text-xs text-white/60">{date}{place ? ` · ${place}` : ''}</div>
-      <div className="grid grid-cols-3 items-center gap-2 text-center">
-        <div>
+    <div className="card p-6">
+      <div className="mb-5 text-sm text-white/70 text-center">
+        {date}{time ? ` · ${toHHMM(time)}` : ''}{place ? ` · ${place}` : ''}
+      </div>
+      <div className="grid grid-cols-3 items-center gap-6 text-center">
+        <div className="flex flex-col items-center justify-center">
           {home.logo ? (
             <Image 
-              src={home.logo.startsWith('http') ? home.logo : `/${home.logo}`} 
+              src={getImageUrl(home.logo)} 
               alt={home.name} 
-              width={40} 
-              height={40} 
-              className="mx-auto h-10 w-10" 
+              width={72} 
+              height={72} 
+              className="h-18 w-18" 
             />
           ) : (
-            <div className="mx-auto h-10 w-10 bg-white/10 rounded flex items-center justify-center text-xs text-white/40">
+            <div className="h-18 w-18 bg-white/10 rounded flex items-center justify-center text-sm text-white/40">
               {home.name?.[0] || 'К'}
             </div>
           )}
-          <div className="mt-1 text-sm text-white/80">{home.name}</div>
         </div>
-        <div className="text-2xl font-bold">
+        <div className="text-4xl font-bold">
           {isFinished ? (
             <span>{home.score} : {away.score}</span>
           ) : (
             <span className="text-white/60">vs</span>
           )}
         </div>
-        <div>
+        <div className="flex flex-col items-center justify-center">
           {away.logo ? (
             <Image 
-              src={away.logo.startsWith('http') ? away.logo : `/${away.logo}`} 
+              src={getImageUrl(away.logo)} 
               alt={away.name} 
-              width={40} 
-              height={40} 
-              className="mx-auto h-10 w-10" 
+              width={72} 
+              height={72} 
+              className="h-18 w-18" 
             />
           ) : (
-            <div className="mx-auto h-10 w-10 bg-white/10 rounded flex items-center justify-center text-xs text-white/40">
+            <div className="h-18 w-18 bg-white/10 rounded flex items-center justify-center text-sm text-white/40">
               {away.name?.[0] || 'К'}
             </div>
           )}
-          <div className="mt-1 text-sm text-white/80">{away.name}</div>
         </div>
       </div>
-      <div className="mt-4 flex justify-center">
-        <Link href={`/matches/${id}`} className="btn btn-outline px-4 py-2 text-sm">
+      <div className="mt-6 flex justify-center">
+        <Link href={`/matches/${id}`} className="btn btn-outline px-5 py-2 text-sm">
           Подробнее
         </Link>
       </div>
+    </div>
+  )
+}
+
+function EmptyMatchCard() {
+  return (
+    <div className="card p-8 h-full flex items-center justify-center text-center text-white/60">
+      Нет ближайших матчей
     </div>
   )
 }
@@ -93,12 +111,13 @@ export function LatestMatches() {
     )
   }
 
-  const items = matches.map((match) => ({
+  const items = matches.map((match: any) => ({
     id: match.id,
     content: (
       <MatchCard 
         id={match.id}
-        date={formatDate(match.date)} 
+        date={formatDate(match.date)}
+        time={(match as any).time}
         home={{ 
           name: match.home_team?.name || 'Неизвестная команда', 
           logo: match.home_team?.logo || '', 
@@ -156,7 +175,8 @@ export function SeasonMatches({ withDetails }: { withDetails?: boolean }) {
     content: (
       <MatchCard 
         id={match.id}
-        date={formatDate(match.date)} 
+        date={formatDate(match.date)}
+        time={(match as any).time}
         home={{ 
           name: match.home_team?.name || 'Неизвестная команда', 
           logo: match.home_team?.logo || '', 
@@ -209,22 +229,27 @@ export function UpcomingMatches() {
   }
 
   const matchesArray = Array.isArray(matches) ? matches : []
-  const items = matchesArray.map((match) => ({
+  const items = (matchesArray.length ? matchesArray : [{ id: 'empty' } as any]).map((match: any) => ({
     id: match.id,
     content: (
-      <MatchCard 
-        id={match.id}
-        date={formatDate(match.date)} 
-        home={{ 
-          name: match.home_team?.name || 'Неизвестная команда', 
-          logo: match.home_team?.logo || ''
-        }} 
-        away={{ 
-          name: match.away_team?.name || 'Неизвестная команда', 
-          logo: match.away_team?.logo || ''
-        }} 
-        place={match.stadium}
-      />
+      match.id === 'empty' ? (
+        <EmptyMatchCard />
+      ) : (
+        <MatchCard 
+          id={match.id}
+          date={formatDate(match.date)}
+          time={(match as any).time}
+          home={{ 
+            name: match.home_team?.name || 'Неизвестная команда', 
+            logo: match.home_team?.logo || ''
+          }} 
+          away={{ 
+            name: match.away_team?.name || 'Неизвестная команда', 
+            logo: match.away_team?.logo || ''
+          }} 
+          place={match.stadium}
+        />
+      )
     )
   }))
 
@@ -233,9 +258,7 @@ export function UpcomingMatches() {
       <h2 className="mb-6 text-2xl font-bold text-center">Ближайшие матчи</h2>
       <HorizontalCarousel items={items} />
       <div className="mt-8 text-center">
-        <Link href="/schedule" className="btn btn-primary">
-          Все матчи
-        </Link>
+
       </div>
     </section>
   )

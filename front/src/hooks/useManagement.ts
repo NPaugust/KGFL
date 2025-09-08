@@ -28,6 +28,21 @@ export function useManagement() {
     }
   }
 
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      if (event.detail.type === 'management') {
+        console.log('Обновляем руководство...', event.detail.type)
+        fetchManagement()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [])
+
   useEffect(() => {
     fetchManagement()
   }, [refreshKey])

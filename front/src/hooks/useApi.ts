@@ -1,30 +1,36 @@
-import { useState, useEffect } from 'react'
+"use client"
+
+import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '@/services/api'
 import { PaginatedResponse } from '@/types'
 
-export function useApi<T>(
+export function useApi<T = any>(
   url: string,
-  params?: any,
+  params?: Record<string, any>,
   dependencies: any[] = []
 ) {
   const [data, setData] = useState<T | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  // ВАЖНО: мемоизируем ключ параметров, чтобы избежать бесконечных перерендеров
+  const paramsKey = JSON.stringify(params || {})
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      console.log('Fetching data from:', url, 'with params:', params)
       
-      const result = await apiClient.get<T | PaginatedResponse<T>>(url, params)
-      console.log('API response received:', result)
+      console.log('Fetching data from:', url)
+      const parsedParams = paramsKey ? JSON.parse(paramsKey) : undefined
+      // cache-buster чтобы не получать закешированный список после создания
+      const result = await apiClient.get<T>(url, { params: { ...(parsedParams || {}), _ts: Date.now() } })
+      console.log('API response:', result)
       
-      // Обрабатываем пагинацию
+      // Проверяем, есть ли пагинация
       if (result && typeof result === 'object' && 'results' in result) {
         console.log('Paginated response detected, setting results')
-        setData((result as PaginatedResponse<T>).results as T)
+        setData((result as any).results as T)
       } else {
         console.log('Direct response detected, setting data')
         setData(result as T)
@@ -36,19 +42,22 @@ export function useApi<T>(
     } finally {
       setLoading(false)
     }
-  }
+  }, [url, paramsKey])
 
-  const refetch = () => {
+  const refetch = useCallback(() => {
     setRefreshTrigger(prev => prev + 1)
-  }
+  }, [])
 
   useEffect(() => {
-    fetchData()
+    let isMounted = true
+    // защита от двойного вызова useEffect в StrictMode при dev
+    const call = async () => {
+      await fetchData()
+    }
+    if (isMounted) call()
     
-    // Слушаем события обновления данных
     const handleDataUpdate = (event: CustomEvent) => {
       const { url: updatedUrl, method } = event.detail
-      // Если обновление касается нашего URL или связанных данных, обновляем
       if (updatedUrl.includes(url) || method === 'DELETE') {
         fetchData()
       }
@@ -57,9 +66,10 @@ export function useApi<T>(
     window.addEventListener('data-updated', handleDataUpdate as EventListener)
     
     return () => {
+      isMounted = false
       window.removeEventListener('data-updated', handleDataUpdate as EventListener)
     }
-  }, [url, params, refreshTrigger, ...dependencies])
+  }, [url, paramsKey, refreshTrigger, fetchData, ...dependencies])
 
   return { data, loading, error, refetch }
 }
@@ -101,10 +111,16 @@ export function useApiMutation<T = any>(url?: string, method?: 'POST' | 'PUT' | 
       
       // Автоматически обновляем данные после успешной мутации
       if (typeof window !== 'undefined') {
-        // Триггерим событие для обновления связанных данных
-        window.dispatchEvent(new CustomEvent('data-updated', { 
-          detail: { url: requestUrl, method: requestMethod } 
-        }))
+        const detail = { url: requestUrl, method: requestMethod }
+        window.dispatchEvent(new CustomEvent('data-updated', { detail }))
+        // Дополнительно: дергаем корневой список (например, /players/ для /players/123/)
+        try {
+          const normalized = requestUrl.endsWith('/') ? requestUrl : `${requestUrl}/`
+          const base = normalized.replace(/\d+\/?$/, '')
+          if (base && base !== requestUrl) {
+            window.dispatchEvent(new CustomEvent('data-updated', { detail: { url: base, method: requestMethod } }))
+          }
+        } catch {}
       }
       
       return result

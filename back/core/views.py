@@ -4,11 +4,10 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from .models import User, Season, Partner, Media, Referee, Management
+from .models import User, Season, Partner, Media
 from .serializers import (
     UserSerializer, UserCreateSerializer, LoginSerializer,
-    SeasonSerializer, PartnerSerializer, MediaSerializer,
-    RefereeSerializer, ManagementSerializer
+    SeasonSerializer, PartnerSerializer, MediaSerializer
 )
 import rest_framework.parsers
 
@@ -61,8 +60,10 @@ class UserViewSet(viewsets.ModelViewSet):
     def update_profile(self, request):
         """Обновить профиль текущего пользователя."""
         serializer = UserSerializer(request.user, data=request.data, partial=True)
-        serializer.save()
-        return Response(serializer.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SeasonViewSet(viewsets.ModelViewSet):
@@ -73,8 +74,14 @@ class SeasonViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_permissions(self):
-        # Временно разрешаем все операции для тестирования
-        return [permissions.AllowAny()]
+        return super().get_permissions()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            obj = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Ошибка валидации', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=False, methods=['get'])
     def active(self, request):
@@ -94,8 +101,7 @@ class PartnerViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_permissions(self):
-        # Временно разрешаем все операции для тестирования
-        return [permissions.AllowAny()]
+        return super().get_permissions()
     
     def get_parsers(self):
         return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
@@ -104,6 +110,13 @@ class PartnerViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            obj = serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response({'message': 'Ошибка валидации', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     
     def create(self, request, *args, **kwargs):
         """Создание партнера с обработкой ошибок."""
@@ -113,10 +126,13 @@ class PartnerViewSet(viewsets.ModelViewSet):
                 partner = serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'message': 'Ошибка валидации',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
-                {'error': f'Ошибка при создании партнера: {str(e)}'}, 
+                {'message': 'Внутренняя ошибка при создании партнера', 'errors': str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -130,10 +146,13 @@ class PartnerViewSet(viewsets.ModelViewSet):
                 partner = serializer.save()
                 return Response(serializer.data)
             else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response({
+                    'message': 'Ошибка валидации',
+                    'errors': serializer.errors
+                }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             return Response(
-                {'error': f'Ошибка при обновлении партнера: {str(e)}'}, 
+                {'message': 'Внутренняя ошибка при обновлении партнера', 'errors': str(e)}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
     
@@ -144,6 +163,12 @@ class PartnerViewSet(viewsets.ModelViewSet):
             instance.delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as e:
+            from django.db.models.deletion import ProtectedError
+            if isinstance(e, ProtectedError):
+                return Response(
+                    {'error': 'Невозможно удалить: есть связанные объекты. Удалите связанные записи или измените связи.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             return Response(
                 {'error': f'Ошибка при удалении партнера: {str(e)}'}, 
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -168,8 +193,7 @@ class MediaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
     
     def get_permissions(self):
-        # Временно разрешаем все операции для тестирования
-        return [permissions.AllowAny()]
+        return super().get_permissions()
     
     def get_parsers(self):
         return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
@@ -178,6 +202,24 @@ class MediaViewSet(viewsets.ModelViewSet):
         context = super().get_serializer_context()
         context['request'] = self.request
         return context
+
+    def destroy(self, request, *args, **kwargs):
+        """Удаление медиа с обработкой ошибок."""
+        try:
+            instance = self.get_object()
+            instance.delete()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as e:
+            from django.db.models.deletion import ProtectedError
+            if isinstance(e, ProtectedError):
+                return Response(
+                    {'error': 'Невозможно удалить: есть связанные объекты. Удалите связанные записи или измените связи.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                {'message': 'Внутренняя ошибка при удалении медиа', 'errors': str(e)}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
     
     @action(detail=False, methods=['get'])
     def by_category(self, request):
@@ -187,34 +229,4 @@ class MediaViewSet(viewsets.ModelViewSet):
         return Response(MediaSerializer(media, many=True, context={'request': request}).data)
 
 
-class RefereeViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления судьями."""
-    
-    queryset = Referee.objects.filter(is_active=True)
-    serializer_class = RefereeSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    
-    def get_permissions(self):
-        # Временно разрешаем все операции для тестирования
-        return [permissions.AllowAny()]
-    
-    def get_parsers(self):
-        return [rest_framework.parsers.MultiPartParser(), rest_framework.parsers.FormParser(), rest_framework.parsers.JSONParser()]
-    
-    def get_serializer_context(self):
-        context = super().get_serializer_context()
-        context['request'] = self.request
-        return context
-
-
-class ManagementViewSet(viewsets.ModelViewSet):
-    """ViewSet для управления руководством."""
-    
-    queryset = Management.objects.filter(is_active=True)
-    serializer_class = ManagementSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    
-    def get_permissions(self):
-        # Временно разрешаем все операции для тестирования
-        return [permissions.AllowAny()]
  

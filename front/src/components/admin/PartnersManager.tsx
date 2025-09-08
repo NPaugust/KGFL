@@ -4,100 +4,119 @@ import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
-
-interface Partner {
-  id: string
-  name: string
-  logo?: string
-  category: string
-  website?: string
-  created_at: string
-}
+import Image from 'next/image'
+import { Modal, ConfirmModal } from '../ui/Modal'
 
 interface PartnerFormData {
   name: string
-  category: string
-  website?: string
+  description: string
+  website: string
   logo?: File
+  contact_person: string
+  contact_email: string
+  contact_phone: string
+  partnership_type: string
+  is_active: boolean
 }
 
 export function PartnersManager() {
-  const { data: partners, loading, error, refetch } = useApi<Partner[]>(API_ENDPOINTS.PARTNERS)
+  const { data: partners, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.PARTNERS)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingPartner, setEditingPartner] = useState<Partner | null>(null)
+  const [editingPartner, setEditingPartner] = useState<any | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [partnerToDelete, setPartnerToDelete] = useState<any | null>(null)
   const [formData, setFormData] = useState<PartnerFormData>({
     name: '',
-    category: '',
-    website: ''
+    description: '',
+    website: '',
+    contact_person: '',
+    contact_email: '',
+    contact_phone: '',
+    partnership_type: 'sponsor',
+    is_active: true
   })
 
-  const { mutate, loading: mutationLoading, error: mutationError } = useApiMutation<Partner>()
+  const { mutate, loading: mutationLoading } = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     try {
+      const payload = new FormData()
+      payload.append('name', formData.name)
+      payload.append('description', formData.description || '')
+      payload.append('website', formData.website || '')
+      payload.append('contact_person', formData.contact_person || '')
+      payload.append('contact_email', formData.contact_email || '')
+      payload.append('contact_phone', formData.contact_phone || '')
+      payload.append('partnership_type', formData.partnership_type)
+      payload.append('is_active', String(formData.is_active))
+      if (formData.logo) payload.append('logo', formData.logo)
+
       if (editingPartner) {
-        // Для обновления используем обычный JSON
-        const updateData = {
-          name: formData.name,
-          category: formData.category,
-          website: formData.website
-        }
-        await mutate(API_ENDPOINTS.PARTNER_DETAIL(editingPartner.id), 'PUT', updateData)
-        
-        // Если есть новый логотип, обновляем его отдельно
-        if (formData.logo) {
-          const logoFormData = new FormData()
-          logoFormData.append('logo', formData.logo)
-          await mutate(API_ENDPOINTS.PARTNER_DETAIL(editingPartner.id), 'PATCH', logoFormData)
-        }
+        await mutate(API_ENDPOINTS.PARTNER_DETAIL(editingPartner.id), 'PUT', payload)
       } else {
-        // Для создания используем обычный JSON
-        const createData = {
-          name: formData.name,
-          category: formData.category,
-          website: formData.website
-        }
-        const response = await mutate(API_ENDPOINTS.PARTNERS, 'POST', createData)
-        
-        // Если есть логотип, обновляем его отдельно
-        if (formData.logo && response.id) {
-          const logoFormData = new FormData()
-          logoFormData.append('logo', formData.logo)
-          await mutate(API_ENDPOINTS.PARTNER_DETAIL(response.id), 'PATCH', logoFormData)
-        }
+        await mutate(API_ENDPOINTS.PARTNERS, 'POST', payload)
       }
 
       setIsModalOpen(false)
       setEditingPartner(null)
-      setFormData({ name: '', category: '', website: '' })
       
-      // Сразу обновляем данные без задержки
+      // Сбрасываем formData только при создании нового партнера
+      if (!editingPartner) {
+        setFormData({
+          name: '',
+          description: '',
+          website: '',
+          contact_person: '',
+          contact_email: '',
+          contact_phone: '',
+          partnership_type: 'sponsor',
+          is_active: true
+        })
+      }
       refetch()
+      
+      // Отправляем событие обновления данных
+      window.dispatchEvent(new CustomEvent('data-refresh', { 
+        detail: { type: 'partner' } 
+      }))
     } catch (error) {
-      alert(`Ошибка при сохранении партнера: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
+      console.error('Ошибка при сохранении партнера:', error)
+      alert('Ошибка при сохранении партнера')
     }
   }
 
-  const handleEdit = (partner: Partner) => {
+  const handleEdit = (partner: any) => {
     setEditingPartner(partner)
     setFormData({
       name: partner.name || '',
-      category: partner.category || '',
-      website: partner.website || ''
+      description: partner.description || '',
+      website: partner.website || '',
+      contact_person: partner.contact_person || '',
+      contact_email: partner.contact_email || '',
+      contact_phone: partner.contact_phone || '',
+      partnership_type: partner.partnership_type || 'sponsor',
+      is_active: partner.is_active !== false
     })
     setIsModalOpen(true)
   }
 
-  const handleDelete = async (partnerId: string) => {
-    if (confirm('Вы уверены, что хотите удалить этого партнера?')) {
-      try {
-        await mutate(API_ENDPOINTS.PARTNER_DETAIL(partnerId), 'DELETE')
-        refetch()
-      } catch (error) {
-        alert(`Ошибка при удалении партнера: ${error instanceof Error ? error.message : 'Неизвестная ошибка'}`)
-      }
+  const handleDelete = (partner: any) => {
+    setPartnerToDelete(partner)
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!partnerToDelete) return
+    
+    try {
+      await mutate(API_ENDPOINTS.PARTNER_DETAIL(partnerToDelete.id), 'DELETE')
+      refetch()
+      setDeleteModalOpen(false)
+      setPartnerToDelete(null)
+      alert('Партнер успешно удален!')
+    } catch (error: any) {
+      alert(`Ошибка при удалении партнера: ${error?.response?.data?.detail || error?.message || 'Неизвестная ошибка'}`)
     }
   }
 
@@ -110,13 +129,8 @@ export function PartnersManager() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Управление партнерами лиги</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn btn-primary"
-        >
-          Добавить партнера
-        </button>
+        <h1 className="text-2xl font-bold text-white">Управление партнерами</h1>
+        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить партнера</button>
       </div>
 
       <div className="card overflow-hidden">
@@ -126,8 +140,9 @@ export function PartnersManager() {
               <tr>
                 <th className="px-4 py-3 text-left">Логотип</th>
                 <th className="px-4 py-3 text-left">Название</th>
-                <th className="px-4 py-3 text-left">Категория</th>
-                <th className="px-4 py-3 text-left">Веб-сайт</th>
+                <th className="px-4 py-3 text-left">Тип</th>
+                <th className="px-4 py-3 text-left">Контакт</th>
+                <th className="px-4 py-3 text-left">Статус</th>
                 <th className="px-4 py-3 text-left">Действия</th>
               </tr>
             </thead>
@@ -135,54 +150,40 @@ export function PartnersManager() {
               {partnersList.length > 0 ? partnersList.map((partner) => (
                 <tr key={partner.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {partner.logo ? (
-                      <img 
-                        src={partner.logo} 
+                    {partner.logo_url || partner.logo ? (
+                      <Image 
+                        src={partner.logo_url || partner.logo} 
                         alt={partner.name} 
-                        className="w-12 h-12 object-cover rounded"
+                        width={48} 
+                        height={48} 
+                        className="w-12 h-12 rounded object-contain bg-white/5" 
                       />
                     ) : (
-                      <div className="w-12 h-12 bg-white/10 rounded flex items-center justify-center">
-                        <span className="text-white/40 text-xs">Нет</span>
+                      <div className="w-12 h-12 bg-white/10 rounded flex items-center justify-center text-xs">
+                        {partner.name?.[0]}
                       </div>
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{partner.name}</td>
-                  <td className="px-4 py-3">{partner.category}</td>
+                  <td className="px-4 py-3">{partner.partnership_type}</td>
+                  <td className="px-4 py-3">{partner.contact_person || '-'}</td>
                   <td className="px-4 py-3">
-                    {partner.website ? (
-                      <a 
-                        href={partner.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-brand-primary hover:underline"
-                      >
-                        {partner.website}
-                      </a>
-                    ) : '-'}
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      partner.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {partner.is_active ? 'Активен' : 'Неактивен'}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(partner)}
-                        className="btn btn-outline px-3 py-1 text-sm"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => handleDelete(partner.id)}
-                        className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm"
-                      >
-                        Удалить
-                      </button>
+                      <button onClick={() => handleEdit(partner)} className="btn btn-outline px-3 py-1 text-sm">Редактировать</button>
+                      <button onClick={() => handleDelete(partner)} className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm">Удалить</button>
                     </div>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-white/60">
-                    Партнеры не найдены
-                  </td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">Партнеры не найдены</td>
                 </tr>
               )}
             </tbody>
@@ -190,85 +191,88 @@ export function PartnersManager() {
         </div>
       </div>
 
-      {/* Модальное окно для добавления/редактирования */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="card p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingPartner ? 'Редактировать партнера' : 'Добавить партнера'}
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingPartner(null); }}
+        title={editingPartner ? 'Редактировать партнера' : 'Добавить партнера'}
+        size="md"
+      >
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Название</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+                <label className="block text-sm font-medium mb-1">Название *</label>
+                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input w-full" required />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Категория</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                >
-                  <option value="">Выберите категорию</option>
+                <label className="block text-sm font-medium mb-1">Описание</label>
+                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="textarea w-full" rows={3} />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Веб-сайт</label>
+                <input type="url" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} className="input w-full" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Тип партнерства *</label>
+                <select value={formData.partnership_type} onChange={(e) => setFormData({ ...formData, partnership_type: e.target.value })} className="input w-full" required>
                   <option value="sponsor">Спонсор</option>
                   <option value="partner">Партнер</option>
                   <option value="supplier">Поставщик</option>
-                  <option value="media">Медиа партнер</option>
+                  <option value="media">Медиа-партнер</option>
                 </select>
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Веб-сайт</label>
-                <input
-                  type="url"
-                  value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  placeholder="https://example.com"
-                />
+                <label className="block text-sm font-medium mb-1">Контактное лицо</label>
+                <input type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} className="input w-full" />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Логотип</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+                <label className="block text-sm font-medium mb-1">Email</label>
+                <input type="email" value={formData.contact_email} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} className="input w-full" />
               </div>
-              
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={mutationLoading}
-                >
-                  {mutationLoading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setEditingPartner(null)
-                    setFormData({ name: '', category: '', website: '' })
-                  }}
-                  className="btn btn-outline flex-1"
-                >
-                  Отмена
-                </button>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Телефон</label>
+                <input type="tel" value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} className="input w-full" />
               </div>
-            </form>
-          </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">Логотип {editingPartner ? '' : '*'}</label>
+                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })} className="input w-full" required={!editingPartner} />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
+                  <span className="text-sm">Активен</span>
+                </label>
+              </div>
+
+            <div className="flex gap-3 pt-4">
+              <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
+                {mutationLoading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button type="button" onClick={() => { setIsModalOpen(false); setEditingPartner(null); }} className="btn btn-outline flex-1">
+                Отмена
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
+
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setPartnerToDelete(null) }}
+        onConfirm={confirmDelete}
+        title="Подтверждение удаления"
+        message={`Вы действительно хотите удалить партнера "${partnerToDelete?.name}"?`}
+        confirmText="Да, удалить"
+        cancelText="Отмена"
+        variant="danger"
+      />
     </div>
   )
-} 
+}

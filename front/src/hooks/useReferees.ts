@@ -28,6 +28,21 @@ export function useReferees() {
     }
   }
 
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      if (event.detail.type === 'referee') {
+        console.log('Обновляем судей...', event.detail.type)
+        fetchReferees()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [])
+
   useEffect(() => {
     fetchReferees()
   }, [refreshKey])

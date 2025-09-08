@@ -85,12 +85,15 @@ class ApiClient {
               try {
                 console.log('Attempting to refresh token...')
                 const response = await this.refreshToken(refreshToken)
-                const { access_token } = response.data
-                localStorage.setItem('access_token', access_token)
+                const access = response.data?.access
+                if (!access) {
+                  throw new Error('No access token in refresh response')
+                }
+                localStorage.setItem('access_token', access)
                 console.log('Token refreshed successfully')
                 
                 // Повторяем оригинальный запрос
-                error.config.headers.Authorization = `Bearer ${access_token}`
+                error.config.headers.Authorization = `Bearer ${access}`
                 return this.client.request(error.config)
               } catch (refreshError) {
                 console.error('Token refresh failed:', refreshError)
@@ -232,6 +235,9 @@ class ApiClient {
 
 export const apiClient = new ApiClient()
 
+// Экспорт для совместимости
+export const api = apiClient
+
 // API endpoints
 export const API_ENDPOINTS = {
   // Аутентификация
@@ -241,6 +247,7 @@ export const API_ENDPOINTS = {
   
   // Core
   SEASONS: '/seasons/',
+  SEASON_DETAIL: (id: string) => `/seasons/${id}/`,
   ACTIVE_SEASON: '/seasons/active/',
   PARTNERS: '/partners/',
   PARTNER_DETAIL: (id: string) => `/partners/${id}/`,
@@ -252,22 +259,27 @@ export const API_ENDPOINTS = {
   CLUB_MATCHES: (id: string) => `/clubs/${id}/matches/`,
   COACHES: '/clubs/coaches/',
   CLUB_SEASONS: '/clubs/seasons/',
-  TABLE: '/clubs/table/',
+  TABLE: '/clubs/seasons/table/',
+  CLUB_APPLICATIONS: '/clubs/applications/',
   
   // Матчи
   MATCHES: '/matches/',
   MATCH_DETAIL: (id: string) => `/matches/${id}/`,
+  STADIUMS: '/matches/stadiums/',
   UPCOMING_MATCHES: '/matches/upcoming/',
   LATEST_MATCHES: '/matches/latest/',
-  GOALS: '/goals/',
-  CARDS: '/cards/',
-  SUBSTITUTIONS: '/substitutions/',
+  GOALS: '/matches/goals/',
+  CARDS: '/matches/cards/',
+  SUBSTITUTIONS: '/matches/substitutions/',
   
   // Игроки
   PLAYERS: '/players/',
   PLAYER_DETAIL: (id: string) => `/players/${id}/`,
+  PLAYER_STATS: (id: string) => `/players/${id}/stats/`,
   TOP_SCORERS: '/players/top_scorers/',
-  PLAYER_STATS: '/player-stats/',
+  PLAYER_STATS_LIST: '/players/stats/',
+  PLAYER_TRANSFERS: '/players/transfers/',
+  PLAYER_TRANSFER_DETAIL: (id: string) => `/players/transfers/${id}/`,
   
   // Судьи
   REFEREES: '/referees/',
@@ -278,8 +290,8 @@ export const API_ENDPOINTS = {
   MANAGEMENT_DETAIL: (id: string) => `/management/${id}/`,
   
   // Статистика
-  SEASON_STATS: '/season-stats/',
-  CLUB_STATS: '/club-stats/',
+  SEASON_STATS: '/stats/seasons/',
+  CLUB_STATS: '/stats/clubs/',
   
   // Медиа
   MEDIA: '/media/',

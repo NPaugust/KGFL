@@ -1,14 +1,32 @@
 "use client"
+import { useEffect } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Loading } from '@/components/Loading'
 import { useMatches } from '@/hooks/useMatches'
 import { formatDate } from '@/utils'
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import Link from 'next/link'
 import { Calendar, MapPin, Clock } from 'lucide-react'
 
 export default function SchedulePage() {
-  const { matches, loading, error } = useMatches()
+  const { matches, loading, error, refetch } = useMatches()
+  
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      const refreshTypes = ['match', 'club', 'stadium', 'season']
+      if (refreshTypes.includes(event.detail.type)) {
+        console.log('Обновляем расписание...', event.detail.type)
+        refetch()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [refetch])
 
   if (loading) {
     return (
@@ -123,7 +141,7 @@ export default function SchedulePage() {
                         <div>
                           {match.home_team?.logo ? (
                             <Image 
-                              src={match.home_team.logo.startsWith('http') ? match.home_team.logo : `/${match.home_team.logo}`} 
+                              src={getImageUrl(match.home_team.logo)} 
                               alt={match.home_team?.name || 'Команда'} 
                               width={48} 
                               height={48} 
@@ -160,7 +178,7 @@ export default function SchedulePage() {
                         <div>
                           {match.away_team?.logo ? (
                             <Image 
-                              src={match.away_team.logo.startsWith('http') ? match.away_team.logo : `/${match.away_team.logo}`} 
+                              src={getImageUrl(match.away_team.logo)} 
                               alt={match.away_team?.name || 'Команда'} 
                               width={48} 
                               height={48} 

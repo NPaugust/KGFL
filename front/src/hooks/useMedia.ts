@@ -28,6 +28,21 @@ export function useMedia() {
     }
   }
 
+  // Слушаем события обновления данных
+  useEffect(() => {
+    const handleDataRefresh = (event: CustomEvent) => {
+      if (event.detail.type === 'media') {
+        console.log('Обновляем медиа...', event.detail.type)
+        fetchMedia()
+      }
+    }
+
+    window.addEventListener('data-refresh', handleDataRefresh as EventListener)
+    return () => {
+      window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
+    }
+  }, [])
+
   useEffect(() => {
     fetchMedia()
   }, [refreshKey])

@@ -5,88 +5,118 @@ import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
 import Image from 'next/image'
-import { apiClient } from '@/services/api'
+import { Modal, ConfirmModal } from '../ui/Modal'
 
 interface RefereeFormData {
-  name: string
-  position: string
-  experience: number
-  bio?: string
+  first_name: string
+  last_name: string
+  category: string
+  region: string
+  experience_months: number
+  phone: string
+  nationality: string
   photo?: File
+  is_active: boolean
 }
 
 export function RefereesManager() {
-  const { data: referees, loading, refetch } = useApi(API_ENDPOINTS.REFEREES)
+  const { data: referees, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.REFEREES)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingReferee, setEditingReferee] = useState<any>(null)
+  const [editingReferee, setEditingReferee] = useState<any | null>(null)
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false)
+  const [refereeToDelete, setRefereeToDelete] = useState<any | null>(null)
   const [formData, setFormData] = useState<RefereeFormData>({
-    name: '',
-    position: '',
-    experience: 0
+    first_name: '',
+    last_name: '',
+    category: 'chief',
+    region: '',
+    experience_months: 0,
+    phone: '',
+    nationality: '',
+    is_active: true
   })
 
-  const createRefereeMutation = useApiMutation()
-  const updateRefereeMutation = useApiMutation()
+  const { mutate, loading: mutationLoading } = useApiMutation()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     try {
-      console.log('Submitting referee data:', formData)
-      
-      const formDataToSend = new FormData()
-      formDataToSend.append('name', formData.name)
-      formDataToSend.append('position', formData.position)
-      formDataToSend.append('experience', formData.experience.toString())
-      if (formData.photo) {
-        formDataToSend.append('photo', formData.photo)
-      }
+      const payload = new FormData()
+      payload.append('first_name', formData.first_name)
+      payload.append('last_name', formData.last_name)
+      payload.append('category', formData.category)
+      payload.append('region', formData.region || '')
+      payload.append('experience_months', String(formData.experience_months))
+      payload.append('phone', formData.phone || '')
+      payload.append('nationality', formData.nationality || '')
+      payload.append('is_active', String(formData.is_active))
+      if (formData.photo) payload.append('photo', formData.photo)
 
       if (editingReferee) {
-        console.log('Updating referee:', editingReferee.id)
-        await updateRefereeMutation.mutateAsync(API_ENDPOINTS.REFEREES_DETAIL(editingReferee.id), 'PUT', formDataToSend)
+        await mutate(API_ENDPOINTS.REFEREES_DETAIL(editingReferee.id), 'PUT', payload)
       } else {
-        console.log('Creating new referee')
-        await createRefereeMutation.mutateAsync(API_ENDPOINTS.REFEREES, 'POST', formDataToSend)
+        await mutate(API_ENDPOINTS.REFEREES, 'POST', payload)
       }
 
       setIsModalOpen(false)
       setEditingReferee(null)
-      setFormData({ name: '', position: '', experience: 0 })
       
-      // Принудительно обновляем данные
-      // Обновляем данные сразу
+      // Сбрасываем formData только при создании нового судьи
+      if (!editingReferee) {
+        setFormData({
+          first_name: '',
+          last_name: '',
+          category: 'chief',
+          region: '',
+          experience_months: 0,
+          phone: '',
+          nationality: '',
+          is_active: true
+        })
+      }
       refetch()
+      
+      // Отправляем событие обновления данных
+      window.dispatchEvent(new CustomEvent('data-refresh', { 
+        detail: { type: 'referee' } 
+      }))
     } catch (error) {
       console.error('Ошибка при сохранении судьи:', error)
-      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-      alert(`Ошибка при сохранении судьи: ${errorMessage}`)
+      alert('Ошибка при сохранении судьи')
     }
   }
 
   const handleEdit = (referee: any) => {
-    console.log('Editing referee:', referee)
     setEditingReferee(referee)
     setFormData({
-      name: referee.name,
-      position: referee.position,
-      experience: referee.experience || 0
+      first_name: referee.first_name || '',
+      last_name: referee.last_name || '',
+      category: referee.category || 'chief',
+      region: referee.region || '',
+      experience_months: referee.experience_months || 0,
+      phone: referee.phone || '',
+      nationality: referee.nationality || '',
+      is_active: referee.is_active !== false
     })
     setIsModalOpen(true)
   }
 
-  const handleDelete = async (refereeId: string) => {
-    if (confirm('Вы уверены, что хотите удалить этого судью?')) {
-      try {
-        console.log('Deleting referee:', refereeId)
-        const response = await apiClient.delete(API_ENDPOINTS.REFEREES_DETAIL(refereeId))
-        console.log('Судья удален:', response)
-        refetch()
-      } catch (error) {
-        console.error('Ошибка при удалении судьи:', error)
-        const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка'
-        alert(`Ошибка при удалении судьи: ${errorMessage}`)
-      }
+  const handleDelete = (referee: any) => {
+    setRefereeToDelete(referee)
+    setDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!refereeToDelete) return
+    
+    try {
+      await mutate(API_ENDPOINTS.REFEREES_DETAIL(refereeToDelete.id), 'DELETE')
+      refetch()
+      setDeleteModalOpen(false)
+      setRefereeToDelete(null)
+      alert('Судья успешно удален!')
+    } catch (error: any) {
+      alert(`Ошибка при удалении судьи: ${error?.response?.data?.detail || error?.message || 'Неизвестная ошибка'}`)
     }
   }
 
@@ -95,18 +125,12 @@ export function RefereesManager() {
   }
 
   const refereesList = Array.isArray(referees) ? referees : []
-  console.log('Referees list:', refereesList)
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Управление судьями</h1>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="btn btn-primary"
-        >
-          Добавить судью
-        </button>
+        <h1 className="text-2xl font-bold text-white">Управление судьями</h1>
+        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить судью</button>
       </div>
 
       <div className="card overflow-hidden">
@@ -116,9 +140,10 @@ export function RefereesManager() {
               <tr>
                 <th className="px-4 py-3 text-left">Фото</th>
                 <th className="px-4 py-3 text-left">Имя</th>
-                <th className="px-4 py-3 text-left">Позиция</th>
-                <th className="px-4 py-3 text-left">Опыт (лет)</th>
-                <th className="px-4 py-3 text-left">Биография</th>
+                <th className="px-4 py-3 text-left">Категория</th>
+                <th className="px-4 py-3 text-left">Регион</th>
+                <th className="px-4 py-3 text-left">Телефон</th>
+                <th className="px-4 py-3 text-left">Статус</th>
                 <th className="px-4 py-3 text-left">Действия</th>
               </tr>
             </thead>
@@ -126,44 +151,41 @@ export function RefereesManager() {
               {refereesList.length > 0 ? refereesList.map((referee) => (
                 <tr key={referee.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
-                    {referee.photo_url ? (
-                      <img src={referee.photo_url} alt={referee.name} className="w-8 h-8 rounded" />
+                    {referee.photo_url || referee.photo ? (
+                      <Image 
+                        src={referee.photo_url || referee.photo} 
+                        alt={`${referee.first_name} ${referee.last_name}`} 
+                        width={32} 
+                        height={32} 
+                        className="w-8 h-8 rounded-full object-cover" 
+                      />
                     ) : (
-                      <div className="w-8 h-8 bg-gray-500 rounded flex items-center justify-center text-xs">
-                        {referee.name?.[0]}
+                      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-xs">
+                        {referee.first_name?.[0]}{referee.last_name?.[0]}
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 font-medium">{referee.name}</td>
-                  <td className="px-4 py-3">{referee.position}</td>
-                  <td className="px-4 py-3">{referee.experience}</td>
+                  <td className="px-4 py-3 font-medium">{referee.first_name} {referee.last_name}</td>
+                  <td className="px-4 py-3">{referee.category}</td>
+                  <td className="px-4 py-3">{referee.region || '-'}</td>
+                  <td className="px-4 py-3">{referee.phone || '-'}</td>
                   <td className="px-4 py-3">
-                    <div className="max-w-xs truncate" title={referee.bio}>
-                      {referee.bio || '-'}
-                    </div>
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      referee.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {referee.is_active ? 'Активен' : 'Неактивен'}
+                    </span>
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(referee)}
-                        className="btn btn-outline px-3 py-1 text-sm"
-                      >
-                        Редактировать
-                      </button>
-                      <button
-                        onClick={() => handleDelete(referee.id)}
-                        className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm"
-                      >
-                        Удалить
-                      </button>
+                      <button onClick={() => handleEdit(referee)} className="btn btn-outline px-3 py-1 text-sm">Редактировать</button>
+                      <button onClick={() => handleDelete(referee)} className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm">Удалить</button>
                     </div>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">
-                    Судьи не найдены
-                  </td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-white/60">Судьи не найдены</td>
                 </tr>
               )}
             </tbody>
@@ -171,108 +193,91 @@ export function RefereesManager() {
         </div>
       </div>
 
-      {/* Модальное окно для добавления/редактирования */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="card p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">
-              {editingReferee ? 'Редактировать судью' : 'Добавить судью'}
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">ФИО *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  placeholder="Например: Иванов Иван Иванович, Петров Петр Петрович"
-                  required
-                />
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => { setIsModalOpen(false); setEditingReferee(null); }}
+        title={editingReferee ? 'Редактировать судью' : 'Добавить судью'}
+        size="md"
+      >
+        <div className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Имя *</label>
+                  <input type="text" value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} className="input w-full" required />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Фамилия *</label>
+                  <input type="text" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} className="input w-full" required />
+                </div>
+              </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Категория *</label>
+                  <select value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} className="input w-full" required>
+                    <option value="chief">Главный судья</option>
+                    <option value="assistant">Помощник</option>
+                    <option value="var">VAR</option>
+                    <option value="inspector">Инспектор</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Регион</label>
+                  <input type="text" value={formData.region} onChange={(e) => setFormData({ ...formData, region: e.target.value })} className="input w-full" />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Должность *</label>
-                <select
-                  value={formData.position}
-                  onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  required
-                >
-                  <option value="">Выберите должность</option>
-                  <option value="Главный судья">Главный судья</option>
-                  <option value="Помощник судьи">Помощник судьи</option>
-                  <option value="Четвертый судья">Четвертый судья</option>
-                  <option value="VAR судья">VAR судья</option>
-                  <option value="Инспектор">Инспектор</option>
-                </select>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Опыт (месяцы)</label>
+                  <input type="number" min="0" value={formData.experience_months} onChange={(e) => setFormData({ ...formData, experience_months: parseInt(e.target.value) || 0 })} className="input w-full" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Телефон</label>
+                  <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input w-full" />
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium mb-1">Опыт работы (лет) *</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="50"
-                  value={formData.experience}
-                  onChange={(e) => setFormData({ ...formData, experience: parseInt(e.target.value) || 0 })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  placeholder="0"
-                  required
-                />
 
-              </div>
-              
               <div>
-                <label className="block text-sm font-medium mb-1">Биография</label>
-                <textarea
-                  value={formData.bio}
-                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                  rows={3}
-                  placeholder="Краткая информация о судье, образование, достижения..."
-                />
-
+                <label className="block text-sm font-medium mb-1">Национальность</label>
+                <input type="text" value={formData.nationality} onChange={(e) => setFormData({ ...formData, nationality: e.target.value })} className="input w-full" />
               </div>
-              
+
               <div>
-                <label className="block text-sm font-medium mb-1">Фото</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
-                  className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded"
-                />
+                <label className="block text-sm font-medium mb-1">Фото {editingReferee ? '' : '*'}</label>
+                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} className="input w-full" required={!editingReferee} />
+              </div>
 
+              <div>
+                <label className="flex items-center gap-2">
+                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
+                  <span className="text-sm">Активен</span>
+                </label>
               </div>
-              
-              <div className="flex gap-2 pt-4">
-                <button
-                  type="submit"
-                  className="btn btn-primary flex-1"
-                  disabled={createRefereeMutation.loading || updateRefereeMutation.loading}
-                >
-                  {createRefereeMutation.loading || updateRefereeMutation.loading ? 'Сохранение...' : 'Сохранить'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false)
-                    setEditingReferee(null)
-                    setFormData({ name: '', position: '', experience: 0 })
-                  }}
-                  className="btn btn-outline flex-1"
-                >
-                  Отмена
-                </button>
-              </div>
-            </form>
-          </div>
+
+            <div className="flex gap-3 pt-4">
+              <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
+                {mutationLoading ? 'Сохранение...' : 'Сохранить'}
+              </button>
+              <button type="button" onClick={() => { setIsModalOpen(false); setEditingReferee(null); }} className="btn btn-outline flex-1">
+                Отмена
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </Modal>
+
+      <ConfirmModal
+        isOpen={deleteModalOpen}
+        onClose={() => { setDeleteModalOpen(false); setRefereeToDelete(null) }}
+        onConfirm={confirmDelete}
+        title="Подтверждение удаления"
+        message={`Вы действительно хотите удалить судью ${refereeToDelete?.first_name} ${refereeToDelete?.last_name}?`}
+        confirmText="Да, удалить"
+        cancelText="Отмена"
+        variant="danger"
+      />
     </div>
   )
 } 
