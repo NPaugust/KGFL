@@ -261,7 +261,7 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
                         <div>
                           <p className="text-white font-medium">{goal.player_name}</p>
                           <p className="text-white/60 text-sm">
-                            {goal.minute}' - {goal.team_name}
+                            {goal.minute}&apos; - {goal.team_name}
                             {goal.assist_player_name && ` (ассист: ${goal.assist_player_name})`}
                           </p>
                         </div>
@@ -309,7 +309,7 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
                         <div>
                           <p className="text-white font-medium">{card.player_name}</p>
                           <p className="text-white/60 text-sm">
-                            {card.minute}' - {card.team_name} - {getCardText(card.card_type)}
+                            {card.minute}&apos; - {card.team_name} - {getCardText(card.card_type)}
                           </p>
                         </div>
                       </div>
@@ -358,7 +358,7 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
                             {substitution.player_out_name} → {substitution.player_in_name}
                           </p>
                           <p className="text-white/60 text-sm">
-                            {substitution.minute}' - {substitution.team_name}
+                            {substitution.minute}&apos; - {substitution.team_name}
                           </p>
                         </div>
                       </div>

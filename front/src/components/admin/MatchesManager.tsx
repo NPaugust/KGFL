@@ -666,7 +666,7 @@ export function MatchesManager() {
                                   </div>
                                 </div>
                                 <div className="text-center">
-                                  <div className="text-lg font-bold text-green-400">{goal.minute}'</div>
+                                  <div className="text-lg font-bold text-green-400">{goal.minute}&apos;</div>
                                   <div className="text-xs text-gray-500">мин</div>
                                 </div>
                               </div>
@@ -693,7 +693,7 @@ export function MatchesManager() {
                                 </div>
                                 <div className="text-center">
                                   <div className={`text-lg font-bold ${card.card_type === 'yellow' ? 'text-yellow-400' : 'text-red-400'}`}>
-                                    {card.minute}'
+                                    {card.minute}&apos;
                                   </div>
                                   <div className="text-xs text-gray-500">мин</div>
                                 </div>
