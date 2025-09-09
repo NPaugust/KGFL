@@ -257,7 +257,7 @@ export function MatchesManager() {
     
     // Сначала загружаем существующие события через API
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://avgustin.pythonanywhere.com/api'
       const [goalsRes, cardsRes] = await Promise.all([
         fetch(`${baseUrl}/matches/${match.id}/goals/`),
         fetch(`${baseUrl}/matches/${match.id}/cards/`)
