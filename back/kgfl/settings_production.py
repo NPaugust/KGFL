@@ -52,7 +52,7 @@ STATIC_ROOT = '/home/avgustin/kgfl/staticfiles/'
 
 # Media files для PythonAnywhere  
 MEDIA_URL = '/media/'
-MEDIA_ROOT = '/home/avgustin/KGFL/back/media/'
+MEDIA_ROOT = '/home/avgustin/KGFL/back/media'
 
 # CORS settings для продакшена
 CORS_ALLOWED_ORIGINS = [
