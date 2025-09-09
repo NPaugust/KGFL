@@ -162,12 +162,12 @@ export const getImageUrl = (path: string): string => {
   if (!path) return ''
   if (path.startsWith('http')) return path
   // Формируем абсолютный URL до бэкенда
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://avgustin.pythonanywhere.com/api'
   let origin: string
   try {
     origin = new URL(apiUrl).origin
   } catch {
-    origin = 'http://localhost:8000'
+    origin = 'https://avgustin.pythonanywhere.com'
   }
   const normalized = path.startsWith('/') ? path : `/${path}`
   return `${origin}${normalized}`
