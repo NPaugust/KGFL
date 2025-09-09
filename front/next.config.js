@@ -14,6 +14,11 @@ const nextConfig = {
         port: '8000',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'avgustin.pythonanywhere.com',
+        pathname: '/**',
+      },
     ],
   },
 }
