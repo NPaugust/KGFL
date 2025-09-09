@@ -123,7 +123,7 @@ class ApiClient {
   // Методы для работы с токенами
   async login(username: string, password: string) {
     console.log('Login attempt for user:', username)
-    const response = await this.client.post('/token/', { username, password })
+    const response = await this.client.post('/users/login/', { username, password })
     console.log('Login response:', response.data)
     return response.data
   }
@@ -241,7 +241,7 @@ export const api = apiClient
 // API endpoints
 export const API_ENDPOINTS = {
   // Аутентификация
-  LOGIN: '/token/',
+  LOGIN: '/users/login/',
   REFRESH_TOKEN: '/token/refresh/',
   VERIFY_TOKEN: '/token/verify/',
   
