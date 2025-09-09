@@ -293,4 +293,7 @@ CACHE_MIDDLEWARE_KEY_PREFIX = 'kgfl'
 SESSION_COOKIE_AGE = 3600  # 1 hour
 SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
 SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = 'Lax' 
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Media serving in development
+SERVE_MEDIA = config('SERVE_MEDIA', default=True, cast=bool) 

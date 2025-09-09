@@ -8,6 +8,14 @@ import Image from 'next/image'
 export default function MediaPage() {
   const { media, loading, error, refetch } = useMedia()
   
+  const handleMediaClick = (item: any) => {
+    // Открываем изображение в новой вкладке
+    const imageUrl = (item as any).image_url || (item as any).image || (item as any).file_url || (item as any).url
+    if (imageUrl) {
+      window.open(imageUrl, '_blank')
+    }
+  }
+  
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
@@ -67,7 +75,11 @@ export default function MediaPage() {
         {media.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {media.map((item) => (
-              <div key={item.id} className="card overflow-hidden group cursor-pointer">
+              <div 
+                key={item.id} 
+                className="card overflow-hidden group cursor-pointer hover:scale-105 transition-transform"
+                onClick={() => handleMediaClick(item)}
+              >
                 <div className="relative aspect-square overflow-hidden">
                   {item.image_url || item.image ? (
                     <Image

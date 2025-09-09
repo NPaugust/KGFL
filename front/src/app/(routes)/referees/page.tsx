@@ -10,6 +10,18 @@ import { getImageUrl } from '@/utils'
 export default function RefereesPage() {
   const { referees, loading, error, refetch } = useReferees()
   
+  const handleRefereeClick = (referee: any) => {
+    // Показываем информацию о судье
+    const info = `
+${referee.first_name} ${referee.last_name}
+Категория: ${referee.category || 'Не указана'}
+Национальность: ${referee.nationality || 'Не указана'}
+Стаж: ${referee.experience_years || 'Не указан'} лет
+${referee.bio ? `\nБиография: ${referee.bio}` : ''}
+    `.trim()
+    alert(info)
+  }
+  
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
@@ -85,7 +97,10 @@ export default function RefereesPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+              <div 
+                className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => handleRefereeClick(referee)}
+              >
                 {/* Фото судьи */}
                 <div className="flex justify-center mb-4">
                   <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/20">
@@ -136,6 +151,7 @@ export default function RefereesPage() {
                         <span className="text-white/80 text-xs">{referee.phone}</span>
                       </div>
                     )}
+
                     {referee.nationality && (
                       <div className="flex justify-between text-white/60">
                         <span>Гражданство:</span>

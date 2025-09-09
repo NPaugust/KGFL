@@ -108,7 +108,7 @@ class PlayerViewSet(viewsets.ModelViewSet):
             goals__gt=0,
             **season_filter
         ).order_by('-goals', '-assists')[:limit]
-        serializer = TopScorerSerializer(top_scorers, many=True)
+        serializer = TopScorerSerializer(top_scorers, many=True, context={'request': request})
         return Response(serializer.data)
     
     @action(detail=True, methods=['get'])

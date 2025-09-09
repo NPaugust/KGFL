@@ -58,12 +58,28 @@ export function MatchesManager() {
     yellow_cards: [],
     red_cards: []
   })
+  
+  // Существующие события матча (из базы данных)
+  const [existingEvents, setExistingEvents] = useState<{
+    goals: any[],
+    cards: any[],
+    substitutions: any[]
+  }>({
+    goals: [],
+    cards: [],
+    substitutions: []
+  })
+  
+  // Состояние для показа/скрытия истории матча
+  const [showHistory, setShowHistory] = useState(false)
 
   const { mutate, loading: mutationLoading, error } = useApiMutation<Match>()
 
   // Вычисляемые переменные для счета
-  const computedHome = (editingMatch ? (editingMatch as any).home_score || 0 : 0) + formData.goals.filter(g => g.team === 'home').length
-  const computedAway = (editingMatch ? (editingMatch as any).away_score || 0 : 0) + formData.goals.filter(g => g.team === 'away').length
+  const baseHomeScore = formData.home_score !== undefined ? formData.home_score : (editingMatch ? (editingMatch as any).home_score || 0 : 0)
+  const baseAwayScore = formData.away_score !== undefined ? formData.away_score : (editingMatch ? (editingMatch as any).away_score || 0 : 0)
+  const computedHome = baseHomeScore + formData.goals.filter(g => g.team === 'home').length
+  const computedAway = baseAwayScore + formData.goals.filter(g => g.team === 'away').length
 
   // Названия команд
   const homeName = clubs?.find((c: any) => c.id.toString() === formData.home_team)?.name || 'Домашняя команда'
@@ -73,13 +89,9 @@ export function MatchesManager() {
     e.preventDefault()
     try {
       
-      // Рассчитываем счет: существующий счет + новые голы
-      let computedHome = editingMatch ? (editingMatch as any).home_score || 0 : 0
-      let computedAway = editingMatch ? (editingMatch as any).away_score || 0 : 0
-      
-      // Добавляем новые голы из формы
-      computedHome += formData.goals.filter(g => g.team === 'home').length
-      computedAway += formData.goals.filter(g => g.team === 'away').length
+      // Рассчитываем счет: если заданы home_score/away_score в форме, используем их; иначе базовый счет + новые голы
+      let computedHome = formData.home_score !== undefined ? formData.home_score : (baseHomeScore + formData.goals.filter(g => g.team === 'home').length)
+      let computedAway = formData.away_score !== undefined ? formData.away_score : (baseAwayScore + formData.goals.filter(g => g.team === 'away').length)
 
       const submitData = {
         ...formData,
@@ -146,7 +158,7 @@ export function MatchesManager() {
         for (const goal of formData.goals) {
           if (goal.player_id && goal.minute) {
             try {
-              await apiClient.post(`${API_ENDPOINTS.MATCH_DETAIL(matchId)}/add_goal/`, {
+              await apiClient.post(`${API_ENDPOINTS.MATCH_DETAIL(matchId)}add_goal/`, {
                 scorer: goal.player_id,
                 team: goal.team === 'home' ? homeTeamId : awayTeamId,
                 minute: goal.minute
@@ -160,7 +172,7 @@ export function MatchesManager() {
         for (const assist of formData.assists) {
           if (assist.player_id && assist.minute) {
             try {
-              await apiClient.post(`${API_ENDPOINTS.MATCH_DETAIL(matchId)}/add_assist/`, {
+              await apiClient.post(`${API_ENDPOINTS.MATCH_DETAIL(matchId)}add_assist/`, {
                 player: assist.player_id,
                 team: assist.team === 'home' ? homeTeamId : awayTeamId,
                 minute: assist.minute
@@ -174,7 +186,7 @@ export function MatchesManager() {
         for (const card of [...formData.yellow_cards, ...formData.red_cards]) {
           if (card.player_id && card.minute) {
             try {
-              await apiClient.post(`${API_ENDPOINTS.MATCH_DETAIL(matchId)}/add_card/`, {
+              await apiClient.post(`${API_ENDPOINTS.MATCH_DETAIL(matchId)}add_card/`, {
                 player: card.player_id,
                 team: card.team === 'home' ? homeTeamId : awayTeamId,
                 minute: card.minute,
@@ -189,10 +201,42 @@ export function MatchesManager() {
 
       refetch()
       
+      // Перезагружаем события матча для обновления истории
+      if (editingMatch && matchId) {
+        try {
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+          const [goalsRes, cardsRes] = await Promise.all([
+            fetch(`${baseUrl}/matches/${matchId}/goals/`),
+            fetch(`${baseUrl}/matches/${matchId}/cards/`)
+          ])
+          if (goalsRes.ok && cardsRes.ok) {
+            const goals = await goalsRes.json()
+            const cards = await cardsRes.json()
+            setExistingEvents({
+              goals: goals || [],
+              cards: cards || [],
+              substitutions: []
+            })
+            console.log('✅ Обновлены события после сохранения:', { goals: goals?.length, cards: cards?.length })
+          }
+        } catch (error) {
+          console.error('❌ Ошибка при обновлении событий:', error)
+        }
+      }
+      
       // Отправляем событие для обновления всех компонентов
       window.dispatchEvent(new CustomEvent('data-refresh', { 
         detail: { 
           type: 'match', 
+          id: matchId,
+          action: editingMatch ? 'updated' : 'created'
+        } 
+      }))
+      
+      // Отправляем дополнительное событие для обновления статистики игроков
+      window.dispatchEvent(new CustomEvent('data-refresh', { 
+        detail: { 
+          type: 'player_stats', 
           id: matchId,
           action: editingMatch ? 'updated' : 'created'
         } 
@@ -208,10 +252,37 @@ export function MatchesManager() {
     }
   }
 
-  const handleEdit = (match: Match) => {
+  const handleEdit = async (match: Match) => {
     setEditingMatch(match)
     
-    // Загружаем реальные события матча
+    // Сначала загружаем существующие события через API
+    try {
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+      const [goalsRes, cardsRes] = await Promise.all([
+        fetch(`${baseUrl}/matches/${match.id}/goals/`),
+        fetch(`${baseUrl}/matches/${match.id}/cards/`)
+      ])
+      
+      if (goalsRes.ok && cardsRes.ok) {
+        const goals = await goalsRes.json()
+        const cards = await cardsRes.json()
+        
+        setExistingEvents({
+          goals: goals || [],
+          cards: cards || [],
+          substitutions: [] // пока не загружаем замены
+        })
+        console.log('✅ Загружены события матча:', { goals, cards })
+      } else {
+        console.error('❌ Ошибка при загрузке событий:', goalsRes.status, cardsRes.status)
+        setExistingEvents({ goals: [], cards: [], substitutions: [] })
+      }
+    } catch (error) {
+      console.error('❌ Ошибка при загрузке событий матча:', error)
+      setExistingEvents({ goals: [], cards: [], substitutions: [] })
+    }
+    
+    // Загружаем реальные события матча (из данных которые уже есть)
     const matchWithEvents = match as any
     const goals = (matchWithEvents.goals || []).map((goal: any) => ({
       id: goal.id || `temp_${Date.now()}`,
@@ -251,8 +322,8 @@ export function MatchesManager() {
       stadium: match.stadium || '',
       stadium_ref: (match as any).stadium_ref?.id?.toString() || (match as any).stadium_ref?.toString() || (match as any).stadium?.toString() || '',
       status: match.status || 'scheduled',
-      home_score: match.home_score,
-      away_score: match.away_score,
+      home_score: match.home_score !== undefined ? match.home_score : undefined,
+      away_score: match.away_score !== undefined ? match.away_score : undefined,
       goals: goals,
       assists: assists,
       yellow_cards: yellow_cards,
@@ -361,6 +432,7 @@ export function MatchesManager() {
         <h1 className="text-2xl font-bold">Управление матчами</h1>
         <button onClick={() => {
           setEditingMatch(null)
+          setExistingEvents({ goals: [], cards: [], substitutions: [] }) // Сбрасываем события
           setFormData({ date: '', time: '', home_team: '', away_team: '', stadium: '', stadium_ref: '', status: 'scheduled', home_score: undefined, away_score: undefined, goals: [], assists: [], yellow_cards: [], red_cards: [] })
           setIsModalOpen(true)
         }} className="btn btn-primary">Добавить матч</button>
@@ -501,7 +573,16 @@ export function MatchesManager() {
                       <button
                         type="button"
                         onClick={() => {
-                          setFormData({ ...formData, goals: [], assists: [], yellow_cards: [], red_cards: [] })
+                          // Сбрасываем И события И базовый счет матча
+                          setFormData({ 
+                            ...formData, 
+                            goals: [], 
+                            assists: [], 
+                            yellow_cards: [], 
+                            red_cards: [],
+                            home_score: 0,
+                            away_score: 0
+                          })
                         }}
                         className="mt-2 px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded"
                       >
@@ -546,12 +627,87 @@ export function MatchesManager() {
                     </button>
                   </div>
 
+
                   {/* Список событий */}
                   <div className="space-y-4">
-                    {/* Голы */}
+                    {/* История матча (выдвижная) */}
+                    {editingMatch && showHistory && (existingEvents.goals.length > 0 || existingEvents.cards.length > 0) && (
+                      <div className="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-lg font-semibold text-blue-400"> События из истории матча</h3>
+                          <button
+                            type="button"
+                            onClick={() => setShowHistory(false)}
+                            className="text-gray-400 hover:text-white transition-colors"
+                            title="Скрыть историю"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        
+                        {/* Существующие голы */}
+                        {existingEvents.goals.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-md font-medium text-green-400 mb-2"> Голы ({existingEvents.goals.length})</h4>
+                            {existingEvents.goals.map((goal: any, index: number) => (
+                              <div key={goal.id} className="flex items-center gap-3 p-3 bg-green-900/20 rounded border border-green-500/30 mb-2">
+                                <div className="text-green-400 font-bold">#{index + 1}</div>
+                                <div className="flex-1">
+                                  <div className="font-semibold text-white">
+                                    {goal.scorer_name || 'Неизвестный игрок'}
+                                  </div>
+                                  {goal.assist_name && (
+                                    <div className="text-sm text-gray-400">
+                                      Ассист: {goal.assist_name}
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-gray-500">
+                                    Команда: {goal.team_name}
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className="text-lg font-bold text-green-400">{goal.minute}'</div>
+                                  <div className="text-xs text-gray-500">мин</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Существующие карточки */}
+                        {existingEvents.cards.length > 0 && (
+                          <div className="mb-4">
+                            <h4 className="text-md font-medium text-yellow-400 mb-2">🟨🟥 Карточки ({existingEvents.cards.length})</h4>
+                            {existingEvents.cards.map((card: any, index: number) => (
+                              <div key={card.id} className="flex items-center gap-3 p-3 bg-yellow-900/20 rounded border border-yellow-500/30 mb-2">
+                                <div className={card.card_type === 'yellow' ? 'text-yellow-400 text-xl' : 'text-red-400 text-xl'}>
+                                  {card.card_type === 'yellow' ? '🟨' : '🟥'}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="font-semibold text-white">
+                                    {card.player_name || 'Неизвестный игрок'}
+                                  </div>
+                                  <div className="text-xs text-gray-500">
+                                    Команда: {card.team_name}
+                                  </div>
+                                </div>
+                                <div className="text-center">
+                                  <div className={`text-lg font-bold ${card.card_type === 'yellow' ? 'text-yellow-400' : 'text-red-400'}`}>
+                                    {card.minute}'
+                                  </div>
+                                  <div className="text-xs text-gray-500">мин</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Новые голы (из формы) */}
                     {formData.goals.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="text-lg font-medium text-green-400">Голы ({formData.goals.length})</h4>
+                        <h4 className="text-lg font-medium text-green-400">➕ Новые голы ({formData.goals.length})</h4>
                         {formData.goals.map((goal, index) => (
                           <div key={goal.id} className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                             <div className="w-8 h-8 bg-green-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
@@ -602,7 +758,7 @@ export function MatchesManager() {
                     {/* Ассисты */}
                     {formData.assists.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="text-lg font-medium text-blue-400">Ассисты ({formData.assists.length})</h4>
+                        <h4 className="text-lg font-medium text-blue-400">➕ Новые ассисты ({formData.assists.length})</h4>
                         {formData.assists.map((assist, index) => (
                           <div key={assist.id} className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                             <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
@@ -653,7 +809,7 @@ export function MatchesManager() {
                     {/* Желтые карточки */}
                     {formData.yellow_cards.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="text-lg font-medium text-yellow-400">Желтые карточки ({formData.yellow_cards.length})</h4>
+                        <h4 className="text-lg font-medium text-yellow-400">➕ Новые желтые карточки ({formData.yellow_cards.length})</h4>
                         {formData.yellow_cards.map((card, index) => (
                           <div key={card.id} className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                             <div className="w-8 h-8 bg-yellow-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
@@ -704,7 +860,7 @@ export function MatchesManager() {
                     {/* Красные карточки */}
                     {formData.red_cards.length > 0 && (
                       <div className="space-y-2">
-                        <h4 className="text-lg font-medium text-red-400">Красные карточки ({formData.red_cards.length})</h4>
+                        <h4 className="text-lg font-medium text-red-400">➕ Новые красные карточки ({formData.red_cards.length})</h4>
                         {formData.red_cards.map((card, index) => (
                           <div key={card.id} className="flex items-center gap-3 p-4 bg-gray-800/30 rounded-lg border border-gray-700">
                             <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
@@ -752,11 +908,22 @@ export function MatchesManager() {
                       </div>
                     )}
 
-                    {/* Пустое состояние */}
+                    {/* Пустое состояние или кнопка истории */}
                     {formData.goals.length === 0 && formData.assists.length === 0 && formData.yellow_cards.length === 0 && formData.red_cards.length === 0 && (
                       <div className="text-center py-8 text-gray-400">
                         <div className="text-lg mb-2">События матча</div>
-                        <div className="text-sm">Используйте кнопки выше для добавления событий</div>
+                        {editingMatch && (existingEvents.goals.length > 0 || existingEvents.cards.length > 0) ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowHistory(!showHistory)}
+                            className="btn bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 mx-auto"
+                          >
+                            История матча ({existingEvents.goals.length + existingEvents.cards.length} событий)
+                            <span className={`transition-transform ${showHistory ? 'rotate-180' : ''}`}>▼</span>
+                          </button>
+                        ) : (
+                          <div className="text-sm">Используйте кнопки выше для добавления событий</div>
+                        )}
                       </div>
                     )}
                   </div>

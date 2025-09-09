@@ -14,7 +14,10 @@ export function usePlayers() {
     try {
       setLoading(true)
       setError(null)
-      const result = await apiClient.get<PaginatedResponse<Player> | Player[]>(API_ENDPOINTS.PLAYERS)
+      // Добавляем cache-busting timestamp
+      const timestamp = Date.now()
+      const url = `${API_ENDPOINTS.PLAYERS}?_ts=${timestamp}`
+      const result = await apiClient.get<PaginatedResponse<Player> | Player[]>(url)
       // Обрабатываем пагинацию
       if (result && typeof result === 'object' && 'results' in result) {
         setPlayers((result as PaginatedResponse<Player>).results)

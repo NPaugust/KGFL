@@ -10,6 +10,16 @@ import { getImageUrl } from '@/utils'
 export default function ManagementPage() {
   const { management, loading, error, refetch } = useManagement()
   
+  const handleManagerClick = (manager: any) => {
+    // Показываем информацию о руководителе
+    const info = `
+${manager.first_name} ${manager.last_name}
+Должность: ${manager.position || 'Не указана'}
+${manager.notes ? `\nЗаметки: ${manager.notes}` : ''}
+    `.trim()
+    alert(info)
+  }
+  
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
@@ -85,7 +95,10 @@ export default function ManagementPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
+              <div 
+                className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl cursor-pointer"
+                onClick={() => handleManagerClick(manager)}
+              >
                 {/* Фото руководителя */}
                 <div className="flex justify-center mb-4">
                   <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/20">

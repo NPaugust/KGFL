@@ -35,9 +35,7 @@ export function Scorers() {
   return (
     <section id="scorers" className="container-px py-16 reveal">
       <div className="text-center mb-8">
-        <div className="w-16 h-16 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
-          <span className="text-brand-primary font-bold text-2xl">Б</span>
-        </div>
+
         <h2 className="text-3xl md:text-4xl font-bold mb-2">Лучшие бомбардиры</h2>
         <p className="text-white/70 max-w-2xl mx-auto">
           Следите за лидерами по голам в текущем сезоне KGFL
@@ -69,9 +67,9 @@ export function Scorers() {
               <p className="text-white/70">{player.club?.name}</p>
               <div className="my-4 flex items-center justify-center">
                 <div className="relative h-40 w-40 overflow-hidden rounded-full ring-4 ring-white/10">
-                  {player.photo ? (
+                  {(player as any).photo_url || player.photo ? (
                     <Image 
-                      src={getImageUrl(player.photo)} 
+                      src={(player as any).photo_url || (player.photo ? getImageUrl(player.photo) : '')} 
                       alt={`${player.first_name} ${player.last_name}`}
                       fill 
                       className="object-cover" 

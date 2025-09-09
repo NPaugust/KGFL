@@ -91,6 +91,7 @@ export interface Match {
 
 export interface TableRow {
   id: string
+  club_id?: number
   club_name?: string
   club_logo?: string
   club?: Club
@@ -129,6 +130,7 @@ export interface Referee {
   name?: string
   first_name?: string
   last_name?: string
+  nationality?: string
   photo?: string
   photo_url?: string
   category?: string

@@ -4,6 +4,7 @@ import { SeasonMatches } from '@/components/Matches'
 import { useTopScorers } from '@/hooks/usePlayers'
 import { Loading } from '@/components/Loading'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
+import { getImageUrl } from '@/utils'
 import Image from 'next/image'
 
 function VerticalScorers() {
@@ -47,9 +48,9 @@ function VerticalScorers() {
           </div>
           <div className="mt-3 flex justify-center">
             <div className="relative h-12 w-12 overflow-hidden rounded-full">
-              {player.photo ? (
+              {((player as any).photo_url || player.photo) ? (
                 <Image
-                  src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`}
+                  src={(player as any).photo_url || getImageUrl(player.photo || '')}
                   alt={`${player.first_name} ${player.last_name}`}
                   fill
                   className="object-cover"
@@ -72,7 +73,7 @@ export default function TablePage() {
     <main>
       <section className="container-px py-10">
         <Breadcrumbs items={[{ label: 'Таблица' }]} />
-        <h1 className="text-4xl font-bold text-center">Таблица</h1>
+        <h1 className="text-4xl font-bold text-center">Турнирная Таблица</h1>
         <p className="mt-2 text-white/70 text-center">Обновляется в реальном времени по окончании матчей</p>
       </section>
       <section className="container-px grid gap-6 pb-4 lg:grid-cols-3">

@@ -184,6 +184,44 @@ class MatchViewSet(viewsets.ModelViewSet):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])
+    def add_assist(self, request, pk=None):
+        """Добавить ассист в матч."""
+        match = self.get_object()
+        data = request.data.copy()
+        data['match'] = match.id
+
+        try:
+            from players.models import Player
+            from .models import Goal
+            player = Player.objects.get(id=data['player'])
+            minute = data.get('minute', 1)
+
+            # Ищем гол в окне ±5 минут
+            goals = Goal.objects.filter(match=match, minute__gte=minute-5, minute__lte=minute+5).order_by('minute')
+            if goals.exists():
+                goal = goals.first()
+                goal.assist = player
+                goal.save()
+
+                return Response({
+                    'message': 'Ассист добавлен',
+                    'assist': {'player': player.full_name, 'minute': minute}
+                }, status=status.HTTP_201_CREATED)
+            else:
+                return Response({
+                    'error': 'Не найден подходящий гол для ассиста'
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+        except Player.DoesNotExist:
+            return Response({
+                'error': 'Игрок не найден'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=True, methods=['post'])
     def add_card(self, request, pk=None):
         """Добавить карточку в матч."""
         match = self.get_object()

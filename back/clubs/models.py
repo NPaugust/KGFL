@@ -352,42 +352,49 @@ class ClubSeason(models.Model):
     def goals_formatted(self):
         return f"{self.goals_for}:{self.goals_against}"
     
-    def update_stats_from_match(self, match):
-        """Обновить статистику клуба на основе матча."""
-        if match.status != 'finished':
-            return
+    @property 
+    def last_5(self):
+        """Результаты последних 5 матчей клуба."""
+        from matches.models import Match
+        
+        # Получаем последние 5 завершенных/живых матчей клуба в этом сезоне
+        matches = Match.objects.filter(
+            season=self.season,
+            status__in=['finished', 'live']
+        ).filter(
+            models.Q(home_team=self.club) | models.Q(away_team=self.club)
+        ).order_by('-date', '-time')[:5]
+        
+        results = []
+        for match in matches:
+            # Проверяем что счет матча заполнен
+            if match.home_score is None or match.away_score is None:
+                continue
+                
+            if match.home_team == self.club:
+                # Клуб играл дома
+                if match.home_score > match.away_score:
+                    results.append('W')  # Победа
+                elif match.home_score == match.away_score:
+                    results.append('D')  # Ничья
+                else:
+                    results.append('L')  # Поражение
+            else:
+                # Клуб играл в гостях
+                if match.away_score > match.home_score:
+                    results.append('W')  # Победа
+                elif match.away_score == match.home_score:
+                    results.append('D')  # Ничья
+                else:
+                    results.append('L')  # Поражение
+        
+        # Возвращаем массив из 5 элементов (заполняем пустыми если матчей меньше)
+        while len(results) < 5:
+            results.append(None)
             
-        # Определяем, является ли клуб домашней или гостевой командой
-        is_home = self.club_id == getattr(match.home_team, 'id', None)
-        
-        if is_home:
-            goals_for = match.home_score or 0
-            goals_against = match.away_score or 0
-        else:
-            goals_for = match.away_score or 0
-            goals_against = match.home_score or 0
-        
-        # Обновляем статистику
-        self.goals_for += goals_for
-        self.goals_against += goals_against
-        # Инкрементируем и новое поле, и старое для совместимости
-        self.games += 1  # Новое поле по ТЗ
-        self.matches_played += 1  # Старое поле, чтобы не сломать место использования
-        
-        # Определяем результат матча
-        if goals_for > goals_against:
-            self.wins += 1
-            self.points += 3
-        elif goals_for == goals_against:
-            self.draws += 1
-            self.points += 1
-        else:
-            self.losses += 1
-        
-        # Рассчитываем разность голов
-        self.goal_difference = self.goals_for - self.goals_against
-        
-        self.save()
+        return results
+    
+    # Метод update_stats_from_match удален - теперь статистика обновляется только через сигналы
 
 
 class ClubApplication(models.Model):

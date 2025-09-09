@@ -41,7 +41,8 @@ export function MediaManager() {
       payload.append('media_type', formData.media_type)
       payload.append('url', formData.url || '')
       payload.append('is_active', String(formData.is_active))
-      if (formData.file) payload.append('file', formData.file)
+      // В бэкенде поле называется 'image', а не 'file'
+      if (formData.file) payload.append('image', formData.file)
 
       if (editingMedia) {
         await mutate(API_ENDPOINTS.MEDIA_DETAIL(editingMedia.id), 'PUT', payload)

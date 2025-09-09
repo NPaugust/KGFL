@@ -108,9 +108,9 @@ export default function StatsPage() {
                     </div>
                     
                     <div className="w-12 h-12 relative">
-                      {player.photo ? (
+                      {(player as any).photo_url || player.photo ? (
                         <Image 
-                          src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`} 
+                          src={(player as any).photo_url || player.photo} 
                           alt={`${player.first_name} ${player.last_name}`} 
                           width={48} 
                           height={48} 
@@ -161,9 +161,9 @@ export default function StatsPage() {
                     </div>
                     
                     <div className="w-12 h-12 relative">
-                      {player.photo ? (
+                      {(player as any).photo_url || player.photo ? (
                         <Image 
-                          src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`} 
+                          src={(player as any).photo_url || player.photo} 
                           alt={`${player.first_name} ${player.last_name}`} 
                           width={48} 
                           height={48} 
@@ -215,6 +215,8 @@ export default function StatsPage() {
                   <th className="px-4 py-3 text-left">Позиция</th>
                   <th className="px-4 py-3 text-center">Голы</th>
                   <th className="px-4 py-3 text-center">Ассисты</th>
+                  <th className="px-4 py-3 text-center">🟨</th>
+                  <th className="px-4 py-3 text-center">🟥</th>
                   <th className="px-4 py-3 text-center">Матчи</th>
                 </tr>
               </thead>
@@ -223,9 +225,9 @@ export default function StatsPage() {
                   <tr key={player.id} className="border-b border-white/10">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        {player.photo ? (
+                        {(player as any).photo_url || player.photo ? (
                           <Image 
-                            src={player.photo.startsWith('http') ? player.photo : `/${player.photo}`} 
+                            src={(player as any).photo_url || player.photo} 
                             alt={`${player.first_name} ${player.last_name}`} 
                             width={32} 
                             height={32} 
@@ -248,8 +250,21 @@ export default function StatsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-white">
-                      {player.club?.name || 'Без клуба'}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        {(player as any).club_logo && (
+                          <Image 
+                            src={(player as any).club_logo} 
+                            alt={`Логотип ${(player as any).club_name || 'клуба'}`}
+                            width={24} 
+                            height={24} 
+                            className="rounded object-cover"
+                          />
+                        )}
+                        <span className="text-white">
+                          {(player as any).club_name || 'Без клуба'}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-white/70">
                       {player.position || 'Не указана'}
@@ -259,6 +274,12 @@ export default function StatsPage() {
                     </td>
                     <td className="px-4 py-3 text-center font-bold text-brand-primary">
                       {player.assists || 0}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-yellow-400">
+                      {(player as any).yellow_cards || 0}
+                    </td>
+                    <td className="px-4 py-3 text-center font-bold text-red-400">
+                      {(player as any).red_cards || 0}
                     </td>
                     <td className="px-4 py-3 text-center text-white/70">
                       {player.games_played || 0}

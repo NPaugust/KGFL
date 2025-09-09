@@ -5,6 +5,7 @@ import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 
 interface RefereeFormData {
@@ -153,7 +154,7 @@ export function RefereesManager() {
                   <td className="px-4 py-3">
                     {referee.photo_url || referee.photo ? (
                       <Image 
-                        src={referee.photo_url || referee.photo} 
+                        src={referee.photo_url || getImageUrl(referee.photo)} 
                         alt={`${referee.first_name} ${referee.last_name}`} 
                         width={32} 
                         height={32} 

@@ -13,10 +13,13 @@ class ClubSerializer(serializers.ModelSerializer):
     
     def get_logo_url(self, obj):
         if obj.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.logo.url)
-            return obj.logo.url
+            raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
         return None
 
 
@@ -37,10 +40,13 @@ class ClubListSerializer(serializers.ModelSerializer):
     
     def get_logo_url(self, obj):
         if obj.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.logo.url)
-            return obj.logo.url
+            raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
         return None
 
 
@@ -82,16 +88,18 @@ class TableRowSerializer(serializers.ModelSerializer):
     """Сериализатор для строки турнирной таблицы."""
     
     club_name = serializers.CharField(source='club.name', read_only=True)
+    club_id = serializers.IntegerField(source='club.id', read_only=True)
     club_logo = serializers.SerializerMethodField()
     goals_formatted = serializers.CharField(read_only=True)
     goal_difference = serializers.IntegerField(read_only=True)
+    last_5 = serializers.ListField(read_only=True)
     
     class Meta:
         model = ClubSeason
         fields = [
-            'id', 'club_name', 'club_logo', 'position', 'points',
+            'id', 'club_id', 'club_name', 'club_logo', 'position', 'points',
             'matches_played', 'wins', 'draws', 'losses',
-            'goals_for', 'goals_against', 'goals_formatted', 'goal_difference'
+            'goals_for', 'goals_against', 'goals_formatted', 'goal_difference', 'last_5'
         ] 
 
     def get_club_logo(self, obj):
@@ -116,10 +124,13 @@ class ClubApplicationSerializer(serializers.ModelSerializer):
     
     def get_logo_url(self, obj):
         if obj.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.logo.url)
-            return obj.logo.url
+            raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
         return None
 
 
@@ -139,10 +150,13 @@ class ClubApplicationListSerializer(serializers.ModelSerializer):
     
     def get_logo_url(self, obj):
         if obj.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.logo.url)
-            return obj.logo.url
+            raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
         return None
 
 
@@ -159,8 +173,11 @@ class ClubApplicationDetailSerializer(serializers.ModelSerializer):
     
     def get_logo_url(self, obj):
         if obj.logo:
-            request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(obj.logo.url)
-            return obj.logo.url
+            raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
         return None

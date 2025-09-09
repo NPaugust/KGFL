@@ -5,12 +5,16 @@ import { Loading } from '@/components/Loading'
 import { useMatches } from '@/hooks/useMatches'
 import { formatDate } from '@/utils'
 import Image from 'next/image'
-import { getImageUrl } from '@/utils'
-import Link from 'next/link'
 import { Calendar, MapPin, Clock } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function SchedulePage() {
   const { matches, loading, error, refetch } = useMatches()
+  const router = useRouter()
+  
+  const handleTeamClick = (teamId: number) => {
+    router.push(`/clubs/${teamId}`)
+  }
   
   // Слушаем события обновления данных
   useEffect(() => {
@@ -46,8 +50,8 @@ export default function SchedulePage() {
     return (
       <div className="min-h-screen bg-brand-dark">
         <div className="container mx-auto px-4 py-8">
-          <Breadcrumbs items={[{ label: 'Расписание' }]} />
-          <h1 className="text-3xl font-bold text-center">Расписание матчей</h1>
+          <Breadcrumbs items={[{ label: 'Матчи' }]} />
+          <h1 className="text-3xl font-bold text-center">Матчи</h1>
           <div className="text-center text-red-400 mt-8">
             Ошибка загрузки данных: {typeof error === 'string' ? error : 'Неизвестная ошибка'}
           </div>
@@ -62,29 +66,19 @@ export default function SchedulePage() {
     return (
       <div className="min-h-screen bg-brand-dark">
         <div className="container mx-auto px-4 py-8">
-          <Breadcrumbs items={[{ label: 'Расписание' }]} />
-          <h1 className="text-3xl font-bold text-center">Расписание матчей</h1>
+          <Breadcrumbs items={[{ label: 'Матчи' }]} />
+          <h1 className="text-3xl font-bold text-center">Матчи</h1>
           <div className="text-center py-16">
             <div className="w-20 h-20 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
               <Calendar className="w-10 h-10 text-brand-primary" />
             </div>
             <h3 className="text-xl font-semibold mb-2">Матчи не найдены</h3>
-            <p className="text-white/70">Расписание матчей будет доступно позже</p>
+            <p className="text-white/70">Расписание матчей пока не доступно</p>
           </div>
         </div>
       </div>
     )
   }
-
-  // Группируем матчи по дате
-  const matchesByDate = matchesList.reduce((acc: { [key: string]: any[] }, match) => {
-    const date = match.date ? formatDate(match.date) : 'Дата не указана'
-    if (!acc[date]) {
-      acc[date] = []
-    }
-    acc[date].push(match)
-    return acc
-  }, {})
 
   return (
     <div className="min-h-screen bg-brand-dark">
@@ -92,127 +86,125 @@ export default function SchedulePage() {
         <Breadcrumbs items={[{ label: 'Расписание' }]} />
         <h1 className="text-3xl font-bold text-center mb-8">Расписание матчей</h1>
         
-        <div className="space-y-8">
-          {Object.entries(matchesByDate).map(([date, dayMatches]) => (
-            <div key={date}>
-              <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
-                <Calendar className="w-5 h-5 mr-2 text-brand-primary" />
-                {date}
-              </h2>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {dayMatches.map((match) => {
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-white/5">
+                <tr>
+                  <th className="px-4 py-3 text-left text-white font-medium">#</th>
+                  <th className="px-4 py-3 text-left text-white font-medium">Дата</th>
+                  <th className="px-4 py-3 text-left text-white font-medium">Хозяева</th>
+                  <th className="px-4 py-3 text-center text-white font-medium">Счёт</th>
+                  <th className="px-4 py-3 text-left text-white font-medium">Гости</th>
+                  <th className="px-4 py-3 text-left text-white font-medium">Стадион</th>
+                  <th className="px-4 py-3 text-left text-white font-medium">Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matchesList.map((match, index) => {
                   const isFinished = match.status === 'finished'
                   const isLive = match.status === 'live'
                   
                   return (
-                    <div key={match.id} className="card p-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center text-white/70 text-sm">
-                          {match.time && (
-                            <div className="flex items-center mr-4">
-                              <Clock className="w-4 h-4 mr-1" />
-                              {match.time}
-                            </div>
-                          )}
-                          {match.stadium && (
-                            <div className="flex items-center">
-                              <MapPin className="w-4 h-4 mr-1" />
-                              {match.stadium}
-                            </div>
-                          )}
+                    <tr key={match.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                      <td className="px-4 py-4 text-white/70 font-medium">
+                        {index + 1}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-white">
+                          {match.date ? formatDate(match.date) : 'TBD'}
                         </div>
-                        
-                        <div className={`px-2 py-1 rounded text-xs ${
-                          isFinished ? 'bg-green-500/20 text-green-400' :
-                          isLive ? 'bg-red-500/20 text-red-400' :
-                          match.status === 'cancelled' ? 'bg-gray-500/20 text-gray-400' :
-                          'bg-blue-500/20 text-blue-400'
-                        }`}>
-                          {isFinished ? 'Завершен' :
-                           isLive ? 'В прямом эфире' :
-                           match.status === 'cancelled' ? 'Отменен' :
-                           'Запланирован'}
-                        </div>
-                      </div>
-                      
-                      <div className="grid grid-cols-3 items-center gap-4 text-center">
-                        {/* Home Team */}
-                        <div>
-                          {match.home_team?.logo ? (
-                            <Image 
-                              src={getImageUrl(match.home_team.logo)} 
-                              alt={match.home_team?.name || 'Команда'} 
-                              width={48} 
-                              height={48} 
-                              className="mx-auto mb-2 rounded"
-                            />
-                          ) : (
-                            <div className="mx-auto mb-2 w-12 h-12 bg-white/10 rounded flex items-center justify-center text-lg text-white/40 font-bold">
-                              {match.home_team?.name?.[0] || 'К'}
-                            </div>
-                          )}
-                          <div className="font-medium text-white text-sm">
-                            {match.home_team?.name || 'Неизвестная команда'}
+                        {match.time && (
+                          <div className="text-sm text-white/60 flex items-center mt-1">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {match.time}
                           </div>
-                        </div>
-                        
-                        {/* Score */}
-                        <div>
-                          {isFinished ? (
-                            <div className="text-2xl font-bold text-white">
-                              {match.home_score ?? 0} : {match.away_score ?? 0}
-                            </div>
-                          ) : isLive ? (
-                            <div className="text-xl font-bold text-red-400">
-                              LIVE
-                            </div>
-                          ) : (
-                            <div className="text-xl font-bold text-white/60">
-                              VS
-                            </div>
-                          )}
-                        </div>
-                        
-                        {/* Away Team */}
-                        <div>
-                          {match.away_team?.logo ? (
-                            <Image 
-                              src={getImageUrl(match.away_team.logo)} 
-                              alt={match.away_team?.name || 'Команда'} 
-                              width={48} 
-                              height={48} 
-                              className="mx-auto mb-2 rounded"
-                            />
-                          ) : (
-                            <div className="mx-auto mb-2 w-12 h-12 bg-white/10 rounded flex items-center justify-center text-lg text-white/40 font-bold">
-                              {match.away_team?.name?.[0] || 'К'}
-                            </div>
-                          )}
-                          <div className="font-medium text-white text-sm">
-                            {match.away_team?.name || 'Неизвестная команда'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="mt-4 flex justify-center">
-                        <Link 
-                          href={`/matches/${match.id}`} 
-                          className="btn btn-outline px-4 py-2 text-sm"
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div 
+                          className="flex items-center cursor-pointer hover:text-brand-primary transition-colors"
+                          onClick={() => handleTeamClick(match.home_team_id)}
                         >
-                          Подробнее
-                        </Link>
-                      </div>
-                    </div>
+                          {match.home_team_logo && (
+                            <Image
+                              src={match.home_team_logo}
+                              alt={`${match.home_team_name} logo`}
+                              width={24}
+                              height={24}
+                              className="rounded mr-3"
+                            />
+                          )}
+                          <span className="font-medium text-white">
+                            {match.home_team_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-center">
+                        {isFinished || isLive ? (
+                          <div className="inline-flex items-center gap-2">
+                            <span className="text-lg font-bold text-white bg-white/10 px-3 py-1 rounded">
+                              {match.home_score} : {match.away_score}
+                            </span>
+                            {isLive && (
+                              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-white/50">vs</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <div 
+                          className="flex items-center cursor-pointer hover:text-brand-primary transition-colors"
+                          onClick={() => handleTeamClick(match.away_team_id)}
+                        >
+                          {match.away_team_logo && (
+                            <Image
+                              src={match.away_team_logo}
+                              alt={`${match.away_team_name} logo`}
+                              width={24}
+                              height={24}
+                              className="rounded mr-3"
+                            />
+                          )}
+                          <span className="font-medium text-white">
+                            {match.away_team_name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        {match.stadium && (
+                          <div className="flex items-center text-white/70">
+                            <MapPin className="w-4 h-4 mr-1" />
+                            <span className="text-sm">{match.stadium}</span>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          isLive ? 'bg-red-500/20 text-red-400' :
+                          isFinished ? 'bg-green-500/20 text-green-400' :
+                          match.status === 'scheduled' ? 'bg-blue-500/20 text-blue-400' :
+                          match.status === 'cancelled' ? 'bg-gray-500/20 text-gray-400' :
+                          'bg-yellow-500/20 text-yellow-400'
+                        }`}>
+                          {match.status === 'live' ? 'Прямой эфир' :
+                           match.status === 'finished' ? 'Завершен' :
+                           match.status === 'scheduled' ? 'Запланирован' :
+                           match.status === 'cancelled' ? 'Отменен' :
+                           match.status === 'postponed' ? 'Перенесен' :
+                           match.status}
+                        </span>
+                      </td>
+                    </tr>
                   )
                 })}
-              </div>
-            </div>
-          ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   )
 }
-
-

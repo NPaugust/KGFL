@@ -40,13 +40,14 @@ function MatchCard({ id, date, time, home, away, place }: MatchCardProps) {
               alt={home.name} 
               width={72} 
               height={72} 
-              className="h-18 w-18" 
+              className="h-18 w-18 mb-2" 
             />
           ) : (
-            <div className="h-18 w-18 bg-white/10 rounded flex items-center justify-center text-sm text-white/40">
+            <div className="h-18 w-18 bg-white/10 rounded flex items-center justify-center text-sm text-white/40 mb-2">
               {home.name?.[0] || 'К'}
             </div>
           )}
+          <span className="text-sm text-white font-medium">{home.name}</span>
         </div>
         <div className="text-4xl font-bold">
           {isFinished ? (
@@ -62,13 +63,14 @@ function MatchCard({ id, date, time, home, away, place }: MatchCardProps) {
               alt={away.name} 
               width={72} 
               height={72} 
-              className="h-18 w-18" 
+              className="h-18 w-18 mb-2" 
             />
           ) : (
-            <div className="h-18 w-18 bg-white/10 rounded flex items-center justify-center text-sm text-white/40">
+            <div className="h-18 w-18 bg-white/10 rounded flex items-center justify-center text-sm text-white/40 mb-2">
               {away.name?.[0] || 'К'}
             </div>
           )}
+          <span className="text-sm text-white font-medium">{away.name}</span>
         </div>
       </div>
       <div className="mt-6 flex justify-center">

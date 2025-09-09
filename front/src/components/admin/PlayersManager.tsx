@@ -7,6 +7,7 @@ import { Player, Club, PlayerTransfer } from '@/types'
 import { Loading } from '@/components/Loading'
 import { useSeasonStore } from '@/store/useSeasonStore'
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 
 interface PlayerFormData {
@@ -181,11 +182,11 @@ export function PlayersManager() {
                   <td className="px-4 py-3">
                     {((player as any).photo_url || player.photo) ? (
                       <Image 
-                        src={(player as any).photo_url || player.photo as any} 
+                        src={(player as any).photo_url || getImageUrl(player.photo || '')} 
                         alt={player.first_name} 
                         width={32} 
                         height={32} 
-                        className="w-8 h-8 rounded" 
+                        className="w-8 h-8 rounded object-cover" 
                       />
                     ) : (
                       <div className="w-8 h-8 bg-gray-500 rounded flex items-center justify-center text-xs">{player.first_name?.[0]}{player.last_name?.[0]}</div>

@@ -86,16 +86,26 @@ class PlayerSerializer(serializers.ModelSerializer):
     season_name = serializers.CharField(source='season.name', read_only=True)
     photo_url = serializers.SerializerMethodField()
     
-    class Meta:
-        model = Player
-        fields = '__all__'
-
     def get_photo_url(self, obj):
         if obj.photo:
             request = self.context.get('request')
-            url = obj.photo.url
-            return request.build_absolute_uri(url) if request else url
+            if request:
+                if obj.photo.url.startswith('/'):
+                    return request.build_absolute_uri(obj.photo.url)
+                return obj.photo.url
+            return obj.photo.url
         return None
+    
+    class Meta:
+        model = Player
+        fields = '__all__'
+        extra_kwargs = {
+            'photo': {'required': False},
+            'phone': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'notes': {'required': False, 'allow_null': True, 'allow_blank': True},
+            'nationality': {'required': False, 'allow_blank': True},
+        }
+
 
 
 class PlayerListSerializer(serializers.ModelSerializer):
@@ -103,6 +113,7 @@ class PlayerListSerializer(serializers.ModelSerializer):
     
     club_name = serializers.CharField(source='club.name', read_only=True)
     photo_url = serializers.SerializerMethodField()
+    club_logo = serializers.SerializerMethodField()
     goals_scored = serializers.SerializerMethodField()
     assists = serializers.SerializerMethodField()
     yellow_cards = serializers.SerializerMethodField()
@@ -112,17 +123,12 @@ class PlayerListSerializer(serializers.ModelSerializer):
         model = Player
         fields = [
             'id', 'first_name', 'last_name', 'photo', 'photo_url', 'position', 
-            'number', 'club', 'club_name', 'date_of_birth', 'nationality', 
+            'number', 'club', 'club_name', 'club_logo', 'date_of_birth', 'nationality', 
             'height', 'weight', 'phone', 'notes', 'status', 'is_active',
             'goals_scored', 'assists', 'yellow_cards', 'red_cards'
         ]
 
-    def get_photo_url(self, obj):
-        if obj.photo:
-            request = self.context.get('request')
-            url = obj.photo.url
-            return request.build_absolute_uri(url) if request else url
-        return None
+
 
     def get_goals_scored(self, obj):
         try:
@@ -160,6 +166,28 @@ class PlayerListSerializer(serializers.ModelSerializer):
         except:
             return 0
 
+    def get_photo_url(self, obj):
+        if obj.photo:
+            raw = obj.photo.url if hasattr(obj.photo, 'url') else str(obj.photo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
+        return None
+    
+    def get_club_logo(self, obj):
+        if obj.club and obj.club.logo:
+            raw = obj.club.logo.url if hasattr(obj.club.logo, 'url') else str(obj.club.logo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
+        return None
+
 
 class PlayerDetailSerializer(serializers.ModelSerializer):
     """Сериализатор для детальной информации об игроке."""
@@ -182,9 +210,13 @@ class PlayerDetailSerializer(serializers.ModelSerializer):
 
     def get_photo_url(self, obj):
         if obj.photo:
-            request = self.context.get('request')
-            url = obj.photo.url
-            return request.build_absolute_uri(url) if request else url
+            raw = obj.photo.url if hasattr(obj.photo, 'url') else str(obj.photo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
         return None
 
 
@@ -218,6 +250,7 @@ class TopScorerSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(source='player.first_name', read_only=True)
     last_name = serializers.CharField(source='player.last_name', read_only=True)
     photo = serializers.CharField(source='player.photo', read_only=True)
+    photo_url = serializers.SerializerMethodField()
     number = serializers.CharField(source='player.number', read_only=True)
     position = serializers.CharField(source='player.position', read_only=True)
     club = serializers.SerializerMethodField()
@@ -244,10 +277,22 @@ class TopScorerSerializer(serializers.ModelSerializer):
             'logo': logo_url,
         }
     
+    def get_photo_url(self, obj):
+        photo = getattr(obj.player, 'photo', None)
+        if photo:
+            raw = photo.url if hasattr(photo, 'url') else str(photo)
+            # Принудительно формируем абсолютный URL
+            if raw.startswith('/'):
+                return f"http://localhost:8000{raw}"
+            elif not raw.startswith('http'):
+                return f"http://localhost:8000/media/{raw}"
+            return raw
+        return None
+    
     class Meta:
         model = PlayerStats
         fields = [
-            'id', 'first_name', 'last_name', 'photo', 'number', 'position',
+            'id', 'first_name', 'last_name', 'photo', 'photo_url', 'number', 'position',
             'club', 'goals_scored', 'assists', 'yellow_cards', 'red_cards',
             'games_played', 'minutes_played', 'season'
         ] 

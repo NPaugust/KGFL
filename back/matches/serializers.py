@@ -8,6 +8,12 @@ from datetime import datetime
 class MatchCreateSerializer(serializers.ModelSerializer):
     """Сериализатор для создания матчей."""
     
+    # Дополнительные поля для событий (не сохраняются в модели Match)
+    goals = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
+    assists = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
+    yellow_cards = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
+    red_cards = serializers.ListField(child=serializers.DictField(), required=False, write_only=True)
+    
     class Meta:
         model = Match
         fields = '__all__'
@@ -39,6 +45,186 @@ class MatchCreateSerializer(serializers.ModelSerializer):
             attrs['away_score'] = None
         
         return attrs
+    
+    def create(self, validated_data):
+        """Создание матча с событиями."""
+        # Извлекаем события из данных
+        goals_data = validated_data.pop('goals', [])
+        assists_data = validated_data.pop('assists', [])
+        yellow_cards_data = validated_data.pop('yellow_cards', [])
+        red_cards_data = validated_data.pop('red_cards', [])
+        
+        # Создаем матч
+        match = super().create(validated_data)
+        
+        # Создаем события
+        self._create_events(match, goals_data, assists_data, yellow_cards_data, red_cards_data)
+        
+        return match
+    
+    def update(self, instance, validated_data):
+        """Обновление матча с событиями."""
+        # Извлекаем события из данных
+        goals_data = validated_data.pop('goals', [])
+        assists_data = validated_data.pop('assists', [])
+        yellow_cards_data = validated_data.pop('yellow_cards', [])
+        red_cards_data = validated_data.pop('red_cards', [])
+        
+        # Сохраняем старый счёт для сравнения
+        old_home_score = instance.home_score or 0
+        old_away_score = instance.away_score or 0
+        
+        # Обновляем матч
+        match = super().update(instance, validated_data)
+        
+        # Новый счёт после обновления
+        new_home_score = match.home_score or 0
+        new_away_score = match.away_score or 0
+        
+        # Создаем новые события из формы
+        self._create_events(match, goals_data, assists_data, yellow_cards_data, red_cards_data)
+        
+        # Автоматически создаём недостающие голы если счёт увеличился
+        self._sync_goals_with_score(match, old_home_score, old_away_score, new_home_score, new_away_score)
+        
+        return match
+    
+    def _create_events(self, match, goals_data, assists_data, yellow_cards_data, red_cards_data):
+        """Создание событий матча."""
+        from .models import Goal, Card
+        from players.models import Player
+        
+        # Создаем голы
+        for goal_data in goals_data:
+            try:
+                scorer_id = goal_data.get('player_id')
+                minute = goal_data.get('minute', 1)
+                team_type = goal_data.get('team')  # 'home' или 'away'
+                
+                if scorer_id and team_type:
+                    scorer = Player.objects.get(id=scorer_id)
+                    team = match.home_team if team_type == 'home' else match.away_team
+                    
+                    Goal.objects.create(
+                        match=match,
+                        scorer=scorer,
+                        team=team,
+                        minute=minute,
+                        goal_type='goal'  # По умолчанию обычный гол
+                    )
+                    print(f"✅ Создан гол: {scorer.full_name} {minute}' для {team.name}")
+            except (Player.DoesNotExist, ValueError) as e:
+                print(f"❌ Ошибка создания гола: {e}")
+        
+        # Создаем желтые карточки
+        for card_data in yellow_cards_data:
+            try:
+                player_id = card_data.get('player_id')
+                minute = card_data.get('minute', 1)
+                team_type = card_data.get('team')
+                
+                if player_id and team_type:
+                    player = Player.objects.get(id=player_id)
+                    team = match.home_team if team_type == 'home' else match.away_team
+                    
+                    Card.objects.create(
+                        match=match,
+                        player=player,
+                        team=team,
+                        minute=minute,
+                        card_type='yellow'
+                    )
+                    print(f"🟨 Создана желтая карточка: {player.full_name} {minute}' для {team.name}")
+            except (Player.DoesNotExist, ValueError) as e:
+                print(f"❌ Ошибка создания желтой карточки: {e}")
+        
+        # Создаем красные карточки
+        for card_data in red_cards_data:
+            try:
+                player_id = card_data.get('player_id')
+                minute = card_data.get('minute', 1)
+                team_type = card_data.get('team')
+                
+                if player_id and team_type:
+                    player = Player.objects.get(id=player_id)
+                    team = match.home_team if team_type == 'home' else match.away_team
+                    
+                    Card.objects.create(
+                        match=match,
+                        player=player,
+                        team=team,
+                        minute=minute,
+                        card_type='red'
+                    )
+                    print(f"🟥 Создана красная карточка: {player.full_name} {minute}' для {team.name}")
+            except (Player.DoesNotExist, ValueError) as e:
+                print(f"❌ Ошибка создания красной карточки: {e}")
+    
+    def _sync_goals_with_score(self, match, old_home, old_away, new_home, new_away):
+        """Синхронизация событий Goal с изменениями счёта."""
+        from .models import Goal
+        from players.models import Player
+        
+        # Получаем текущие голы матча
+        home_goals = Goal.objects.filter(match=match, team=match.home_team).count()
+        away_goals = Goal.objects.filter(match=match, team=match.away_team).count()
+        
+        print(f"🔄 Синхронизация голов: старый счёт {old_home}:{old_away}, новый {new_home}:{new_away}")
+        print(f"  Текущие голы в БД: дома {home_goals}, гости {away_goals}")
+        
+        # Создаём недостающие голы для домашней команды
+        if new_home > home_goals:
+            needed_home = new_home - home_goals
+            print(f"  Создаём {needed_home} голов для домашней команды")
+            self._create_auto_goals(match, match.home_team, needed_home)
+        
+        # Создаём недостающие голы для гостевой команды  
+        if new_away > away_goals:
+            needed_away = new_away - away_goals
+            print(f"  Создаём {needed_away} голов для гостевой команды")
+            self._create_auto_goals(match, match.away_team, needed_away)
+        
+        # Удаляем лишние голы если счёт уменьшился
+        if new_home < home_goals:
+            excess_home = home_goals - new_home
+            print(f"  Удаляём {excess_home} лишних голов домашней команды")
+            # Получаем ID голов для удаления
+            goals_to_delete = Goal.objects.filter(match=match, team=match.home_team).order_by('-id')[:excess_home].values_list('id', flat=True)
+            Goal.objects.filter(id__in=list(goals_to_delete)).delete()
+            
+        if new_away < away_goals:
+            excess_away = away_goals - new_away
+            print(f"  Удаляём {excess_away} лишних голов гостевой команды")
+            # Получаем ID голов для удаления
+            goals_to_delete = Goal.objects.filter(match=match, team=match.away_team).order_by('-id')[:excess_away].values_list('id', flat=True)
+            Goal.objects.filter(id__in=list(goals_to_delete)).delete()
+    
+    def _create_auto_goals(self, match, team, count):
+        """Создание автоматических голов."""
+        from .models import Goal
+        from players.models import Player
+        
+        # Берём первого активного игрока команды для автоголов
+        try:
+            player = Player.objects.filter(club=team, is_active=True).first()
+            if not player:
+                player = Player.objects.filter(club=team).first()
+            
+            if player:
+                for i in range(count):
+                    Goal.objects.create(
+                        match=match,
+                        scorer=player,
+                        team=team,
+                        minute=1,  # Автоголы в 1-ю минуту
+                        goal_type='goal',
+                        description='Автоматически созданный гол'
+                    )
+                    print(f"⚽ Автогол: {player.full_name} для {team.name}")
+            else:
+                print(f"❌ Не найден игрок для автогола в команде {team.name}")
+        except Exception as e:
+            print(f"❌ Ошибка создания автогола: {e}")
 
 
 class MatchSerializer(serializers.ModelSerializer):

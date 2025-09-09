@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, 
@@ -18,7 +18,8 @@ import {
   User,
   X,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Clock
 } from 'lucide-react';
 import { useClub } from '@/hooks/useClubs';
 import { useApi } from '@/hooks/useApi';
@@ -26,6 +27,10 @@ import { usePlayerStats } from '@/hooks/usePlayerStats';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { PlayerTransfer } from '@/types';
 import { apiClient, API_ENDPOINTS } from '@/services/api';
+import { SeasonFilter } from '@/components/SeasonFilter';
+import { useSeasonStore } from '@/store/useSeasonStore';
+import { formatDate, getImageUrl } from '@/utils';
+import Image from 'next/image';
 
 interface Player {
   id: number;
@@ -78,14 +83,16 @@ const positionIcons = {
 
 export default function ClubPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const { club, loading: clubLoading, error: clubError } = useClub(params.id as string);
   
   const { data: players, loading: playersLoading } = useApi<Player[]>(
     API_ENDPOINTS.CLUB_PLAYERS(params.id as string)
   );
   
+  const { selectedSeasonId } = useSeasonStore();
   const { data: matches, loading: matchesLoading } = useApi<Match[]>(
-    API_ENDPOINTS.CLUB_MATCHES(params.id as string)
+    `${API_ENDPOINTS.CLUB_MATCHES(params.id as string)}${selectedSeasonId ? `?season=${selectedSeasonId}` : ''}`
   );
   
   const { data: coaches, loading: coachesLoading } = useApi<Coach[]>(
@@ -121,6 +128,17 @@ export default function ClubPage() {
       [position]: !prev[position]
     }));
   };
+
+  // Автоматически открыть сайдбар игрока, если есть параметр в URL
+  useEffect(() => {
+    const playerId = searchParams.get('player')
+    if (playerId && players && players.length > 0) {
+      const player = players.find(p => p.id.toString() === playerId)
+      if (player) {
+        setSelectedPlayer(player)
+      }
+    }
+  }, [searchParams, players])
 
   useEffect(() => {
     const loadTransfers = async () => {
@@ -191,8 +209,12 @@ export default function ClubPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex-shrink-0"
             >
-              <div className="w-32 h-32 lg:w-40 lg:h-40 bg-brand-primary/20 rounded-2xl shadow-lg flex items-center justify-center">
-                <span className="text-brand-primary font-bold text-4xl">К</span>
+              <div className="w-32 h-32 lg:w-40 lg:h-40 bg-brand-primary/20 rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
+                {(club as any)?.logo_url || club?.logo ? (
+                  <img src={(club as any).logo_url || club.logo} alt={club.name} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-brand-primary font-bold text-4xl">К</span>
+                )}
               </div>
             </motion.div>
             
@@ -306,8 +328,12 @@ export default function ClubPage() {
                               className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-all duration-300 cursor-pointer border-l-4 border-brand-primary"
                             >
                               <div className="flex items-center space-x-3">
-                                <div className="w-12 h-12 bg-brand-primary rounded-full flex items-center justify-center">
-                                  <User className="w-6 h-6 text-white" />
+                                <div className="w-12 h-12 rounded-full overflow-hidden bg-brand-primary/20 flex items-center justify-center">
+                                  {(player as any).photo_url || player.photo ? (
+                                    <img src={(player as any).photo_url || player.photo} alt={`${player.first_name} ${player.last_name}`} className="w-12 h-12 object-cover" />
+                                  ) : (
+                                    <User className="w-6 h-6 text-white" />
+                                  )}
                                 </div>
                                 <div className="flex-1">
                                   <h3 className="font-semibold text-white">
@@ -334,38 +360,157 @@ export default function ClubPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-4"
+              className="space-y-6"
             >
+              {/* Season Filter */}
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-white">Матчи клуба</h3>
+                <SeasonFilter />
+              </div>
+
+              {/* Matches Table */}
               {matches && matches.length > 0 ? (
-                matches.map((match) => (
-                  <div key={match.id} className="card p-4 hover:bg-white/10 transition-all duration-300">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div>
-                          <h3 className="font-semibold text-white">{match.home_team.name}</h3>
-                          <p className="text-sm text-white/70">{match.home_team.short_name}</p>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-white">
-                            {match.home_score !== null && match.away_score !== null
-                              ? `${match.home_score} - ${match.away_score}`
-                              : 'vs'
-                            }
-                          </div>
-                          <p className="text-sm text-white/70">{new Date(match.date).toLocaleDateString('ru-RU')}</p>
-                        </div>
-                        <div className="text-right">
-                          <h3 className="font-semibold text-white">{match.away_team.name}</h3>
-                          <p className="text-sm text-white/70">{match.away_team.short_name}</p>
-                        </div>
-                      </div>
-                    </div>
+                <div className="card overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-white/5">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-white font-medium">#</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Дата</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Хозяева</th>
+                          <th className="px-4 py-3 text-center text-white font-medium">Счёт</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Гости</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Стадион</th>
+                          <th className="px-4 py-3 text-left text-white font-medium">Статус</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {matches.map((match, index) => {
+                          const isFinished = match.status === 'finished'
+                          const isLive = match.status === 'live'
+                          const isHome = match.home_team.id === parseInt(params.id as string)
+                          const isAway = match.away_team.id === parseInt(params.id as string)
+                          
+                          return (
+                            <tr key={match.id} className={`border-b border-white/10 hover:bg-white/5 transition-colors ${
+                              (isHome && isFinished && match.home_score > match.away_score) ||
+                              (isAway && isFinished && match.away_score > match.home_score) 
+                                ? 'bg-green-500/10' : 
+                              (isHome && isFinished && match.home_score < match.away_score) ||
+                              (isAway && isFinished && match.away_score < match.home_score)
+                                ? 'bg-red-500/10' : ''
+                            }`}>
+                              <td className="px-4 py-4 text-white/70 font-medium">
+                                {index + 1}
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="text-white">
+                                  {match.date ? formatDate(match.date) : 'TBD'}
+                                </div>
+                                {match.time && (
+                                  <div className="text-sm text-white/60 flex items-center mt-1">
+                                    <Clock className="w-3 h-3 mr-1" />
+                                    {match.time.slice(0, 5)}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center">
+                                  {(match.home_team as any)?.logo_url || match.home_team?.logo ? (
+                                    <Image
+                                      src={(match.home_team as any).logo_url || getImageUrl(match.home_team.logo)}
+                                      alt={`${match.home_team.name} logo`}
+                                      width={24}
+                                      height={24}
+                                      className="rounded mr-3"
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 bg-white/10 rounded mr-3 flex items-center justify-center text-xs text-white/40">
+                                      {match.home_team.name?.[0] || 'К'}
+                                    </div>
+                                  )}
+                                  <span className={`font-medium ${
+                                    match.home_team.id === parseInt(params.id as string) 
+                                      ? 'text-brand-primary' 
+                                      : 'text-white'
+                                  }`}>
+                                    {match.home_team.name}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4 text-center">
+                                {isFinished || isLive ? (
+                                  <div className="inline-flex items-center gap-2">
+                                    <span className="text-lg font-bold text-white bg-white/10 px-3 py-1 rounded">
+                                      {match.home_score} : {match.away_score}
+                                    </span>
+                                    {isLive && (
+                                      <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <span className="text-white/50">vs</span>
+                                )}
+                              </td>
+                              <td className="px-4 py-4">
+                                <div className="flex items-center">
+                                  {(match.away_team as any)?.logo_url || match.away_team?.logo ? (
+                                    <Image
+                                      src={(match.away_team as any).logo_url || getImageUrl(match.away_team.logo)}
+                                      alt={`${match.away_team.name} logo`}
+                                      width={24}
+                                      height={24}
+                                      className="rounded mr-3"
+                                    />
+                                  ) : (
+                                    <div className="w-6 h-6 bg-white/10 rounded mr-3 flex items-center justify-center text-xs text-white/40">
+                                      {match.away_team.name?.[0] || 'К'}
+                                    </div>
+                                  )}
+                                  <span className={`font-medium ${
+                                    match.away_team.id === parseInt(params.id as string) 
+                                      ? 'text-brand-primary' 
+                                      : 'text-white'
+                                  }`}>
+                                    {match.away_team.name}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-4 py-4">
+                                {match.stadium && (
+                                  <div className="flex items-center text-white/70">
+                                    <MapPin className="w-4 h-4 mr-1" />
+                                    <span className="text-sm">{match.stadium}</span>
+                                  </div>
+                                )}
+                              </td>
+                              <td className="px-4 py-4">
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                  isLive ? 'bg-red-500/20 text-red-400' :
+                                  isFinished ? 'bg-green-500/20 text-green-400' :
+                                  match.status === 'scheduled' ? 'bg-blue-500/20 text-blue-400' :
+                                  match.status === 'cancelled' ? 'bg-gray-500/20 text-gray-400' :
+                                  'bg-yellow-500/20 text-yellow-400'
+                                }`}>
+                                  {match.status === 'live' ? 'Прямой эфир' :
+                                   match.status === 'finished' ? 'Завершен' :
+                                   match.status === 'scheduled' ? 'Запланирован' :
+                                   match.status === 'cancelled' ? 'Отменен' :
+                                   match.status === 'postponed' ? 'Перенесен' :
+                                   match.status}
+                                </span>
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
                   </div>
-                ))
+                </div>
               ) : (
                 <div className="text-center py-12">
                   <Calendar className="w-16 h-16 text-white/40 mx-auto mb-4" />
-                  <p className="text-white/70">Матчи не найдены</p>
+                  <p className="text-white/70">Матчи не найдены для выбранного сезона</p>
                 </div>
               )}
             </motion.div>
@@ -377,31 +522,54 @@ export default function ClubPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="space-y-4"
+              className="space-y-6"
             >
-              {coaches && coaches.length > 0 ? (
-                coaches.map((coach) => (
-                  <div key={coach.id} className="card p-4 hover:bg-white/10 transition-all duration-300">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-16 h-16 bg-brand-primary rounded-full flex items-center justify-center">
-                        <User className="w-8 h-8 text-white" />
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-bold text-white">
-                          {coach.first_name} {coach.last_name}
-                        </h3>
-                        <p className="text-white/70">{coach.nationality}</p>
-                        {coach.bio && (
-                          <p className="text-sm text-white/50 mt-2">{coach.bio}</p>
-                        )}
-                      </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Главный тренер */}
+                {club.coach_full_name && (
+                  <div className="card p-6 text-center hover:bg-white/10 transition-all duration-300">
+                    <div className="w-20 h-20 bg-gradient-to-br from-brand-primary to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <User className="w-10 h-10 text-white" />
                     </div>
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      {club.coach_full_name}
+                    </h3>
+                    <p className="text-brand-primary font-medium">Главный тренер</p>
                   </div>
-                ))
-              ) : (
+                )}
+
+                {/* Ассистент/Менеджер */}
+                {club.assistant_full_name && (
+                  <div className="card p-6 text-center hover:bg-white/10 transition-all duration-300">
+                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <User className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      {club.assistant_full_name}
+                    </h3>
+                    <p className="text-blue-400 font-medium">Ассистент / Менеджер</p>
+                  </div>
+                )}
+
+                {/* Капитан */}
+                {club.captain_full_name && (
+                  <div className="card p-6 text-center hover:bg-white/10 transition-all duration-300">
+                    <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Crown className="w-10 h-10 text-white" />
+                    </div>
+                    <h3 className="text-xl font-bold text-white mb-2">
+                      {club.captain_full_name}
+                    </h3>
+                    <p className="text-yellow-400 font-medium">Капитан команды</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Если нет данных о руководстве */}
+              {!club.coach_full_name && !club.assistant_full_name && !club.captain_full_name && (
                 <div className="text-center py-12">
                   <Crown className="w-16 h-16 text-white/40 mx-auto mb-4" />
-                  <p className="text-white/70">Руководство не найдено</p>
+                  <p className="text-white/70">Информация о руководстве не указана</p>
                 </div>
               )}
             </motion.div>
@@ -432,8 +600,12 @@ export default function ClubPage() {
               <div className="space-y-6">
                 {/* Player Photo */}
                 <div className="flex justify-center">
-                  <div className="w-24 h-24 bg-brand-primary/20 rounded-full flex items-center justify-center">
-                    <span className="text-brand-primary font-bold text-4xl">К</span>
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-brand-primary/20 flex items-center justify-center">
+                    {(selectedPlayer as any)?.photo_url || selectedPlayer?.photo ? (
+                      <img src={(selectedPlayer as any).photo_url || (selectedPlayer as any).photo} alt={`${selectedPlayer?.first_name} ${selectedPlayer?.last_name}`} className="w-24 h-24 object-cover" />
+                    ) : (
+                      <span className="text-brand-primary font-bold text-4xl">К</span>
+                    )}
                   </div>
                 </div>
 

@@ -71,9 +71,9 @@ export default function ClubsPage() {
                   {/* Логотип клуба */}
                   <div className="flex justify-center mb-4">
                     <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/20">
-                      {club.logo ? (
+                      {(club as any).logo_url || club.logo ? (
                         <Image 
-                          src={getImageUrl(club.logo)} 
+                          src={(club as any).logo_url || (club.logo ? getImageUrl(club.logo) : '')} 
                           alt={club.name} 
                           width={80} 
                           height={80} 
