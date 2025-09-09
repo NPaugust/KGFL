@@ -171,9 +171,9 @@ class PlayerListSerializer(serializers.ModelSerializer):
             raw = obj.photo.url if hasattr(obj.photo, 'url') else str(obj.photo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
     
@@ -182,9 +182,9 @@ class PlayerListSerializer(serializers.ModelSerializer):
             raw = obj.club.logo.url if hasattr(obj.club.logo, 'url') else str(obj.club.logo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
 
@@ -213,9 +213,9 @@ class PlayerDetailSerializer(serializers.ModelSerializer):
             raw = obj.photo.url if hasattr(obj.photo, 'url') else str(obj.photo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
 
@@ -283,9 +283,9 @@ class TopScorerSerializer(serializers.ModelSerializer):
             raw = photo.url if hasattr(photo, 'url') else str(photo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
     

@@ -16,9 +16,9 @@ class ClubSerializer(serializers.ModelSerializer):
             raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
 
@@ -43,9 +43,9 @@ class ClubListSerializer(serializers.ModelSerializer):
             raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
 
@@ -127,9 +127,9 @@ class ClubApplicationSerializer(serializers.ModelSerializer):
             raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
 
@@ -153,9 +153,9 @@ class ClubApplicationListSerializer(serializers.ModelSerializer):
             raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None
 
@@ -176,8 +176,8 @@ class ClubApplicationDetailSerializer(serializers.ModelSerializer):
             raw = obj.logo.url if hasattr(obj.logo, 'url') else str(obj.logo)
             # Принудительно формируем абсолютный URL
             if raw.startswith('/'):
-                return f"http://localhost:8000{raw}"
+                return f"https://avgustin.pythonanywhere.com{raw}"
             elif not raw.startswith('http'):
-                return f"http://localhost:8000/media/{raw}"
+                return f"https://avgustin.pythonanywhere.com/media/{raw}"
             return raw
         return None

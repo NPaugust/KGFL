@@ -204,7 +204,7 @@ export function MatchesManager() {
       // Перезагружаем события матча для обновления истории
       if (editingMatch && matchId) {
         try {
-          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
+          const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://avgustin.pythonanywhere.com/api'
           const [goalsRes, cardsRes] = await Promise.all([
             fetch(`${baseUrl}/matches/${matchId}/goals/`),
             fetch(`${baseUrl}/matches/${matchId}/cards/`)
