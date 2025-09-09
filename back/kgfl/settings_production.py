@@ -6,6 +6,31 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['avgustin.pythonanywhere.com', 'localhost', '127.0.0.1']
 
+# Убираем пакеты для разработки из INSTALLED_APPS
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    
+    # Third party apps (только необходимые для продакшена)
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'corsheaders',
+    'django_filters',
+    
+    # Local apps
+    'core',
+    'clubs',
+    'matches',
+    'players',
+    'referees',
+    'management',
+    'stats',
+]
+
 # Database для MySQL на PythonAnywhere
 DATABASES = {
     'default': {
@@ -31,6 +56,7 @@ MEDIA_ROOT = '/home/avgustin/kgfl/media/'
 
 # CORS settings для продакшена
 CORS_ALLOWED_ORIGINS = [
+    "https://kgfl.vercel.app",
     "https://kgfl-front.vercel.app",
     "https://vercel.app", 
     "http://localhost:3000",  # для локальной разработки
