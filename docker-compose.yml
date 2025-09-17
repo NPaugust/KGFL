@@ -22,8 +22,8 @@ services:
     depends_on:
       - db
     volumes:
-      - media:/app/media
-      - static:/app/staticfiles
+      - ./data/media:/app/media
+      - ./data/static:/app/staticfiles
     command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn kgfl.wsgi:application -b 0.0.0.0:8000 --workers 3"
     ports:
       - "127.0.0.1:8000:8000"
@@ -47,8 +47,6 @@ services:
 
 volumes:
   pgdata:
-  static:
-  media:
 
 networks:
   web:
