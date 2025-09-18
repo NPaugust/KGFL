@@ -16,7 +16,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-your-secret-key-here'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,kyrgyzfl.kg', cast=lambda v: [s.strip() for s in v.split(',')])
+ALLOWED_HOSTS = config(
+    'ALLOWED_HOSTS',
+    default='localhost,127.0.0.1,kyrgyzfl.kg,www.kyrgyzfl.kg',
+    cast=lambda v: [s.strip() for s in v.split(',')]
+)
 
 # Application definition
 INSTALLED_APPS = [
@@ -206,7 +210,11 @@ CORS_ALLOW_HEADERS = [
 ]
 
 # Доверенные источники для CSRF (важно для продакшена за HTTPS/домен)
-CSRF_TRUSTED_ORIGINS = config('CSRF_TRUSTED_ORIGINS', default='https://kyrgyzfl.kg', cast=lambda v: [s.strip() for s in v.split(',') if s.strip()])
+CSRF_TRUSTED_ORIGINS = config(
+    'CSRF_TRUSTED_ORIGINS',
+    default='https://kyrgyzfl.kg,https://www.kyrgyzfl.kg',
+    cast=lambda v: [s.strip() for s in v.split(',') if s.strip()]
+)
 
 # Logging
 LOGGING = {
@@ -307,6 +315,7 @@ SECURE_SSL_REDIRECT = config('SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
+USE_X_FORWARDED_HOST = True
 
 # Media serving in development
 SERVE_MEDIA = config('SERVE_MEDIA', default=True, cast=bool) 

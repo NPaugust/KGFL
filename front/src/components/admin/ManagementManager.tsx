@@ -1,8 +1,9 @@
 "use client"
 import { useState } from 'react'
+import { API_ENDPOINTS } from '@/services/api'
+import { Manager } from '@/types'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
-import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
 import Image from 'next/image'
 import { Modal, ConfirmModal } from '../ui/Modal'
@@ -11,139 +12,91 @@ interface ManagerFormData {
   first_name: string
   last_name: string
   position: string
+  bio: string
   email: string
   phone: string
-  notes: string
   photo?: File
   order: number
   is_active: boolean
 }
 
-const initialFormData: ManagerFormData = {
-  first_name: '',
-  last_name: '',
-  position: 'president',
-  email: '',
-  phone: '',
-  notes: '',
-  order: 0,
-  is_active: true,
-  photo: undefined,
-};
-
-const positionMap = {
-  president: 'Президент',
-  vice_president: 'Вице-президент',
-  director: 'Директор',
-  manager: 'Менеджер',
-  coach: 'Тренер',
-  doctor: 'Врач',
-  staff: 'Персонал',
-};
-
 export function ManagementManager() {
-  const { data: managers, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.MANAGEMENT)
+  const { data: management, loading, error, refetch } = useApi<Manager[]>(API_ENDPOINTS.MANAGEMENT)
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingManager, setEditingManager] = useState<any | null>(null)
+  const [editingManager, setEditingManager] = useState<Manager | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
-  const [managerToDelete, setManagerToDelete] = useState<any | null>(null)
-  const [formData, setFormData] = useState<ManagerFormData>(initialFormData)
+  const [managerToDelete, setManagerToDelete] = useState<Manager | null>(null)
+  const [formData, setFormData] = useState<ManagerFormData>({
+    first_name: '',
+    last_name: '',
+    position: 'president',
+    bio: '',
+    email: '',
+    phone: '',
+    order: 0,
+    is_active: true
+  })
 
-  const { mutate, loading: mutationLoading } = useApiMutation()
-
-  const handleCreateClick = () => {
-    setEditingManager(null);
-    // Принудительно сбрасываем все данные формы
-    setFormData({
-      first_name: '',
-      last_name: '',
-      position: 'president',
-      email: '',
-      phone: '',
-      notes: '',
-      order: 0,
-      is_active: true,
-      photo: undefined,
-    });
-    setIsModalOpen(true);
-  };
+  const { mutate, loading: mutationLoading } = useApiMutation<Manager>()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      const payload = new FormData()
-      payload.append('first_name', formData.first_name)
-      payload.append('last_name', formData.last_name)
-      payload.append('position', formData.position)
-      payload.append('email', formData.email || '')
-      payload.append('phone', formData.phone || '')
-      payload.append('notes', formData.notes || '')
-      payload.append('order', String(formData.order))
-      payload.append('is_active', String(formData.is_active))
-      if (formData.photo) payload.append('photo', formData.photo)
+      const payload = new FormData();
+      Object.keys(formData).forEach(key => {
+        const value = formData[key as keyof typeof formData];
+        if (key === 'photo' && value instanceof File) {
+            payload.append('photo', value);
+        } else if (value !== null && value !== undefined && value !== '') {
+            payload.append(key, String(value));
+        }
+      });
 
       if (editingManager) {
-        await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(editingManager.id), 'PATCH', payload)
+        await mutate(
+          API_ENDPOINTS.MANAGEMENT_DETAIL(String(editingManager.id)),
+          'PATCH',
+          payload
+        )
       } else {
-        await mutate(API_ENDPOINTS.MANAGEMENT, 'POST', payload)
+        await mutate(
+          API_ENDPOINTS.MANAGEMENT,
+          'POST',
+          payload
+        )
       }
-
-      setIsModalOpen(false)
-      setEditingManager(null)
+      refetch()
       
-      // Сбрасываем formData только при создании нового руководителя
-      if (!editingManager) {
-        setFormData(initialFormData)
-      }
-      
-      // Принудительно обновляем данные
-      await refetch()
-      
-      // Отправляем событие обновления данных
       window.dispatchEvent(new CustomEvent('data-refresh', { 
         detail: { type: 'management' } 
       }))
-      
-      // Дополнительное обновление через небольшую задержку
-      setTimeout(() => {
-        refetch()
-      }, 500)
     } catch (error) {
-      console.error('Ошибка при сохранении руководителя:', error)
-      alert('Ошибка при сохранении руководителя')
+      console.error(error);
+      alert('Ошибка при сохранении сотрудника.');
     }
   }
 
-  const handleEdit = (manager: any) => {
-    setEditingManager(manager)
+  const handleEdit = (manager: Manager) => {
+    setEditingManager(manager);
     setFormData({
       first_name: manager.first_name || '',
       last_name: manager.last_name || '',
       position: manager.position || 'president',
+      bio: manager.bio || '',
       email: manager.email || '',
       phone: manager.phone || '',
-      notes: manager.notes || '',
-      order: manager.order || 0,
-      is_active: manager.is_active !== false
-    })
-    setIsModalOpen(true)
-  }
+      order: (manager as any).order || 0,
+      is_active: !!manager.is_active,
+    });
+    setIsModalOpen(true);
+  };
 
-  const handleDelete = (manager: any) => {
-    setManagerToDelete(manager)
-    setDeleteModalOpen(true)
-  }
-
-  const confirmDelete = async () => {
-    if (!managerToDelete) return
-    
-    try {
-      await mutate(API_ENDPOINTS.MANAGEMENT_DETAIL(managerToDelete.id), 'DELETE')
-      refetch()
-      setDeleteModalOpen(false)
-      setManagerToDelete(null)
-    } catch (error: any) {
-      alert(`Ошибка при удалении руководителя: ${error?.response?.data?.detail || error?.message || 'Неизвестная ошибка'}`)
+  const handleDelete = async (managerId: string) => {
+    if (window.confirm('Вы уверены?')) {
+        await mutate(
+          API_ENDPOINTS.MANAGEMENT_DETAIL(String(managerId)),
+          'DELETE'
+        )
     }
   }
 
@@ -151,13 +104,13 @@ export function ManagementManager() {
     return <Loading />
   }
 
-  const managersList = Array.isArray(managers) ? managers : []
+  const managersList = Array.isArray(management) ? management : []
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Управление руководством</h1>
-        <button onClick={handleCreateClick} className="btn btn-primary">Добавить руководителя</button>
+        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить руководителя</button>
       </div>
 
       <div className="card overflow-hidden">
@@ -168,9 +121,8 @@ export function ManagementManager() {
                 <th className="px-4 py-3 text-left">Фото</th>
                 <th className="px-4 py-3 text-left">Имя</th>
                 <th className="px-4 py-3 text-left">Должность</th>
-                <th className="px-4 py-3 text-left">Email</th>
                 <th className="px-4 py-3 text-left">Телефон</th>
-                <th className="px-4 py-3 text-left">Порядок</th>
+                <th className="px-4 py-3 text-left">Статус</th>
                 <th className="px-4 py-3 text-left">Действия</th>
               </tr>
             </thead>
@@ -180,7 +132,7 @@ export function ManagementManager() {
                   <td className="px-4 py-3">
                     {manager.photo_url || manager.photo ? (
                       <Image 
-                        src={manager.photo_url || manager.photo} 
+                        src={(manager.photo_url || manager.photo) as string}
                         alt={`${manager.first_name} ${manager.last_name}`} 
                         width={32} 
                         height={32} 
@@ -193,20 +145,25 @@ export function ManagementManager() {
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{manager.first_name} {manager.last_name}</td>
-                  <td className="px-4 py-3">{positionMap[manager.position as keyof typeof positionMap] || manager.position}</td>
-                  <td className="px-4 py-3">{manager.email || '-'}</td>
+                  <td className="px-4 py-3">{(manager as any).position_display || manager.position}</td>
                   <td className="px-4 py-3">{manager.phone || '-'}</td>
-                  <td className="px-4 py-3">{manager.order}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      manager.is_active ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {manager.is_active ? 'Активен' : 'Неактивен'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
                       <button onClick={() => handleEdit(manager)} className="btn btn-outline px-3 py-1 text-sm">Редактировать</button>
-                      <button onClick={() => handleDelete(manager)} className="btn bg-red-500 hover:bg-red-600 px-3 py-1 text-sm">Удалить</button>
+                      <button onClick={() => handleDelete(manager.id)} className="btn bg-red-500 hover-bg-red-600 px-3 py-1 text-sm">Удалить</button>
                     </div>
                   </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-white/60">Руководители не найдены</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">Руководители не найдены</td>
                 </tr>
               )}
             </tbody>
@@ -235,10 +192,12 @@ export function ManagementManager() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">Должность *</label>
-                <select value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} className="input w-full" required>
-                  {Object.entries(positionMap).map(([key, value]) => (
-                    <option key={key} value={key}>{value}</option>
-                  ))}
+                <select value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} className="input w-full" required style={{ colorScheme: 'dark' as any }}>
+                  <option value="president">Президент</option>
+                  <option value="vice_president">Вице-президент</option>
+                  <option value="general_secretary">Генеральный секретарь</option>
+                  <option value="director">Директор</option>
+                  <option value="manager">Менеджер</option>
                 </select>
               </div>
 
@@ -258,13 +217,13 @@ export function ManagementManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Примечание</label>
-                <textarea value={formData.notes} onChange={(e) => setFormData({ ...formData, notes: e.target.value })} className="textarea w-full" rows={3} />
+                <label className="block text-sm font-medium mb-1">Биография</label>
+                <textarea value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} className="textarea w-full" rows={3} />
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-1">Фото</label>
-                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} className="input w-full" />
+                <label className="block text-sm font-medium mb-1">Фото {editingManager ? '(не обязательно)' : '*'}</label>
+                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} className="input w-full" required={!editingManager} />
               </div>
 
               <div>
@@ -278,11 +237,7 @@ export function ManagementManager() {
               <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
                 {mutationLoading ? 'Сохранение...' : 'Сохранить'}
               </button>
-              <button type="button" onClick={() => { 
-                setIsModalOpen(false); 
-                setEditingManager(null); 
-                setFormData(initialFormData);
-              }} className="btn btn-outline flex-1">
+              <button type="button" onClick={() => { setIsModalOpen(false); setEditingManager(null); }} className="btn btn-outline flex-1">
                 Отмена
               </button>
             </div>
@@ -293,13 +248,12 @@ export function ManagementManager() {
       <ConfirmModal
         isOpen={deleteModalOpen}
         onClose={() => { setDeleteModalOpen(false); setManagerToDelete(null) }}
-        onConfirm={confirmDelete}
+        onConfirm={() => { if (managerToDelete) handleDelete(String(managerToDelete.id)); }}
         title="Подтверждение удаления"
         message={`Вы действительно хотите удалить руководителя ${managerToDelete?.first_name} ${managerToDelete?.last_name}?`}
         confirmText="Да, удалить"
         cancelText="Отмена"
         variant="danger"
-        confirmFirst={true}
       />
     </div>
   )
