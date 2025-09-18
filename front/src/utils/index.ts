@@ -172,7 +172,19 @@ export const cn = (...classes: (string | undefined | null | false)[]): string =>
 // Утилиты для работы с изображениями
 export const getImageUrl = (path: string): string => {
   if (!path) return ''
-  if (path.startsWith('http')) return path
+  if (path.startsWith('http')) {
+    try {
+      const u = new URL(path)
+      // На проде форсируем https для домена kyrgyzfl.kg
+      if (u.hostname === 'kyrgyzfl.kg' || u.hostname === 'www.kyrgyzfl.kg') {
+        u.protocol = 'https:'
+        return u.toString()
+      }
+      return path
+    } catch {
+      return path
+    }
+  }
   // Формируем абсолютный URL до бэкенда
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   let origin: string
@@ -180,6 +192,10 @@ export const getImageUrl = (path: string): string => {
     origin = new URL(apiUrl).origin
   } catch {
     origin = 'http://localhost:8000'
+  }
+  // На проде форсируем https
+  if (origin.includes('kyrgyzfl.kg')) {
+    origin = origin.replace('http://', 'https://')
   }
   const normalized = path.startsWith('/') ? path : `/${path}`
   return `${origin}${normalized}`

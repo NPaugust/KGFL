@@ -6,6 +6,7 @@ import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { Loading } from '../Loading'
 import Image from 'next/image'
+import { getImageUrl } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 
 interface ManagerFormData {
@@ -132,7 +133,7 @@ export function ManagementManager() {
                   <td className="px-4 py-3">
                     {manager.photo_url || manager.photo ? (
                       <Image 
-                        src={(manager.photo_url || manager.photo) as string}
+                        src={(manager.photo_url as string) || getImageUrl((manager.photo as string) || '')}
                         alt={`${manager.first_name} ${manager.last_name}`} 
                         width={32} 
                         height={32} 

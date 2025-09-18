@@ -9,12 +9,19 @@ if (!prodHost && apiUrl) {
 }
 const nextConfig = {
   images: {
+    // Отключаем оптимизацию изображений, чтобы отдавать прямые ссылки /media/... через Nginx
+    unoptimized: true,
     remotePatterns: [
       // dev
       { protocol: 'http', hostname: 'localhost', port: '8000', pathname: '/**' },
       { protocol: 'http', hostname: '127.0.0.1', port: '8000', pathname: '/**' },
       // prod (через env)
-      ...(prodHost ? [{ protocol: 'https', hostname: prodHost, pathname: '/**' }] : []),
+      ...(prodHost
+        ? [
+            { protocol: 'https', hostname: prodHost, pathname: '/**' },
+            { protocol: 'http', hostname: prodHost, pathname: '/**' },
+          ]
+        : []),
     ],
   },
 }
