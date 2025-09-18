@@ -24,7 +24,7 @@ export function useApi<T = any>(
       console.log('Fetching data from:', url)
       const parsedParams = paramsKey ? JSON.parse(paramsKey) : undefined
       // cache-buster чтобы не получать закешированный список после создания
-      const result = await apiClient.get<T>(url, { params: { ...(parsedParams || {}), _ts: Date.now() } })
+      const result = await apiClient.get<T>(url, { ...(parsedParams || {}), _ts: Date.now() })
       console.log('API response:', result)
       
       // Проверяем, есть ли пагинация
