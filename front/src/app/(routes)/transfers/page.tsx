@@ -161,10 +161,14 @@ export default function TransfersPage() {
                                     className="w-full h-full object-cover" 
                                   />
                                 ) : (
-                                  <div className="w-full h-full bg-gradient-to-br from-brand-primary to-blue-500 flex items-center justify-center">
-                                    <span className="text-white font-bold text-xl">
-                                      {(transfer.player?.first_name?.[0] || '') + (transfer.player?.last_name?.[0] || '') || 'И'}
-                                    </span>
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Image
+                                      src="/images/player-silhouette.png"
+                                      alt="Player silhouette"
+                                      width={80}
+                                      height={80}
+                                      className="opacity-70 object-contain"
+                                    />
                                   </div>
                                 )}
                               </div>

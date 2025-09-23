@@ -4,11 +4,11 @@ from .views import ClubViewSet, CoachViewSet, ClubSeasonViewSet, ClubApplication
 
 router = DefaultRouter()
 router.register(r'', ClubViewSet)
-router.register(r'coaches', CoachViewSet)
 router.register(r'seasons', ClubSeasonViewSet)
 router.register(r'applications', ClubApplicationViewSet)
 
 urlpatterns = [
     path('table/', ClubViewSet.as_view({'get': 'table'}), name='club-table'),
+    path('coaches/', CoachViewSet.as_view({'get': 'by_club'}), name='club-coaches'),
     path('', include(router.urls)),
 ] 

@@ -30,7 +30,9 @@ import { apiClient, API_ENDPOINTS } from '@/services/api';
 import { SeasonFilter } from '@/components/SeasonFilter';
 import { useSeasonStore } from '@/store/useSeasonStore';
 import { formatDate, getImageUrl } from '@/utils';
+import { POSITION_LABELS, POSITION_LABELS_SINGULAR, POSITION_COLORS } from '@/utils/constants';
 import Image from 'next/image';
+import { PlayerCard } from '@/components/PlayerCard';
 
 interface Player {
   id: number;
@@ -67,12 +69,7 @@ interface Coach {
   bio: string;
 }
 
-const positionLabels = {
-  GK: 'Вратари',
-  DF: 'Защитники', 
-  MF: 'Полузащитники',
-  FW: 'Нападающие'
-};
+// Удаляем дублирующиеся константы, используем импортированные
 
 const positionIcons = {
   GK: Target,
@@ -209,9 +206,9 @@ export default function ClubPage() {
               animate={{ opacity: 1, scale: 1 }}
               className="flex-shrink-0"
             >
-              <div className="relative w-48 h-40 lg:w-48 lg:h-48 bg-brand-primary/20 rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
+              <div className="relative w-48 h-40 lg:w-48 lg:h-48 bg-white/5 border border-white/10 rounded-2xl shadow-lg overflow-hidden flex items-center justify-center">
                 {club?.logo ? (
-                  <Image src={getImageUrl(club.logo)} alt={club.name} fill className="object-cover" />
+                  <Image src={getImageUrl(club.logo)} alt={club.name} fill className="object-contain" />
                 ) : (
                   <span className="text-brand-primary font-bold text-4xl">К</span>
                 )}
@@ -229,7 +226,15 @@ export default function ClubPage() {
               
               <div className="space-y-3 mb-6">
                 <div className="text-white/80 text-lg">
-                  {club.city}
+                  <span className="text-white/60">Город:</span> {club.city || '—'}
+                </div>
+                
+                <div className="text-white/80 text-lg">
+                  <span className="text-white/60">Основан:</span> {club.founded || '—'}
+                </div>
+                
+                <div className="text-white/80 text-lg">
+                  <span className="text-white/60">Тренер:</span> {club.coach_full_name || (coaches && coaches.length > 0 ? `${coaches[0].first_name} ${coaches[0].last_name}` : '—')}
                 </div>
                 
                 {/* Цвета формы (сводка как свотчи) */}
@@ -249,19 +254,7 @@ export default function ClubPage() {
                     )}
                   </div>
                 )}
-                
-                {club.founded && (
-                  <div className="text-white/80 text-lg">
-                    Основан: {club.founded}
-                  </div>
-                )}
               </div>
-              
-              {coaches && coaches.length > 0 && (
-                <div className="text-white/80 text-lg">
-                  Тренер: {coaches[0].first_name} {coaches[0].last_name}
-                </div>
-              )}
             </motion.div>
           </div>
         </div>
@@ -275,9 +268,9 @@ export default function ClubPage() {
           className="flex flex-wrap justify-center gap-2 mb-8"
         >
           {[
-            { id: 'squad', label: 'Состав', icon: Users },
-            { id: 'matches', label: 'Матчи', icon: Calendar },
-            { id: 'management', label: 'Руководство', icon: Crown }
+            { id: 'squad', label: 'Состав' },
+            { id: 'matches', label: 'Матчи' },
+            { id: 'management', label: 'Руководство' }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -288,7 +281,6 @@ export default function ClubPage() {
                   : 'bg-white/10 text-white hover:bg-white/20'
               }`}
             >
-              <tab.icon className="w-5 h-5 mr-2" />
               {tab.label}
             </button>
           ))}
@@ -305,7 +297,6 @@ export default function ClubPage() {
               className="space-y-6"
             >
               {Object.entries(groupedPlayers).map(([position, positionPlayers]) => {
-                const IconComponent = positionIcons[position as keyof typeof positionIcons];
                 const isExpanded = expandedSections[position];
                 
                 return (
@@ -315,9 +306,8 @@ export default function ClubPage() {
                       className="w-full flex items-center justify-between text-left mb-4"
                     >
                       <div className="flex items-center">
-                        <IconComponent className="w-6 h-6 mr-3 text-brand-primary" />
                         <h3 className="text-2xl font-bold text-white">
-                          {positionLabels[position as keyof typeof positionLabels]}
+                          {POSITION_LABELS[position as keyof typeof POSITION_LABELS]}
                         </h3>
                       </div>
                       {isExpanded ? (
@@ -333,33 +323,20 @@ export default function ClubPage() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+                          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8 justify-items-center"
                         >
                           {positionPlayers.map((player) => (
-                            <motion.div
+                            <PlayerCard
                               key={player.id}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
+                              player={{
+                                ...player,
+                                id: player.id.toString(),
+                                position: player.position as 'GK' | 'DF' | 'MF' | 'FW',
+                                club: club
+                              }}
                               onClick={() => setSelectedPlayer(player)}
-                              className="bg-white/5 rounded-xl p-4 hover:bg-white/10 transition-all duration-300 cursor-pointer border-l-4 border-brand-primary"
-                            >
-                              <div className="flex items-center space-x-3">
-                                <div className="w-20 h-20 rounded-full overflow-hidden bg-brand-primary/20 flex items-center justify-center">
-                                  {player.photo ? (
-                                    <Image src={getImageUrl(player.photo)} alt={`${player.first_name} ${player.last_name}`} width={80} height={80} className="w-20 h-20 object-cover" />
-                                  ) : (
-                                    <User className="w-6 h-6 text-white" />
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <h3 className="font-semibold text-white">
-                                    {player.first_name} {player.last_name}
-                                  </h3>
-                                  <p className="text-sm text-white/70">#{player.number}</p>
-                                  <p className="text-xs text-white/50">{player.nationality}</p>
-                                </div>
-                              </div>
-                            </motion.div>
+                              showStats={false}
+                            />
                           ))}
                         </motion.div>
                       )}
@@ -543,40 +520,34 @@ export default function ClubPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Главный тренер */}
                 {club.coach_full_name && (
-                  <div className="card p-6 text-center hover:bg-white/10 transition-all duration-300">
-                    <div className="w-20 h-20 bg-gradient-to-br from-brand-primary to-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <User className="w-10 h-10 text-white" />
+                  <div className="bg-white/5 rounded-2xl p-6 text-center border border-white/10 hover:bg-white/10 transition-all duration-300">
+                    <h3 className="text-xl font-bold text-white mb-3">{club.coach_full_name}</h3>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 text-sm">
+                      <span className="w-2 h-2 rounded-full bg-brand-primary"></span>
+                      Главный тренер
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">
-                      {club.coach_full_name}
-                    </h3>
-                    <p className="text-brand-primary font-medium">Главный тренер</p>
                   </div>
                 )}
 
-                {/* Ассистент/Менеджер */}
+                {/* Ассистент */}
                 {club.assistant_full_name && (
-                  <div className="card p-6 text-center hover:bg-white/10 transition-all duration-300">
-                    <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <User className="w-10 h-10 text-white" />
+                  <div className="bg-white/5 rounded-2xl p-6 text-center border border-white/10 hover:bg-white/10 transition-all duration-300">
+                    <h3 className="text-xl font-bold text-white mb-3">{club.assistant_full_name}</h3>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 text-sm">
+                      <span className="w-2 h-2 rounded-full bg-white/40"></span>
+                      Ассистент
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">
-                      {club.assistant_full_name}
-                    </h3>
-                    <p className="text-blue-400 font-medium">Ассистент / Менеджер</p>
                   </div>
                 )}
 
                 {/* Капитан */}
                 {club.captain_full_name && (
-                  <div className="card p-6 text-center hover:bg-white/10 transition-all duration-300">
-                    <div className="w-20 h-20 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <Crown className="w-10 h-10 text-white" />
+                  <div className="bg-white/5 rounded-2xl p-6 text-center border border-white/10 hover:bg-white/10 transition-all duration-300">
+                    <h3 className="text-xl font-bold text-white mb-3">{club.captain_full_name}</h3>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 text-sm">
+                      <span className="w-2 h-2 rounded-full bg-yellow-400"></span>
+                      Капитан команды
                     </div>
-                    <h3 className="text-xl font-bold text-white mb-2">
-                      {club.captain_full_name}
-                    </h3>
-                    <p className="text-yellow-400 font-medium">Капитан команды</p>
                   </div>
                 )}
               </div>
@@ -593,6 +564,18 @@ export default function ClubPage() {
         </AnimatePresence>
       </div>
 
+      {/* Overlay для затемнения фона */}
+      <AnimatePresence>
+        {selectedPlayer && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 z-40"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Player Sidebar */}
       <AnimatePresence>
         {selectedPlayer && (
@@ -600,164 +583,127 @@ export default function ClubPage() {
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            className="fixed top-0 right-0 w-96 h-full bg-brand-dark border-l border-white/10 z-50 overflow-y-auto"
+            className="fixed top-0 right-0 w-[800px] h-full bg-brand-dark border-l border-white/10 z-50 flex flex-col shadow-2xl"
           >
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-white">Информация об игроке</h2>
-                <button
-                  onClick={() => setSelectedPlayer(null)}
-                  className="text-white hover:text-brand-primary transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
+            {/* Основной контент */}
+            <div className="flex-1 p-8 space-y-8 overflow-y-auto">
+
+              {/* Первая карточка: Фото слева, справа Имя и ниже логотип клуба + Основные данные */}
+              <div className="bg-white/5 rounded-2xl p-8 border border-white/10">
+                <div className="flex gap-8 items-start">
+                  {/* Фото игрока слева */}
+                  <div className="flex-shrink-0 order-1">
+                    <div className="w-64 h-64 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center relative border border-white/10">
+                      {selectedPlayer?.photo ? (
+                        <Image 
+                          src={getImageUrl(selectedPlayer.photo)} 
+                          alt={`${selectedPlayer?.first_name} ${selectedPlayer?.last_name}`} 
+                          width={256} 
+                          height={256} 
+                          className="w-64 h-64 object-cover" 
+                        />
+                      ) : (
+                        <Image
+                          src="/images/player-silhouette.png"
+                          alt="Player silhouette"
+                          width={256}
+                          height={256}
+                          className="opacity-70 object-contain"
+                        />
+                      )}
+                      {/* Номер игрока */}
+                      <div className="absolute -top-3 -right-3 w-14 h-14 bg-brand-primary rounded-xl flex items-center justify-center border-2 border-white/20 shadow-lg">
+                        <span className="text-white font-bold text-lg">{selectedPlayer.number}</span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Имя в правом верхнем углу, под ним логотип клуба */}
+                  <div className="flex-1 order-2">
+                    <div className="flex items-start justify-between">
+                      <h2 className="text-3xl font-extrabold text-white tracking-tight">
+                        {selectedPlayer.first_name} {selectedPlayer.last_name}
+                      </h2>
+                      <button
+                        onClick={() => setSelectedPlayer(null)}
+                        className="ml-4 text-white/60 hover:text-white transition-colors p-2 hover:bg-white/10 rounded-lg"
+                        aria-label="Закрыть"
+                      >
+                        <X className="w-6 h-6" />
+                      </button>
+                    </div>
+                    {club?.logo && (
+                      <div className="flex items-center gap-3 mt-3">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-white/10 border border-white/20">
+                          <Image src={getImageUrl(club.logo)} alt={club.name} width={32} height={32} className="w-full h-full object-contain" />
+                        </div>
+                        <span className="text-white/80 font-semibold">{club?.name}</span>
+                      </div>
+                    )}
+
+                    {/* Информация об игроке */}
+                    <div className="mt-6 grid grid-cols-1 gap-4">
+                    {/* Детали игрока */}
+                      <div className="flex items-center gap-4">
+                        <span className="text-white/70 text-lg">Позиция:</span>
+                        <span className="text-white font-semibold text-lg">{POSITION_LABELS_SINGULAR[selectedPlayer.position as keyof typeof POSITION_LABELS_SINGULAR]}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-white/70 text-lg">Национальность:</span>
+                        <span className="text-white font-semibold text-lg">{selectedPlayer.nationality}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-white/70 text-lg">Дата рождения:</span>
+                        <span className="text-white font-semibold text-lg">{selectedPlayer.date_of_birth}</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-white/70 text-lg">Рост:</span>
+                        <span className="text-white font-semibold text-lg">{selectedPlayer.height} см</span>
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <span className="text-white/70 text-lg">Вес:</span>
+                        <span className="text-white font-semibold text-lg">{selectedPlayer.weight} кг</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-6">
-                {/* Player Photo */}
-                <div className="flex justify-center">
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-brand-primary/20 flex items-center justify-center">
-                    {selectedPlayer?.photo ? (
-                      <Image src={getImageUrl(selectedPlayer.photo)} alt={`${selectedPlayer?.first_name} ${selectedPlayer?.last_name}`} width={96} height={96} className="w-24 h-24 object-cover" />
-                    ) : (
-                      <span className="text-brand-primary font-bold text-4xl">К</span>
-                    )}
+              {/* Вторая карточка: Статистика */}
+              <div className="bg-white/5 rounded-2xl p-8 border border-white/10">
+                <h4 className="text-2xl font-bold text-white mb-8">Статистика сезона</h4>
+                {statsLoading ? (
+                  <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto"></div>
+                    <p className="text-white/70 mt-4 text-lg">Загрузка статистики...</p>
                   </div>
-                </div>
-
-                {/* Player Name */}
-                <div className="text-center">
-                  <h3 className="text-xl font-bold text-white">
-                    {selectedPlayer.first_name} {selectedPlayer.last_name}
-                  </h3>
-                  <p className="text-white/70">#{selectedPlayer.number}</p>
-                </div>
-
-                {/* Player Details */}
-                <div className="space-y-4">
-                  <div className="card p-4">
-                    <h4 className="font-semibold text-white mb-3">Основная информация</h4>
-                    <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Команда:</span>
-                        <span className="text-white">{club.name}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Позиция:</span>
-                        <span className="text-white">{positionLabels[selectedPlayer.position as keyof typeof positionLabels]}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Национальность:</span>
-                        <span className="text-white">{selectedPlayer.nationality}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Дата рождения:</span>
-                        <span className="text-white">{selectedPlayer.date_of_birth}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Рост:</span>
-                        <span className="text-white">{selectedPlayer.height} см</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Вес:</span>
-                        <span className="text-white">{selectedPlayer.weight} кг</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-white/70">Статус:</span>
-                        <span className="text-white">{(selectedPlayer as any).status || '—'}</span>
-                      </div>
-                      {(selectedPlayer as any).phone && (
-                        <div className="flex justify-between">
-                          <span className="text-white/70">Телефон:</span>
-                          <span className="text-white">{(selectedPlayer as any).phone}</span>
-                        </div>
-                      )}
+                ) : (
+                  <div className="grid grid-cols-3 gap-8">
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-4xl font-black text-brand-primary mb-2">{playerStats?.matches_played || 0}</div>
+                      <div className="text-sm text-white/70 font-medium">Матчи</div>
+                    </div>
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-4xl font-black text-brand-primary mb-2">{playerStats?.minutes_played || 0}</div>
+                      <div className="text-sm text-white/70 font-medium">Минуты</div>
+                    </div>
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-4xl font-black text-brand-primary mb-2">{playerStats?.goals || 0}</div>
+                      <div className="text-sm text-white/70 font-medium">Голы</div>
+                    </div>
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-4xl font-black text-brand-primary mb-2">{playerStats?.assists || 0}</div>
+                      <div className="text-sm text-white/70 font-medium">Ассисты</div>
+                    </div>
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-4xl font-black text-yellow-400 mb-2">{playerStats?.yellow_cards || 0}</div>
+                      <div className="text-sm text-white/70 font-medium">Жёлтые карточки</div>
+                    </div>
+                    <div className="text-center p-6 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-4xl font-black text-red-400 mb-2">{playerStats?.red_cards || 0}</div>
+                      <div className="text-sm text-white/70 font-medium">Красные карточки</div>
                     </div>
                   </div>
-
-                  {/* Statistics */}
-                  <div className="card p-4">
-                    <h4 className="font-semibold text-white mb-3">Статистика</h4>
-                    {statsLoading ? (
-                      <div className="text-center py-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div>
-                        <p className="text-white/70 mt-2">Загрузка статистики...</p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-brand-primary">
-                            {playerStats?.matches_played || 0}
-                          </div>
-                          <div className="text-sm text-white/70">Матчи</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-brand-primary">
-                            {playerStats?.minutes_played || 0}
-                          </div>
-                          <div className="text-sm text-white/70">Минуты</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-brand-primary">
-                            {playerStats?.goals || 0}
-                          </div>
-                          <div className="text-sm text-white/70">Голы</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-brand-primary">
-                            {playerStats?.assists || 0}
-                          </div>
-                          <div className="text-sm text-white/70">Ассисты</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-yellow-400">
-                            {playerStats?.yellow_cards || 0}
-                          </div>
-                          <div className="text-sm text-white/70">Жёлтые карточки</div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-2xl font-bold text-red-400">
-                            {playerStats?.red_cards || 0}
-                          </div>
-                          <div className="text-sm text-white/70">Красные карточки</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Bio */}
-                  {selectedPlayer.bio && (
-                    <div className="card p-4">
-                      <h4 className="font-semibold text-white mb-3">Биография</h4>
-                      <p className="text-white/70 text-sm">{selectedPlayer.bio}</p>
-                    </div>
-                  )}
-
-                  {/* Extra info: примечание */}
-                  {(selectedPlayer as any).bio && (
-                    <div className="card p-4">
-                      <h4 className="font-semibold text-white mb-3">Примечание</h4>
-                      <div className="text-sm text-white/80">{(selectedPlayer as any).bio}</div>
-                    </div>
-                  )}
-
-                  {/* Transfer History */}
-                  <div className="card p-4">
-                    <h4 className="font-semibold text-white mb-3">История трансферов</h4>
-                    {playerTransfers.length ? (
-                      <ul className="space-y-2">
-                        {playerTransfers.map(t => (
-                          <li key={t.id} className="flex justify-between text-sm">
-                            <span className="text-white/80">{(typeof t.from_club === 'object' ? t.from_club?.name : t.from_club) || 'Свободный агент'} → {typeof t.to_club === 'object' ? t.to_club?.name : t.to_club}</span>
-                            <span className="text-white/60">{new Date(t.transfer_date).toLocaleDateString('ru-RU')}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-white/60 text-sm">Нет записей</p>
-                    )}
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           </motion.div>

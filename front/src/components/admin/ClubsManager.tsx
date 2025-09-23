@@ -373,7 +373,7 @@ export function ClubsManager() {
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Соцсети (URL)</label>
-                  <input type="url" pattern="https?://.+" title="Полный URL, например: https://instagram.com/club" value={formData.social_media || ''} onChange={(e) => setFormData({ ...formData, social_media: e.target.value })} className="input w-full" placeholder="https://instagram.com/club" />
+                  <input type="url" pattern="https?://.+" title="Полный URL, например: https://www.instagram.com/kgfleague" value={formData.social_media || ''} onChange={(e) => setFormData({ ...formData, social_media: e.target.value })} className="input w-full" placeholder="https://www.instagram.com/kgfleague" />
                 </div>
               </div>
 

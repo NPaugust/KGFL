@@ -70,14 +70,14 @@ export default function ClubsPage() {
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 p-6 hover:bg-white/10 transition-all duration-300 hover:scale-105 hover:shadow-xl">
                   {/* Логотип клуба */}
                   <div className="flex justify-center mb-4">
-                    <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-white/20 bg-gray-800 flex items-center justify-center">
+                    <div className="w-40 h-40 rounded-full overflow-hidden border-2 border-white/10 bg-white/5 flex items-center justify-center">
                       {club.logo ? (
                         <Image 
                           src={getImageUrl(club.logo)} 
                           alt={club.name} 
                           width={160} 
                           height={160} 
-                          className="w-full h-full object-cover" 
+                          className="w-full h-full object-contain" 
                         />
                       ) : (
                         <span className="text-white font-bold text-2xl">
@@ -90,39 +90,7 @@ export default function ClubsPage() {
                   {/* Информация о клубе */}
                   <div className="text-center">
                     <h3 className="text-xl font-bold text-white mb-2">{club.name}</h3>
-                    <p className="text-white/70 text-sm mb-3">{club.city}</p>
-                    
-                    {/* Дополнительная информация */}
-                    <div className="space-y-2 text-sm">
-                      {club.founded && (
-                        <div className="flex justify-between text-white/60">
-                          <span>Основан:</span>
-                          <span className="text-white/80">{club.founded}</span>
-                        </div>
-                      )}
-                      {club.city && (
-                        <div className="flex justify-between text-white/60">
-                          <span>Город:</span>
-                          <span className="text-white/80">{club.city}</span>
-                        </div>
-                      )}
-                      {/* Цвета формы убираем с публичной карточки — переносим в детальную страницу клуба */}
-                    </div>
-
-                    {/* Статус клуба */}
-                    <div className="mt-4">
-                      <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-                        club.status === 'active' 
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                          : club.status === 'applied'
-                          ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-                          : 'bg-gray-500/20 text-gray-400 border border-gray-500/30'
-                      }`}>
-                        {club.status === 'active' ? 'Активный' : 
-                         club.status === 'applied' ? 'Подал заявку' : 
-                         'Неактивный'}
-                      </span>
-                    </div>
+                    <p className="text-white/70 text-base font-medium">{club.city}</p>
                   </div>
                 </div>
               </Link>

@@ -22,7 +22,7 @@ export function Partners() {
   if (loading) {
     return (
       <Reveal as="section" className="container-px py-16">
-        <Reveal as="h2" className="mb-6 text-2xl font-bold text-center" delay={100}>
+        <Reveal as="h2" className="mb-6 text-3xl font-bold text-center" delay={100}>
           Партнеры лиги
         </Reveal>
         <Loading />
@@ -33,7 +33,7 @@ export function Partners() {
   if (error) {
     return (
       <Reveal as="section" className="container-px py-16">
-        <Reveal as="h2" className="mb-6 text-2xl font-bold text-center" delay={100}>
+        <Reveal as="h2" className="mb-6 text-3xl font-bold text-center" delay={100}>
           Партнеры лиги
         </Reveal>
         <div className="text-center text-red-400">
@@ -47,7 +47,7 @@ export function Partners() {
 
   return (
     <Reveal as="section" className="container-px py-16">
-      <Reveal as="h2" className="mb-6 text-2xl font-bold text-center" delay={100}>
+      <Reveal as="h2" className="mb-6 text-3xl font-bold text-center" delay={100}>
         Партнеры лиги
       </Reveal>
       <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4">

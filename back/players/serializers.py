@@ -105,7 +105,11 @@ class PlayerSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.photo.url)
             return obj.photo.url
-        return None
+        # Возвращаем дефолтный URL силуэта если фото нет
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri('/static/images/player-silhouette.svg')
+        return '/static/images/player-silhouette.svg'
     
     def get_club_logo(self, obj):
         """Получить логотип клуба игрока."""
@@ -259,7 +263,11 @@ class PlayerListSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.photo.url)
             return obj.photo.url
-        return None
+        # Возвращаем дефолтный URL силуэта если фото нет
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri('/static/images/player-silhouette.svg')
+        return '/static/images/player-silhouette.svg'
     
     def get_club_logo(self, obj):
         if obj.club and obj.club.logo and hasattr(obj.club.logo, 'url'):
@@ -295,7 +303,11 @@ class PlayerDetailSerializer(serializers.ModelSerializer):
             if request:
                 return request.build_absolute_uri(obj.photo.url)
             return obj.photo.url
-        return None
+        # Возвращаем дефолтный URL силуэта если фото нет
+        request = self.context.get('request')
+        if request:
+            return request.build_absolute_uri('/static/images/player-silhouette.svg')
+        return '/static/images/player-silhouette.svg'
 
 
 class PlayerStatsSerializer(serializers.ModelSerializer):

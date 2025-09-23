@@ -120,9 +120,15 @@ ${manager.notes ? `\nЗаметки: ${manager.notes}` : ''}
                           className="w-full h-full object-cover" 
                         />
                       ) : (
-                        <span className="text-white/50 font-bold text-3xl">
-                          {manager.first_name?.[0]}{manager.last_name?.[0] || '?'}
-                        </span>
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Image
+                            src="/images/player-silhouette.png"
+                            alt="Manager silhouette"
+                            width={160}
+                            height={160}
+                            className="opacity-70 object-contain"
+                          />
+                        </div>
                       )}
                 </div>
 

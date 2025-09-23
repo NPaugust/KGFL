@@ -81,12 +81,9 @@ export function PlayersManager() {
       formDataToSend.append('club', formData.club || '')
       formDataToSend.append('date_of_birth', formData.date_of_birth)
       
-      // Фото обязательно только при создании нового игрока
+      // Фото необязательно - добавляем только если выбрано
       if (formData.photo) {
         formDataToSend.append('photo', formData.photo)
-      } else if (!editingPlayer) {
-        alert('Фото обязательно для нового игрока')
-        return
       }
       
       // Номер обязателен
@@ -244,7 +241,15 @@ export function PlayersManager() {
                             className="w-12 h-12 rounded object-cover"
                       />
                     ) : (
-                          <div className="w-12 h-12 bg-gray-500 rounded flex items-center justify-center text-sm">{player.first_name?.[0]}{player.last_name?.[0]}</div>
+                      <div className="w-12 h-12 bg-white/5 rounded flex items-center justify-center border border-white/10">
+                        <Image
+                          src="/images/player-silhouette.svg"
+                          alt="Player silhouette"
+                          width={32}
+                          height={32}
+                          className="opacity-40"
+                        />
+                      </div>
                     )}
                   </td>
                   <td className="px-4 py-3 font-medium">{player.first_name} {player.last_name}</td>
@@ -413,13 +418,18 @@ export function PlayersManager() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-white/90 mb-2">Фото игрока</label>
+              <label className="block text-sm font-semibold text-white/90 mb-2">Фото игрока (необязательно)</label>
               <input 
                 type="file" 
                 accept="image/*" 
                 onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} 
                 className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white/90 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30 focus:border-brand-primary/50 focus:bg-white/10 transition-all duration-200" 
               />
+              {!formData.photo && (
+                <div className="text-xs text-white/60 mt-1">
+                  Если фото не загружено, будет использован силуэт игрока
+                </div>
+              )}
             </div>
           </div>
 

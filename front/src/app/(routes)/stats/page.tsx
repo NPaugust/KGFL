@@ -112,10 +112,7 @@ export default function StatsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Top Scorers */}
           <div className="card p-6">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <Target className="w-6 h-6 mr-2 text-brand-primary" />
-              Лучшие бомбардиры
-            </h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Лучшие бомбардиры</h2>
             
             {topScorers.length > 0 ? (
               <div className="space-y-4">
@@ -139,8 +136,14 @@ export default function StatsPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-lg text-white/40 font-bold">
-                          {player.first_name?.[0]}{player.last_name?.[0]}
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center">
+                          <Image
+                            src="/images/player-silhouette.png"
+                            alt="Player silhouette"
+                            width={48}
+                            height={48}
+                            className="opacity-70 object-contain"
+                          />
                         </div>
                       )}
                     </div>
@@ -169,10 +172,7 @@ export default function StatsPage() {
           
           {/* Top Assisters */}
           <div className="card p-6">
-            <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-              <Award className="w-6 h-6 mr-2 text-brand-primary" />
-              Лучшие ассистенты
-            </h2>
+            <h2 className="text-2xl font-bold text-white mb-6">Лучшие ассистенты</h2>
             
             {topAssisters.length > 0 ? (
               <div className="space-y-4">
@@ -196,8 +196,14 @@ export default function StatsPage() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <div className="w-12 h-12 bg-white/10 rounded-full flex items-center justify-center text-lg text-white/40 font-bold">
-                          {player.first_name?.[0]}{player.last_name?.[0]}
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center">
+                          <Image
+                            src="/images/player-silhouette.png"
+                            alt="Player silhouette"
+                            width={48}
+                            height={48}
+                            className="opacity-70 object-contain"
+                          />
                         </div>
                       )}
                     </div>
@@ -227,10 +233,7 @@ export default function StatsPage() {
         
         {/* All Players Table */}
         <div className="mt-8 card p-6">
-          <h2 className="text-2xl font-bold text-white mb-6 flex items-center">
-            <Users className="w-6 h-6 mr-2 text-brand-primary" />
-            Все игроки
-          </h2>
+          <h2 className="text-2xl font-bold text-white mb-6">Все игроки</h2>
           
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -264,8 +267,14 @@ export default function StatsPage() {
                             className="rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center text-sm text-white/40 font-bold">
-                            {player.first_name?.[0]}{player.last_name?.[0]}
+                          <div className="w-12 h-12 rounded-lg flex items-center justify-center">
+                            <Image
+                              src="/images/player-silhouette.png"
+                              alt="Player silhouette"
+                              width={48}
+                              height={48}
+                              className="opacity-70 object-contain"
+                            />
                           </div>
                         )}
                         <div>

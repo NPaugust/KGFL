@@ -219,9 +219,9 @@ class CoachViewSet(viewsets.ModelViewSet):
         """Получить тренеров по клубу."""
         club_id = request.GET.get('club_id')
         if club_id:
-            coaches = self.queryset.filter(club_id=club_id)
+            coaches = self.queryset.filter(club_id=club_id, is_active=True)
         else:
-            coaches = self.queryset
+            coaches = self.queryset.filter(is_active=True)
         serializer = self.get_serializer(coaches, many=True)
         return Response(serializer.data)
 

@@ -24,10 +24,15 @@ export function Footer() {
           </div>
           <div>
             <div className="font-semibold mb-3">Мы в соцсетях</div>
-            <div className="flex gap-3">
-              <a href="#" aria-label="Instagram" className="btn btn-outline px-3 py-2">IG</a>
-              <a href="#" aria-label="Facebook" className="btn btn-outline px-3 py-2">FB</a>
-              <a href="#" aria-label="YouTube" className="btn btn-outline px-3 py-2">YT</a>
+            <div className="flex gap-4 items-center">
+              <a href="https://www.instagram.com/kgfleague" aria-label="Instagram" className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/20 hover:border-white/30 transition" target="_blank" rel="noopener noreferrer">
+                <img src="/icons/instagram.png" alt="Instagram" width={20} height={20} />
+                <span className="sr-only">Instagram</span>
+              </a>
+              <a href="https://www.youtube.com/channel/UC_QDnB4DGob6_Ribha06S_Q" aria-label="YouTube" className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-white/20 hover:border-white/30 transition" target="_blank" rel="noopener noreferrer">
+                <img src="/icons/youtube.png" alt="YouTube" width={20} height={20} />
+                <span className="sr-only">YouTube</span>
+              </a>
             </div>
           </div>
         </div>

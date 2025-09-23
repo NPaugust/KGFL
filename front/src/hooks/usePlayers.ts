@@ -104,7 +104,8 @@ export function useTopScorers() {
     try {
       setLoading(true)
       setError(null)
-      const result = await apiClient.get<Player[]>(API_ENDPOINTS.TOP_SCORERS)
+      const ts = Date.now()
+      const result = await apiClient.get<Player[]>(`${API_ENDPOINTS.TOP_SCORERS}?_ts=${ts}`)
       setTopScorers(result || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка')
@@ -118,7 +119,6 @@ export function useTopScorers() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем топ-бомбардиров...', event.detail.type)
         fetchTopScorers()
       }
     }

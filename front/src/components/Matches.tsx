@@ -102,7 +102,7 @@ export function LatestMatches() {
   if (loading) {
     return (
       <section id="matches" className="container-px py-16">
-        <h2 className="mb-6 text-2xl font-bold text-center">Последние матчи</h2>
+        <h2 className="mb-6 text-3xl font-bold text-center">Последние матчи</h2>
         <Loading />
       </section>
     )
@@ -111,7 +111,7 @@ export function LatestMatches() {
   if (error) {
     return (
       <section id="matches" className="container-px py-16">
-        <h2 className="mb-6 text-2xl font-bold text-center">Последние матчи</h2>
+        <h2 className="mb-6 text-3xl font-bold text-center">Последние матчи</h2>
         <div className="text-center text-red-400">
           Ошибка загрузки матчей: {typeof error === 'string' ? error : 'Неизвестная ошибка'}
         </div>
@@ -143,7 +143,7 @@ export function LatestMatches() {
 
   return (
     <section id="matches" className="container-px py-16">
-      <h2 className="mb-6 text-2xl font-bold text-center">Последние матчи</h2>
+      <h2 className="mb-6 text-3xl font-bold text-center">Последние матчи</h2>
       <HorizontalCarousel items={items} />
       <div className="mt-8 text-center">
         <Link href="/schedule" className="btn btn-primary">
@@ -219,7 +219,7 @@ export function UpcomingMatches() {
   if (loading) {
     return (
       <section className="container-px py-16 reveal">
-        <h2 className="mb-6 text-2xl font-bold text-center">Ближайшие матчи</h2>
+        <h2 className="mb-6 text-3xl font-bold text-center">Ближайшие матчи</h2>
         <Loading />
       </section>
     )
@@ -228,7 +228,7 @@ export function UpcomingMatches() {
   if (error) {
     return (
       <section className="container-px py-16 reveal">
-        <h2 className="mb-6 text-2xl font-bold text-center">Ближайшие матчи</h2>
+        <h2 className="mb-6 text-3xl font-bold text-center">Ближайшие матчи</h2>
         <div className="text-center text-red-400">
           Ошибка загрузки матчей: {typeof error === 'string' ? error : 'Неизвестная ошибка'}
         </div>
@@ -263,7 +263,7 @@ export function UpcomingMatches() {
 
   return (
     <section className="container-px py-16 reveal">
-      <h2 className="mb-6 text-2xl font-bold text-center">Ближайшие матчи</h2>
+      <h2 className="mb-6 text-3xl font-bold text-center">Ближайшие матчи</h2>
       <HorizontalCarousel items={items} />
       <div className="mt-8 text-center">
 

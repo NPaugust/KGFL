@@ -67,7 +67,19 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
         </div>
       )}
 
-      <div className="card overflow-hidden reveal">
+      {/* Заголовок и описание по центру (над таблицей) */}
+      {!embedded && headerMode !== 'compact' && (
+        <div className="text-center mb-4">
+          <h2 className="text-4xl font-bold mb-2">Турнирная таблица</h2>
+          {!hideSubtitle && (
+            <p className="text-white/70 mb-2">Следите за результатами и статистикой клубов в текущем сезоне KGFL </p>
+          )}
+        </div>
+      )}
+
+      <div className="card overflow-hidden reveal relative">
+        {/* Только верхняя цветная линия (учитывает скругления по углам) */}
+        <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-brand-primary via-red-500 to-orange-400" />
         <div className="max-h-[730px] overflow-y-auto scroll-y">
         <table className="w-full text-left text-sm">
           <thead className="bg-white/5 text-white/70">
@@ -87,16 +99,21 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
           <tbody>
             {table.map((r, idx) => {
               const position = r.position || idx + 1;
+              // Цветные левые линии топ-5 разных цветов
+              const posColors = ['border-emerald-500','border-sky-500','border-amber-500','border-fuchsia-500','border-rose-500'] as const;
+              const bgColors   = ['bg-emerald-500/10','bg-sky-500/10','bg-amber-500/10','bg-fuchsia-500/10','bg-rose-500/10'] as const;
               let posClass = 'border-l-4 border-transparent';
               if (position <= 5) {
-                if (position <= 2) {
-                  posClass = 'border-l-4 border-green-500 bg-green-500/10';
-                } else if (position <= 4) {
-                  posClass = 'border-l-4 border-blue-500 bg-blue-500/10';
-                } else if (position === 5) {
-                  posClass = 'border-l-4 border-orange-500 bg-orange-500/10';
-                }
+                posClass = `border-l-4 ${posColors[position-1]} ${bgColors[position-1]}`;
               }
+
+              const wins = Number((r as any).wins ?? (r as any).win ?? 0) || 0;
+              const draws = Number((r as any).draws ?? (r as any).draw ?? 0) || 0;
+              const losses = Number((r as any).losses ?? (r as any).loss ?? 0) || 0;
+              const summedGames = wins + draws + losses;
+              const rawGames = (r as any).games ?? (r as any).matches_played ?? (r as any).played;
+              const parsedRaw = rawGames !== undefined && rawGames !== null ? Number(rawGames) : undefined;
+              const games = parsedRaw && parsedRaw > 0 ? parsedRaw : summedGames;
 
               return (
                 <tr 
@@ -113,7 +130,7 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                           alt={r.club_name || 'Клуб'} 
                           width={40} 
                           height={40} 
-                          className="rounded" 
+                          className="w-10 h-10 object-contain rounded"
                         />
                       ) : (
                         <div className="w-10 h-10 bg-white/10 rounded flex items-center justify-center text-sm text-white/40">
@@ -123,7 +140,7 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                       <span className="font-medium">{r.club_name || 'Неизвестный клуб'}</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-center">{r.games ?? r.matches_played ?? r.played ?? 0}</td>
+                  <td className="px-4 py-3 text-center">{games}</td>
                   <td className="px-4 py-3 text-center">{r.wins ?? r.win ?? 0}</td>
                   <td className="px-4 py-3 text-center">{r.draws ?? r.draw ?? 0}</td>
                   <td className="px-4 py-3 text-center">{r.losses ?? r.loss ?? 0}</td>
