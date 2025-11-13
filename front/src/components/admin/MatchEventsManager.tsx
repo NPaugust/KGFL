@@ -43,7 +43,6 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
       await addGoal(match.id.toString(), data)
       setShowAddModal(false)
     } catch (error) {
-      console.error('Ошибка при добавлении гола:', error)
     } finally {
       setActionLoading(null)
     }
@@ -55,7 +54,6 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
       await addCard(match.id.toString(), data)
       setShowAddModal(false)
     } catch (error) {
-      console.error('Ошибка при добавлении карточки:', error)
     } finally {
       setActionLoading(null)
     }
@@ -67,7 +65,6 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
       await addSubstitution(match.id.toString(), data)
       setShowAddModal(false)
     } catch (error) {
-      console.error('Ошибка при добавлении замены:', error)
     } finally {
       setActionLoading(null)
     }
@@ -78,7 +75,6 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
     try {
       await deleteGoal(id)
     } catch (error) {
-      console.error('Ошибка при удалении гола:', error)
     } finally {
       setActionLoading(null)
     }
@@ -89,7 +85,6 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
     try {
       await deleteCard(id)
     } catch (error) {
-      console.error('Ошибка при удалении карточки:', error)
     } finally {
       setActionLoading(null)
     }
@@ -100,7 +95,6 @@ export const MatchEventsManager: React.FC<MatchEventsManagerProps> = ({ match, o
     try {
       await deleteSubstitution(id)
     } catch (error) {
-      console.error('Ошибка при удалении замены:', error)
     } finally {
       setActionLoading(null)
     }

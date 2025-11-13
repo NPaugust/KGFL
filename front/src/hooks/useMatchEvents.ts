@@ -44,7 +44,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка загрузки событий матча'
       setError(errorMessage)
-      console.error('Ошибка загрузки событий матча:', err)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -62,7 +62,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка добавления гола'
       setError(errorMessage)
-      console.error('Ошибка добавления гола:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -81,7 +81,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка добавления карточки'
       setError(errorMessage)
-      console.error('Ошибка добавления карточки:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -100,7 +100,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка добавления замены'
       setError(errorMessage)
-      console.error('Ошибка добавления замены:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -122,7 +122,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка обновления гола'
       setError(errorMessage)
-      console.error('Ошибка обновления гола:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -144,7 +144,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка обновления карточки'
       setError(errorMessage)
-      console.error('Ошибка обновления карточки:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -166,7 +166,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка обновления замены'
       setError(errorMessage)
-      console.error('Ошибка обновления замены:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -187,7 +187,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка удаления гола'
       setError(errorMessage)
-      console.error('Ошибка удаления гола:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -208,7 +208,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка удаления карточки'
       setError(errorMessage)
-      console.error('Ошибка удаления карточки:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -229,7 +229,7 @@ export const useMatchEvents = (): UseMatchEventsReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка удаления замены'
       setError(errorMessage)
-      console.error('Ошибка удаления замены:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)

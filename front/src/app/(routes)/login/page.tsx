@@ -37,7 +37,6 @@ export default function LoginPage() {
         router.push('/admin')
       }, 500)
     } catch (err) {
-      console.error('Login error:', err)
       setError('Неверные учетные данные')
     } finally {
       setIsSubmitting(false)

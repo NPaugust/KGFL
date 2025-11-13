@@ -27,7 +27,7 @@ export const useTransfers = (): UseTransfersReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка загрузки трансферов'
       setError(errorMessage)
-      console.error('Ошибка загрузки трансферов:', err)
+      setError(errorMessage)
     } finally {
       setLoading(false)
     }
@@ -44,7 +44,7 @@ export const useTransfers = (): UseTransfersReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка подтверждения трансфера'
       setError(errorMessage)
-      console.error('Ошибка подтверждения трансфера:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -62,7 +62,7 @@ export const useTransfers = (): UseTransfersReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка отмены трансфера'
       setError(errorMessage)
-      console.error('Ошибка отмены трансфера:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)
@@ -81,7 +81,7 @@ export const useTransfers = (): UseTransfersReturn => {
     } catch (err: any) {
       const errorMessage = err.response?.data?.detail || err.message || 'Ошибка создания трансфера'
       setError(errorMessage)
-      console.error('Ошибка создания трансфера:', err)
+      setError(errorMessage)
       throw err
     } finally {
       setLoading(false)

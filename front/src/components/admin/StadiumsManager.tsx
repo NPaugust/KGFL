@@ -69,7 +69,6 @@ export function StadiumsManager() {
       setIsModalOpen(false)
       refetch()
     } catch (err: any) {
-        console.error("Ошибка при сохранении стадиона:", err);
         alert(`Ошибка: ${err.message || 'Проверьте правильность введенных данных'}`);
     }
   }
@@ -86,7 +85,6 @@ export function StadiumsManager() {
       setDeleteModalOpen(false);
       refetch();
     } catch (err: any) {
-      console.error("Ошибка при удалении стадиона:", err);
       alert(`Ошибка: ${err.message || 'Не удалось удалить стадион'}`);
     }
   };

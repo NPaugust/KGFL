@@ -1,11 +1,12 @@
 "use client"
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
 import { formatDate } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
+import { Search } from '@/components/Search'
 
 interface SeasonFormData {
   name: string
@@ -13,6 +14,7 @@ interface SeasonFormData {
   end_date: string
   is_active: boolean
   description: string
+  format: 'single' | 'groups'
 }
 
 export function SeasonsManager() {
@@ -26,10 +28,33 @@ export function SeasonsManager() {
     start_date: '',
     end_date: '',
     is_active: false,
-    description: ''
+    description: '',
+    format: 'single'
   })
+  const [activeSeasonTab, setActiveSeasonTab] = useState<'general' | 'options'>('general')
+  const [searchTerm, setSearchTerm] = useState('')
+  const [formatFilter, setFormatFilter] = useState<string>('')
+  const [statusFilter, setStatusFilter] = useState<string | null>(null)
 
   const { mutate, loading: mutationLoading } = useApiMutation()
+  const seasonModalTabs: { id: 'general' | 'options'; label: string; description: string }[] = [
+    { id: 'general', label: 'Основное', description: 'Название и даты' },
+    { id: 'options', label: 'Настройки', description: 'Формат, описание, активность' }
+  ]
+
+  const handleCreateClick = () => {
+    setEditingSeason(null)
+    setFormData({
+      name: '',
+      start_date: '',
+      end_date: '',
+      is_active: false,
+      description: '',
+      format: 'single'
+    })
+    setActiveSeasonTab('general')
+    setIsModalOpen(true)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -39,7 +64,8 @@ export function SeasonsManager() {
         start_date: formData.start_date,
         end_date: formData.end_date,
         is_active: formData.is_active,
-        description: formData.description || ''
+        description: formData.description || '',
+        format: formData.format
       }
 
       if (editingSeason) {
@@ -49,6 +75,7 @@ export function SeasonsManager() {
       }
 
       setIsModalOpen(false)
+      setActiveSeasonTab('general')
       setEditingSeason(null)
       
       // Сбрасываем formData только при создании нового сезона
@@ -58,7 +85,8 @@ export function SeasonsManager() {
           start_date: '',
           end_date: '',
           is_active: false,
-          description: ''
+          description: '',
+          format: 'single'
         })
       }
       refetch()
@@ -68,19 +96,20 @@ export function SeasonsManager() {
         detail: { type: 'season' } 
       }))
     } catch (error) {
-      console.error('Ошибка при сохранении сезона:', error)
       alert('Ошибка при сохранении сезона')
     }
   }
 
   const handleEdit = (season: any) => {
     setEditingSeason(season)
+    setActiveSeasonTab('general')
     setFormData({
       name: season.name || '',
       start_date: season.start_date ? new Date(season.start_date).toISOString().split('T')[0] : '',
       end_date: season.end_date ? new Date(season.end_date).toISOString().split('T')[0] : '',
       is_active: season.is_active || false,
-      description: season.description || ''
+      description: season.description || '',
+      format: season.format || 'single'
     })
     setIsModalOpen(true)
   }
@@ -108,22 +137,93 @@ export function SeasonsManager() {
       await mutate(API_ENDPOINTS.SEASON_DETAIL(seasonId), 'PATCH', { is_active: true })
       refetch()
     } catch (error) {
-      console.error('Ошибка при активации сезона:', error)
       alert('Ошибка при активации сезона')
     }
   }
+
+  const seasonsList = useMemo(() => Array.isArray(seasons) ? seasons : [], [seasons])
+
+  const filteredSeasons = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase()
+    
+    return seasonsList.filter((season: any) => {
+      if (normalizedSearch) {
+        const haystack = `${season.name ?? ''} ${season.description ?? ''}`.toLowerCase()
+        if (!haystack.includes(normalizedSearch)) {
+          return false
+        }
+      }
+      
+      if (formatFilter && season.format !== formatFilter) {
+        return false
+      }
+      
+      if (statusFilter !== null) {
+        const isActive = season.is_active !== false
+        if (statusFilter === 'active' && !isActive) return false
+        if (statusFilter === 'inactive' && isActive) return false
+      }
+      
+      return true
+    })
+  }, [seasonsList, searchTerm, formatFilter, statusFilter])
 
   if (loading) {
     return <Loading />
   }
 
-  const seasonsList = Array.isArray(seasons) ? seasons : []
-
   return (
     <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-white">Управление сезонами</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить сезон</button>
+      <div className="mb-6 flex flex-col gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold">Управление сезонами</h1>
+          <button onClick={handleCreateClick} className="btn btn-primary whitespace-nowrap">Добавить сезон</button>
+        </div>
+        
+        <div className="card bg-white/5 border border-white/10 p-4 rounded-none">
+          <div className="flex flex-col lg:flex-row gap-4">
+            <div className="relative flex-1 min-w-[220px]">
+              <Search
+                placeholder="Поиск по названию, описанию..."
+                onSearch={setSearchTerm}
+                className="w-full"
+                hideIcon
+                square
+                initialValue={searchTerm}
+              />
+            </div>
+            <select
+              value={formatFilter}
+              onChange={(e) => setFormatFilter(e.target.value)}
+              className="input !rounded-none appearance-none h-10"
+            >
+              <option value="">Все форматы</option>
+              <option value="single">Одна таблица</option>
+              <option value="groups">Групповой этап</option>
+            </select>
+            <select
+              value={statusFilter || ''}
+              onChange={(e) => setStatusFilter(e.target.value || null)}
+              className="input !rounded-none appearance-none h-10"
+            >
+              <option value="">Все статусы</option>
+              <option value="active">Активный</option>
+              <option value="inactive">Неактивный</option>
+            </select>
+            {(searchTerm || formatFilter || statusFilter) && (
+              <button
+                onClick={() => {
+                  setSearchTerm('')
+                  setFormatFilter('')
+                  setStatusFilter(null)
+                }}
+                className="btn btn-outline whitespace-nowrap !rounded-none h-10 px-4"
+              >
+                Сбросить
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <div className="card overflow-hidden">
@@ -132,6 +232,7 @@ export function SeasonsManager() {
             <thead className="bg-white/5">
               <tr>
                 <th className="px-4 py-3 text-left">Название</th>
+                <th className="px-4 py-3 text-left">Формат</th>
                 <th className="px-4 py-3 text-left">Начало</th>
                 <th className="px-4 py-3 text-left">Конец</th>
                 <th className="px-4 py-3 text-left">Статус</th>
@@ -139,9 +240,16 @@ export function SeasonsManager() {
               </tr>
             </thead>
             <tbody>
-              {seasonsList.length > 0 ? seasonsList.map((season) => (
+              {filteredSeasons.length > 0 ? filteredSeasons.map((season) => (
                 <tr key={season.id} className="border-b border-white/10">
                   <td className="px-4 py-3 font-medium">{season.name}</td>
+                  <td className="px-4 py-3">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      season.format === 'groups' ? 'bg-blue-500/20 text-blue-400' : 'bg-gray-500/20 text-gray-400'
+                    }`}>
+                      {season.format === 'groups' ? 'Групповой этап' : 'Одна таблица'}
+                    </span>
+                  </td>
                   <td className="px-4 py-3">{season.start_date ? formatDate(season.start_date) : '-'}</td>
                   <td className="px-4 py-3">{season.end_date ? formatDate(season.end_date) : '-'}</td>
                   <td className="px-4 py-3">
@@ -163,7 +271,9 @@ export function SeasonsManager() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="px-4 py-8 text-center text-white/60">Сезоны не найдены</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">
+                    {seasonsList.length === 0 ? 'Сезоны не найдены' : 'Нет результатов по заданным фильтрам'}
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -173,44 +283,149 @@ export function SeasonsManager() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingSeason(null); }}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingSeason(null)
+          setActiveSeasonTab('general')
+          setFormData({
+            name: '',
+            start_date: '',
+            end_date: '',
+            is_active: false,
+            description: '',
+            format: 'single'
+          })
+        }}
         title={editingSeason ? 'Редактировать сезон' : 'Добавить сезон'}
-        size="md"
+        size="lg"
+        className="max-w-4xl"
       >
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Название сезона *</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input w-full" required />
-              </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div className="flex flex-wrap gap-2">
+              {seasonModalTabs.map((tab) => {
+                const isActive = activeSeasonTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveSeasonTab(tab.id)}
+                    className={`px-4 py-2 rounded-xl border transition-all text-sm font-medium ${
+                      isActive
+                        ? 'border-brand-primary bg-brand-primary/20 text-brand-primary shadow-[0_0_20px_rgba(0,140,255,0.2)]'
+                        : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <div>{tab.label}</div>
+                    <div className="text-xs text-white/50 font-normal">{tab.description}</div>
+                  </button>
+                )
+              })}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Дата начала *</label>
-                <input type="date" value={formData.start_date} onChange={(e) => setFormData({ ...formData, start_date: e.target.value })} className="input w-full" required />
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              {activeSeasonTab === 'general' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Название сезона *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="input w-full"
+                      required
+                      placeholder="Например, 2025/26"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Дата окончания *</label>
-                <input type="date" value={formData.end_date} onChange={(e) => setFormData({ ...formData, end_date: e.target.value })} className="input w-full" required />
-              </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Дата начала *</label>
+                      <input
+                        type="date"
+                        value={formData.start_date}
+                        onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                        className="input w-full"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Дата окончания *</label>
+                      <input
+                        type="date"
+                        value={formData.end_date}
+                        onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                        className="input w-full"
+                        required
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Описание</label>
-                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="textarea w-full" rows={3} />
-              </div>
+              {activeSeasonTab === 'options' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Формат турнира *</label>
+                    <select
+                      value={formData.format}
+                      onChange={(e) => setFormData({ ...formData, format: e.target.value as 'single' | 'groups' })}
+                      className="input w-full"
+                      required
+                    >
+                      <option value="single">Одна таблица</option>
+                      <option value="groups">Групповой этап</option>
+                    </select>
+                    <p className="text-xs text-white/60 mt-1">
+                      При выборе &quot;Групповой этап&quot; автоматически создаются 3 группы (A, B, C). Раздел «Клубы в сезонах» позволит
+                      распределить команды вручную.
+                    </p>
+                  </div>
 
-              <div>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
-                  <span className="text-sm">Активный сезон</span>
-                </label>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Описание</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="textarea w-full"
+                      rows={4}
+                      placeholder="Добавьте заметки о формате, регламенте или ограничениях"
+                    />
+                  </div>
 
-            <div className="flex gap-3 pt-4">
-              <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    />
+                    Активный сезон
+                  </label>
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-3 md:flex-row md:gap-4 pt-4 border-t border-white/10">
+              <button type="submit" className="flex-1 btn btn-primary h-12" disabled={mutationLoading}>
                 {mutationLoading ? 'Сохранение...' : 'Сохранить'}
               </button>
-              <button type="button" onClick={() => { setIsModalOpen(false); setEditingSeason(null); }} className="btn btn-outline flex-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setEditingSeason(null)
+                  setActiveSeasonTab('general')
+                  setFormData({
+                    name: '',
+                    start_date: '',
+                    end_date: '',
+                    is_active: false,
+                    description: '',
+                    format: 'single'
+                  })
+                }}
+                className="flex-1 btn btn-outline h-12"
+              >
                 Отмена
               </button>
             </div>

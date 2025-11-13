@@ -32,7 +32,6 @@ export function useManagement() {
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
       if (event.detail.type === 'management') {
-        console.log('Обновляем руководство...', event.detail.type)
         fetchManagement()
       }
     }

@@ -316,8 +316,6 @@ class Migration(migrations.Migration):
                 ),
             ],
             options={
-                "verbose_name": "Новость",
-                "verbose_name_plural": "Новости",
                 "ordering": ["-published_at", "-created_at"],
             },
         ),

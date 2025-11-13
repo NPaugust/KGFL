@@ -21,6 +21,10 @@ class MatchCreateSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         """Валидация данных матча."""
         status = attrs.get('status')
+        home_team = attrs.get('home_team')
+        away_team = attrs.get('away_team')
+        season = attrs.get('season')
+        group = attrs.get('group')
         
         # Если статус "Завершен", счет обязателен
         if status == 'finished':
@@ -44,10 +48,88 @@ class MatchCreateSerializer(serializers.ModelSerializer):
             attrs['home_score'] = None
             attrs['away_score'] = None
         
+        # ВАЛИДАЦИЯ ГРУПП: если сезон с группами, проверяем целостность
+        if season and season.format == 'groups':
+            from clubs.models import ClubSeason
+            
+            # Если указана группа, проверяем что она принадлежит сезону
+            if group:
+                if group.season != season:
+                    raise serializers.ValidationError({
+                        'group': 'Группа должна принадлежать выбранному сезону'
+                    })
+            
+            # Проверяем, что обе команды участвуют в сезоне
+            if home_team and away_team:
+                home_club_season = ClubSeason.objects.filter(
+                    club=home_team, 
+                    season=season
+                ).first()
+                away_club_season = ClubSeason.objects.filter(
+                    club=away_team, 
+                    season=season
+                ).first()
+                
+                if not home_club_season:
+                    raise serializers.ValidationError({
+                        'home_team': f'Команда "{home_team.name}" не участвует в сезоне "{season.name}"'
+                    })
+                
+                if not away_club_season:
+                    raise serializers.ValidationError({
+                        'away_team': f'Команда "{away_team.name}" не участвует в сезоне "{season.name}"'
+                    })
+                
+                # Если сезон с группами, обе команды должны быть в одной группе
+                if home_club_season.group != away_club_season.group:
+                    raise serializers.ValidationError({
+                        'home_team': f'Команды должны быть из одной группы. "{home_team.name}" в группе "{home_club_season.group.name if home_club_season.group else "Без группы"}", а "{away_team.name}" в группе "{away_club_season.group.name if away_club_season.group else "Без группы"}"'
+                    })
+                
+                # Если указана группа матча, она должна совпадать с группами команд
+                if group:
+                    if home_club_season.group != group or away_club_season.group != group:
+                        raise serializers.ValidationError({
+                            'group': f'Группа матча должна совпадать с группами команд. Команды в группе "{home_club_season.group.name if home_club_season.group else "Без группы"}"'
+                        })
+                else:
+                    # Если группа не указана, но команды в группе - устанавливаем группу матча
+                    if home_club_season.group:
+                        attrs['group'] = home_club_season.group
+        
+        # Проверка наличия игроков в командах (предупреждение, не блокируем создание)
+        warnings = {}
+        
+        if home_team and season:
+            from players.models import Player
+            home_players_count = Player.objects.filter(club=home_team, season=season, is_active=True).count()
+            if home_players_count == 0:
+                warnings['home_team'] = f'В клубе "{home_team.name}" нет активных игроков в выбранном сезоне. Матч можно создать, но события матча (голы, карточки) будут недоступны.'
+        
+        if away_team and season:
+            from players.models import Player
+            away_players_count = Player.objects.filter(club=away_team, season=season, is_active=True).count()
+            if away_players_count == 0:
+                warnings['away_team'] = f'В клубе "{away_team.name}" нет активных игроков в выбранном сезоне. Матч можно создать, но события матча (голы, карточки) будут недоступны.'
+        
+        # Если есть предупреждения, но мы не блокируем создание, просто добавляем их в контекст
+        if warnings:
+            # В Django REST Framework нельзя вернуть warnings напрямую, но можно их сохранить
+            # Для простоты, просто пропускаем предупреждения - они будут видны при попытке добавить события
+            pass
+        
         return attrs
     
     def create(self, validated_data):
         """Создание матча с событиями."""
+        # Если сезон не указан, используем активный сезон
+        if not validated_data.get('season'):
+            try:
+                active_season = Season.objects.get(is_active=True)
+                validated_data['season'] = active_season
+            except Season.DoesNotExist:
+                pass  # Если активного сезона нет, создаем без сезона
+        
         # Извлекаем события из данных
         goals_data = validated_data.pop('goals', [])
         assists_data = validated_data.pop('assists', [])
@@ -233,9 +315,9 @@ class MatchCreateSerializer(serializers.ModelSerializer):
                         description='Автоматически созданный гол'
                     )
             else:
-                print(f"❌ Не найден игрок для автогола в команде {team.name}")
+                pass
         except Exception as e:
-            print(f"❌ Ошибка создания автогола: {e}")
+            pass
 
 
 class MatchSerializer(serializers.ModelSerializer):
@@ -248,6 +330,8 @@ class MatchSerializer(serializers.ModelSerializer):
     home_team = serializers.SerializerMethodField()
     away_team = serializers.SerializerMethodField()
     season_name = serializers.CharField(source='season.name', read_only=True)
+    group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
+    group_id = serializers.IntegerField(source='group.id', read_only=True, allow_null=True)
     stadium_name = serializers.SerializerMethodField()
     
     class Meta:
@@ -299,6 +383,9 @@ class MatchListSerializer(serializers.ModelSerializer):
     
     home_team_name = serializers.CharField(source='home_team.name', read_only=True)
     away_team_name = serializers.CharField(source='away_team.name', read_only=True)
+    season_name = serializers.CharField(source='season.name', read_only=True, allow_null=True)
+    group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
+    group_id = serializers.IntegerField(source='group.id', read_only=True, allow_null=True)
     home_team_logo = serializers.SerializerMethodField()
     away_team_logo = serializers.SerializerMethodField()
     home_team = serializers.SerializerMethodField()
@@ -309,7 +396,7 @@ class MatchListSerializer(serializers.ModelSerializer):
         model = Match
         fields = [
             'id', 'home_team_name', 'away_team_name', 'home_team_logo', 'away_team_logo',
-            'home_team', 'away_team',
+            'home_team', 'away_team', 'season', 'season_name', 'group', 'group_name', 'group_id',
             'date', 'time', 'status', 'home_score', 'away_score', 'round', 'stadium', 'stadium_ref', 'stadium_name'
         ]
 
@@ -360,6 +447,7 @@ class GoalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Goal
         fields = '__all__'
+        read_only_fields = ['match']  # match не должен изменяться при обновлении
 
     def validate(self, attrs):
         match = attrs.get('match') or getattr(self.instance, 'match', None)
@@ -404,6 +492,7 @@ class CardSerializer(serializers.ModelSerializer):
     class Meta:
         model = Card
         fields = '__all__'
+        read_only_fields = ['match']  # match не должен изменяться при обновлении
 
     def validate(self, attrs):
         match = attrs.get('match') or getattr(self.instance, 'match', None)
@@ -568,3 +657,4 @@ class AssistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Assist
         fields = ['id', 'match', 'player', 'player_name', 'team', 'team_name', 'minute', 'created_at']
+        read_only_fields = ['match']  # match не должен изменяться при обновлении

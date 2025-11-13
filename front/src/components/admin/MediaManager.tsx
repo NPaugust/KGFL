@@ -42,12 +42,19 @@ export function MediaManager() {
   const [editing, setEditing] = useState<Media | null>(null)
   const [toDelete, setToDelete] = useState<Media | null>(null)
   const [formData, setFormData] = useState<MediaFormData>(initialFormData)
+  const [activeMediaTab, setActiveMediaTab] = useState<'content' | 'files' | 'settings'>('content')
 
   const { mutate, loading: mutationLoading } = useApiMutation()
+  const mediaModalTabs: { id: 'content' | 'files' | 'settings'; label: string; description: string }[] = [
+    { id: 'content', label: 'Контент', description: 'Название и описание' },
+    { id: 'files', label: 'Файлы/ссылки', description: 'Загрузка или URL' },
+    { id: 'settings', label: 'Настройки', description: 'Тип и активность' }
+  ]
 
   const handleCreateClick = () => {
     setEditing(null);
     setFormData(initialFormData);
+    setActiveMediaTab('content')
     setIsModalOpen(true);
   };
 
@@ -62,6 +69,7 @@ export function MediaManager() {
       file: undefined,
       preview: undefined,
     });
+    setActiveMediaTab('content')
     setIsModalOpen(true);
   };
   
@@ -95,8 +103,7 @@ export function MediaManager() {
       setFormData(initialFormData);
       refetch();
     } catch (error) {
-      console.error("Ошибка при сохранении медиа:", error);
-      alert('Не удалось сохранить медиа.');
+      alert('Не удалось сохранить медиа.')
     }
   };
 
@@ -111,7 +118,6 @@ export function MediaManager() {
       setToDelete(null);
       refetch();
     } catch (error) {
-      console.error("Ошибка при удалении медиа:", error);
       alert('Не удалось удалить медиа.');
     }
   };
@@ -174,45 +180,170 @@ export function MediaManager() {
         </div>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editing ? 'Редактировать медиа' : 'Добавить медиа'}>
-        <form onSubmit={handleSubmit} className="space-y-4 p-1">
-          <input type="text" placeholder="Название *" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} className="input w-full" required />
-          
-          <select value={formData.media_type} onChange={(e) => setFormData({ ...formData, media_type: e.target.value as MediaFormData['media_type'] })} className="input w-full">
-            {Object.entries(mediaTypeMap).map(([key, value]) => <option key={key} value={key}>{value}</option>)}
-          </select>
-          
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditing(null)
+          setFormData(initialFormData)
+          setActiveMediaTab('content')
+        }}
+        title={editing ? 'Редактировать медиа' : 'Добавить медиа'}
+        size="lg"
+        className="max-w-4xl"
+      >
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 p-1">
+          <div className="flex flex-wrap gap-2">
+            {mediaModalTabs.map((tab) => {
+              const isActive = activeMediaTab === tab.id
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveMediaTab(tab.id)}
+                  className={`px-4 py-2 rounded-xl border transition-all text-sm font-medium ${
+                    isActive
+                      ? 'border-brand-primary bg-brand-primary/20 text-brand-primary shadow-[0_0_20px_rgba(0,140,255,0.2)]'
+                      : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                  }`}
+                >
+                  <div>{tab.label}</div>
+                  <div className="text-xs text-white/50 font-normal">{tab.description}</div>
+                </button>
+              )
+            })}
+          </div>
 
-          <textarea placeholder="Описание" value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="textarea w-full" />
-          
-          {formData.media_type === 'image' && (
-            <div>
-              <label className="text-sm">Файл (для изображения)</label>
-              <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] })} className="input w-full" />
-            </div>
-          )}
-
-          {['video', 'document'].includes(formData.media_type) && (
-            <>
-              <input type="url" placeholder="URL *" value={formData.url} onChange={(e) => setFormData({ ...formData, url: e.target.value })} className="input w-full" required />
-              <div>
-                <label className="text-sm">Превью (необязательно)</label>
-                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, preview: e.target.files?.[0] })} className="input w-full" />
-                <p className="text-xs text-white/60 mt-1">Загрузите изображение для превью видео или документа</p>
+          <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+            {activeMediaTab === 'content' && (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Название *</label>
+                  <input
+                    type="text"
+                    value={formData.title}
+                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                    className="input w-full"
+                    required
+                    placeholder="Например: Фото с матча"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Описание</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="textarea w-full"
+                    rows={4}
+                    placeholder="Краткое описание материала"
+                  />
+                </div>
               </div>
-            </>
-          )}
+            )}
 
-          <label className="flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} /> Активно</label>
-          
-          <div className="flex gap-3 pt-4 border-t border-white/10">
-            <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>{mutationLoading ? 'Сохранение...' : 'Сохранить'}</button>
-            <button type="button" onClick={() => setIsModalOpen(false)} className="btn btn-outline flex-1">Отмена</button>
+            {activeMediaTab === 'files' && (
+              <div className="space-y-5">
+                {formData.media_type === 'image' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Файл изображения *</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] })}
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
+                      required={!editing}
+                    />
+                  </div>
+                )}
+
+                {['video', 'document'].includes(formData.media_type) && (
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">URL *</label>
+                      <input
+                        type="url"
+                        value={formData.url}
+                        onChange={(e) => setFormData({ ...formData, url: e.target.value })}
+                        className="input w-full"
+                        required
+                        placeholder="https://..."
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Превью (необязательно)</label>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setFormData({ ...formData, preview: e.target.files?.[0] })}
+                        className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
+                      />
+                      <p className="text-xs text-white/60 mt-1">Загрузите изображение превью для видео или документа.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeMediaTab === 'settings' && (
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Тип медиа *</label>
+                  <select
+                    value={formData.media_type}
+                    onChange={(e) => setFormData({ ...formData, media_type: e.target.value as MediaFormData['media_type'] })}
+                    className="input w-full"
+                    required
+                  >
+                    {Object.entries(mediaTypeMap).map(([key, value]) => (
+                      <option key={key} value={key}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={formData.is_active}
+                    onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  />
+                  Активно
+                </label>
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-3 md:flex-row md:gap-4 pt-4 border-t border-white/10">
+            <button type="submit" className="flex-1 btn btn-primary h-12" disabled={mutationLoading}>
+              {mutationLoading ? 'Сохранение...' : 'Сохранить'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false)
+                setEditing(null)
+                setFormData(initialFormData)
+                setActiveMediaTab('content')
+              }}
+              className="flex-1 btn btn-outline h-12"
+            >
+              Отмена
+            </button>
           </div>
         </form>
       </Modal>
 
-      {toDelete && <ConfirmModal isOpen={!!toDelete} onClose={() => setToDelete(null)} onConfirm={confirmDelete} title="Удалить медиа?" message={`Вы уверены, что хотите удалить "${toDelete.title}"?`} variant="danger" confirmFirst={true} />}
+      {toDelete && (
+        <ConfirmModal
+          isOpen={!!toDelete}
+          onClose={() => setToDelete(null)}
+          onConfirm={confirmDelete}
+          title="Удалить медиа?"
+          message={`Вы уверены, что хотите удалить "${toDelete.title}"?`}
+          variant="danger"
+          confirmFirst={true}
+        />
+      )}
     </div>
   )
 }

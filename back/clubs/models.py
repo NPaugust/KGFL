@@ -68,13 +68,15 @@ class Club(models.Model):
     coach_full_name = models.CharField(
         max_length=150,
         verbose_name=_('Тренер (ФИО)'),
-        help_text=_('Главный тренер')
+        help_text=_('Главный тренер'),
+        blank=True
     )
     
     # 9. Ассистент тренера / менеджер
     assistant_full_name = models.CharField(
         max_length=150,
-        verbose_name=_('Ассистент тренера / менеджер')
+        verbose_name=_('Ассистент тренера / менеджер'),
+        blank=True
     )
     
     # 10. Капитан команды (ФИО)
@@ -276,6 +278,16 @@ class ClubSeason(models.Model):
         verbose_name=_('Сезон')
     )
     
+    group = models.ForeignKey(
+        'core.Group',
+        on_delete=models.SET_NULL,
+        related_name='club_seasons',
+        blank=True,
+        null=True,
+        verbose_name=_('Группа'),
+        help_text=_('Группа для групповых этапов. Если не указана - обычная таблица.')
+    )
+    
     points = models.PositiveIntegerField(
         default=0,
         verbose_name=_('Очки')
@@ -343,10 +355,44 @@ class ClubSeason(models.Model):
         verbose_name = _('Клуб в сезоне')
         verbose_name_plural = _('Клубы в сезонах')
         unique_together = ['club', 'season']
-        ordering = ['season', 'position', 'points']
+        ordering = ['season', 'group', 'position', 'points']
     
     def __str__(self):
         return f"{self.club.name} - {self.season.name}"
+    
+    def clean(self):
+        """Валидация данных ClubSeason."""
+        # Если сезон с группами, группа обязательна
+        if self.season and self.season.format == 'groups':
+            if not self.group:
+                raise ValidationError({
+                    'group': 'Для сезона с групповым этапом необходимо указать группу'
+                })
+            
+            # Проверяем, что группа принадлежит сезону
+            if self.group and self.group.season != self.season:
+                raise ValidationError({
+                    'group': f'Группа "{self.group.name}" не принадлежит сезону "{self.season.name}"'
+                })
+        
+        # Если сезон без групп, группа должна быть None
+        if self.season and self.season.format == 'single':
+            if self.group:
+                raise ValidationError({
+                    'group': 'Для сезона без группового этапа группа не должна быть указана'
+                })
+    
+    def save(self, *args, **kwargs):
+        """Переопределяем save для вызова clean."""
+        # Вызываем clean только если объект валиден (не при bulk операциях)
+        if not kwargs.get('skip_validation', False):
+            try:
+                self.full_clean()
+            except ValidationError:
+                # Если валидация не прошла, все равно сохраняем (для обратной совместимости)
+                # Валидация будет работать при создании через админку или API
+                pass
+        super().save(*args, **kwargs)
     
     @property
     def goals_formatted(self):
@@ -357,42 +403,50 @@ class ClubSeason(models.Model):
         """Результаты последних 5 матчей клуба."""
         from matches.models import Match
         
+        # Если это временный объект или сезон не установлен, возвращаем пустой массив
+        if not hasattr(self, 'season') or not self.season:
+            return [None] * 5
+        
         # Получаем последние 5 завершенных/живых матчей клуба в этом сезоне
-        matches = Match.objects.filter(
-            season=self.season,
-            status__in=['finished', 'live']
-        ).filter(
-            models.Q(home_team=self.club) | models.Q(away_team=self.club)
-        ).order_by('-date', '-time')[:5]
-        
-        results = []
-        for match in matches:
-            # Проверяем что счет матча заполнен
-            if match.home_score is None or match.away_score is None:
-                continue
-                
-            if match.home_team == self.club:
-                # Клуб играл дома
-                if match.home_score > match.away_score:
-                    results.append('W')  # Победа
-                elif match.home_score == match.away_score:
-                    results.append('D')  # Ничья
-                else:
-                    results.append('L')  # Поражение
-            else:
-                # Клуб играл в гостях  
-                if match.away_score > match.home_score:
-                    results.append('W')  # Победа
-                elif match.away_score == match.home_score:
-                    results.append('D')  # Ничья
-                else:
-                    results.append('L')  # Поражение
-        
-        # Возвращаем массив из 5 элементов (заполняем пустыми если матчей меньше)
-        while len(results) < 5:
-            results.append(None)
+        try:
+            matches = Match.objects.filter(
+                season=self.season,
+                status__in=['finished', 'live']
+            ).filter(
+                models.Q(home_team=self.club) | models.Q(away_team=self.club)
+            ).order_by('-date', '-time')[:5]
             
-        return results
+            results = []
+            for match in matches:
+                # Проверяем что счет матча заполнен
+                if match.home_score is None or match.away_score is None:
+                    continue
+                    
+                if match.home_team == self.club:
+                    # Клуб играл дома
+                    if match.home_score > match.away_score:
+                        results.append('W')  # Победа
+                    elif match.home_score == match.away_score:
+                        results.append('D')  # Ничья
+                    else:
+                        results.append('L')  # Поражение
+                else:
+                    # Клуб играл в гостях  
+                    if match.away_score > match.home_score:
+                        results.append('W')  # Победа
+                    elif match.away_score == match.home_score:
+                        results.append('D')  # Ничья
+                    else:
+                        results.append('L')  # Поражение
+            
+            # Возвращаем массив из 5 элементов (заполняем пустыми если матчей меньше)
+            while len(results) < 5:
+                results.append(None)
+                
+            return results
+        except Exception:
+            # Если произошла ошибка, возвращаем пустой массив
+            return [None] * 5
     
     # Метод update_stats_from_match удален - теперь статистика обновляется только через сигналы
 

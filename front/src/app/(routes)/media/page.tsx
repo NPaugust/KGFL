@@ -44,7 +44,6 @@ export default function MediaPage() {
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
       if (event.detail.type === 'media') {
-        console.log('Обновляем медиа...', event.detail.type)
         refetch()
       }
     }

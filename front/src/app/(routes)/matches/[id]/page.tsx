@@ -61,27 +61,42 @@ export default function MatchDetailsPage() {
   const rcAway = cards.filter(c => c.card_type === 'red' && ((c.team?.id ?? c.team) === awayId)).length
 
   // Лента событий по минутам
-  const timeline: Array<{ minute: number; type: 'goal' | 'yellow' | 'red' | 'sub'; side: 'home'|'away'; text: string }> = []
+  const timeline: Array<{ 
+    minute: number; 
+    type: 'goal' | 'yellow' | 'red' | 'sub'; 
+    side: 'home'|'away'; 
+    text: string;
+    scorerId?: string | number;
+    assistId?: string | number;
+    playerId?: string | number;
+    playerOutId?: string | number;
+    playerInId?: string | number;
+  }> = []
   goals.forEach(g => {
     const minute = Number(g.minute) || 0
     const side = ((g.team?.id ?? g.team) === homeId) ? 'home' : 'away'
     const scorer = g.scorer_full_name || g.scorer_name || g.scorer || 'Игрок'
     const assist = g.assist_full_name || g.assist_name
+    const scorerId = g.player || g.scorer_id || g.scorer
+    const assistId = g.assist_player || g.assist_id
     const text = assist ? `${scorer} (ассист: ${assist})` : `${scorer}`
-    timeline.push({ minute, type: 'goal', side, text })
+    timeline.push({ minute, type: 'goal', side, text, scorerId, assistId })
   })
   cards.forEach(c => {
     const minute = Number(c.minute) || 0
     const side = ((c.team?.id ?? c.team) === homeId) ? 'home' : 'away'
     const player = c.player_full_name || c.player_name || c.player || 'Игрок'
-    timeline.push({ minute, type: c.card_type === 'red' ? 'red' : 'yellow', side, text: player })
+    const playerId = c.player || c.player_id
+    timeline.push({ minute, type: c.card_type === 'red' ? 'red' : 'yellow', side, text: player, playerId })
   })
   substitutions.forEach(s => {
     const minute = Number(s.minute) || 0
     const side = ((s.team?.id ?? s.team) === homeId) ? 'home' : 'away'
     const outName = s.player_out_name || s.player_out_full_name || s.player_out || 'Игрок'
     const inName = s.player_in_name || s.player_in_full_name || s.player_in || 'Игрок'
-    timeline.push({ minute, type: 'sub', side, text: `${outName} → ${inName}` })
+    const playerOutId = s.player_out || s.player_out_id
+    const playerInId = s.player_in || s.player_in_id
+    timeline.push({ minute, type: 'sub', side, text: `${outName} → ${inName}`, playerOutId, playerInId })
   })
   timeline.sort((a, b) => a.minute - b.minute)
 
@@ -279,15 +294,66 @@ export default function MatchDetailsPage() {
               {/* Лента событий */}
               <div className="lg:col-span-2">
                 <div className="space-y-3">
-                  {timeline.map((ev, idx) => (
-                    <div key={idx} className="flex items-center gap-3 text-white">
-                      <div className="w-10 text-right text-white/70">{ev.minute}&apos;</div>
-                      <div className={ev.side === 'home' ? 'text-brand-accent' : 'text-white'}>
-                        {ev.type === 'goal' ? '⚽ Гол' : ev.type === 'yellow' ? '🟨 Карточка' : ev.type === 'red' ? '🟥 Карточка' : '🔁 Замена'}
+                  {timeline.map((ev, idx) => {
+                    const renderPlayerName = (name: string, playerId?: string | number) => {
+                      if (playerId) {
+                        return (
+                          <Link 
+                            href={`/players/${playerId}`}
+                            className="text-brand-primary hover:underline cursor-pointer"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {name}
+                          </Link>
+                        )
+                      }
+                      return <span>{name}</span>
+                    }
+
+                    const renderText = () => {
+                      if (ev.type === 'goal') {
+                        const parts = ev.text.split(' (ассист: ')
+                        if (parts.length > 1) {
+                          const scorer = parts[0]
+                          const assist = parts[1].replace(')', '')
+                          return (
+                            <>
+                              {renderPlayerName(scorer, ev.scorerId)}
+                              {' (ассист: '}
+                              {renderPlayerName(assist, ev.assistId)}
+                              {')'}
+                            </>
+                          )
+                        }
+                        return renderPlayerName(ev.text, ev.scorerId)
+                      } else if (ev.type === 'yellow' || ev.type === 'red') {
+                        return renderPlayerName(ev.text, ev.playerId)
+                      } else if (ev.type === 'sub') {
+                        const parts = ev.text.split(' → ')
+                        if (parts.length === 2) {
+                          return (
+                            <>
+                              {renderPlayerName(parts[0], ev.playerOutId)}
+                              {' → '}
+                              {renderPlayerName(parts[1], ev.playerInId)}
+                            </>
+                          )
+                        }
+                        return <span>{ev.text}</span>
+                      }
+                      return <span>{ev.text}</span>
+                    }
+
+                    return (
+                      <div key={idx} className="flex items-center gap-3 text-white">
+                        <div className="w-10 text-right text-white/70">{ev.minute}&apos;</div>
+                        <div className={ev.side === 'home' ? 'text-brand-accent' : 'text-white'}>
+                          {ev.type === 'goal' ? '⚽ Гол' : ev.type === 'yellow' ? '🟨 Карточка' : ev.type === 'red' ? '🟥 Карточка' : '🔁 Замена'}
+                        </div>
+                        <div className="flex-1 text-white/90">{renderText()}</div>
                       </div>
-                      <div className="flex-1 text-white/90">{ev.text}</div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 

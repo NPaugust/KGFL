@@ -4,12 +4,16 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from django.db.models import Q
-from .models import User, Season, Partner, Media
+from django.db import connection
+from django.core.cache import cache
+from .models import User, Season, Group, Partner, Media
 from .serializers import (
     UserSerializer, UserCreateSerializer, LoginSerializer,
-    SeasonSerializer, PartnerSerializer, MediaSerializer
+    SeasonSerializer, GroupSerializer, PartnerSerializer, MediaSerializer
 )
+from .rate_limiting import rate_limit
 import rest_framework.parsers
+import django.utils.timezone
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -30,6 +34,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().get_permissions()
     
     @action(detail=False, methods=['post'])
+    @rate_limit(max_requests=5, window=300)  # 5 попыток входа за 5 минут
     def login(self, request):
         """Вход в систему."""
         serializer = LoginSerializer(data=request.data)
@@ -88,9 +93,39 @@ class SeasonViewSet(viewsets.ModelViewSet):
         """Получить активный сезон."""
         try:
             active_season = Season.objects.get(is_active=True)
-            return Response(SeasonSerializer(active_season).data)
+            return Response(SeasonSerializer(active_season, context={'request': request}).data)
         except Season.DoesNotExist:
             return Response({'error': 'Активный сезон не найден'}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=True, methods=['get'])
+    def groups(self, request, pk=None):
+        """Получить список групп для сезона."""
+        try:
+            season = self.get_object()
+            if not season.has_groups:
+                return Response({'error': 'Этот сезон не имеет группового этапа'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            groups = season.groups.all()
+            serializer = GroupSerializer(groups, many=True, context={'request': request})
+            return Response(serializer.data)
+        except Season.DoesNotExist:
+            return Response({'error': 'Сезон не найден'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GroupViewSet(viewsets.ReadOnlyModelViewSet):
+    """ViewSet для просмотра групп (только чтение)."""
+    
+    queryset = Group.objects.all()
+    serializer_class = GroupSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    
+    def get_queryset(self):
+        """Фильтрация по сезону."""
+        queryset = super().get_queryset()
+        season_id = self.request.query_params.get('season_id')
+        if season_id:
+            queryset = queryset.filter(season_id=season_id)
+        return queryset
 
 
 class PartnerViewSet(viewsets.ModelViewSet):
@@ -111,13 +146,6 @@ class PartnerViewSet(viewsets.ModelViewSet):
         context['request'] = self.request
         return context
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            obj = serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response({'message': 'Ошибка валидации', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
-    
     def create(self, request, *args, **kwargs):
         """Создание партнера с обработкой ошибок."""
         try:
@@ -228,5 +256,57 @@ class MediaViewSet(viewsets.ModelViewSet):
         media = self.queryset.filter(category=category)
         return Response(MediaSerializer(media, many=True, context={'request': request}).data)
 
+
+class HealthCheckViewSet(viewsets.ViewSet):
+    """ViewSet для проверки здоровья системы."""
+    
+    permission_classes = [permissions.AllowAny]
+    
+    @action(detail=False, methods=['get'])
+    def health(self, request):
+        """Проверка здоровья API."""
+        try:
+            # Проверка подключения к БД
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                db_status = "ok"
+        except Exception as e:
+            db_status = f"error: {str(e)}"
+        
+        # Проверка кэша
+        try:
+            cache.set('health_check', 'ok', 10)
+            cache_status = "ok" if cache.get('health_check') == 'ok' else "error"
+        except Exception as e:
+            cache_status = f"error: {str(e)}"
+        
+        from django.conf import settings
+        
+        health_data = {
+            'status': 'healthy' if db_status == 'ok' else 'degraded',
+            'timestamp': str(django.utils.timezone.now()),
+            'version': '1.0.0',
+            'services': {
+                'database': db_status,
+                'cache': cache_status,
+            },
+            'environment': {
+                'debug': settings.DEBUG,
+                'allowed_hosts': settings.ALLOWED_HOSTS[:3],  # Первые 3 для безопасности
+            }
+        }
+        
+        http_status = status.HTTP_200_OK if db_status == 'ok' else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response(health_data, status=http_status)
+    
+    @action(detail=False, methods=['get'])
+    def ready(self, request):
+        """Проверка готовности к работе."""
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+            return Response({'status': 'ready'}, status=status.HTTP_200_OK)
+        except Exception:
+            return Response({'status': 'not ready'}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
 
  

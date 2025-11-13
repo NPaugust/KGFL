@@ -7,16 +7,43 @@ import { Loading } from '@/components/Loading'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { getImageUrl } from '@/utils'
 import { motion } from 'framer-motion'
+import { useSeasonStore } from '@/store/useSeasonStore'
+import { SeasonFilter } from '@/components/SeasonFilter'
+import { useApi } from '@/hooks/useApi'
+import { API_ENDPOINTS } from '@/services/api'
+import { Club } from '@/types'
 
 export default function ClubsPage() {
+  const { selectedSeasonId } = useSeasonStore()
   const { clubs, clubsLoading: loading, clubsError: error, refetchClubs } = useClubs()
+  
+  // Проверяем, выбран ли конкретный сезон (не пустая строка)
+  const hasSeasonFilter = selectedSeasonId && selectedSeasonId.trim() !== ''
+  
+  // Загружаем клубы с фильтром по сезону только если сезон выбран
+  const seasonUrl = hasSeasonFilter && selectedSeasonId 
+    ? `${API_ENDPOINTS.CLUBS}?all=1&season=${selectedSeasonId}` 
+    : null
+  const { data: filteredClubsData, loading: filteredLoading } = useApi<any>(
+    seasonUrl,
+    undefined,
+    [selectedSeasonId]
+  )
+  
+  // Извлекаем массив клубов из ответа (может быть пагинированный ответ или массив)
+  const filteredClubs = Array.isArray(filteredClubsData) 
+    ? filteredClubsData 
+    : (filteredClubsData?.results || filteredClubsData?.data || [])
+  
+  // Используем отфильтрованные клубы, если сезон выбран, иначе все клубы
+  const clubsList = hasSeasonFilter ? (filteredClubs || []) : (Array.isArray(clubs) ? clubs : [])
+  const isLoading = hasSeasonFilter ? filteredLoading : loading
   
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'club', 'player', 'player_stats', 'transfer', 'season']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем клубы...', event.detail.type)
         refetchClubs()
       }
     }
@@ -27,7 +54,7 @@ export default function ClubsPage() {
     }
   }, [refetchClubs])
 
-  if (loading) {
+  if (isLoading) {
     return (
       <main className="container-px py-10">
         <Breadcrumbs items={[{ label: 'Клубы' }]} />
@@ -51,15 +78,18 @@ export default function ClubsPage() {
     )
   }
 
-  const clubsList = Array.isArray(clubs) ? clubs : []
-
   return (
     <main className="container-px py-10">
       <Breadcrumbs items={[{ label: 'Клубы' }]} />
-      <h1 className="text-3xl font-bold text-center mb-8">Команды лиги</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold text-center flex-1">Команды лиги</h1>
+        <div className="ml-4">
+          <SeasonFilter />
+        </div>
+      </div>
       {clubsList.length > 0 ? (
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {clubsList.map((club, index) => (
+          {clubsList.map((club: Club, index: number) => (
             <motion.div
               key={club.id}
               initial={{ opacity: 0, y: 20 }}
@@ -102,8 +132,12 @@ export default function ClubsPage() {
           <div className="w-40 h-40 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
             <span className="text-brand-primary font-bold text-3xl">К</span>
           </div>
-          <h3 className="text-xl font-semibold mb-2">Клубы не найдены</h3>
-          <p className="text-white/70">Информация о клубах будет добавлена позже</p>
+          <h3 className="text-xl font-semibold mb-2">
+            {selectedSeasonId ? 'Клубы не найдены в этом сезоне' : 'Клубы не найдены'}
+          </h3>
+          <p className="text-white/70">
+            {selectedSeasonId ? 'В выбранном сезоне нет клубов' : 'Информация о клубах будет добавлена позже'}
+          </p>
         </div>
       )}
     </main>

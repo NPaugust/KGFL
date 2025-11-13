@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from .models import User, Season, Partner, Media
+from .models import User, Season, Group, Partner, Media
 
 
 @admin.register(User)
@@ -29,8 +29,8 @@ class UserAdmin(BaseUserAdmin):
 class SeasonAdmin(admin.ModelAdmin):
 	"""Админ-панель для модели Season."""
 	
-	list_display = ['name', 'start_date', 'end_date', 'is_active', 'created_at']
-	list_filter = ['is_active', 'start_date', 'end_date']
+	list_display = ['name', 'format', 'start_date', 'end_date', 'is_active', 'created_at']
+	list_filter = ['format', 'is_active', 'start_date', 'end_date']
 	search_fields = ['name', 'description']
 	ordering = ['-start_date']
 	
@@ -38,11 +38,36 @@ class SeasonAdmin(admin.ModelAdmin):
 		('Основная информация', {
 			'fields': ('name', 'description')
 		}),
+		('Формат турнира', {
+			'fields': ('format',),
+			'description': 'Выберите формат: "Одна таблица" или "Групповой этап". При выборе группового этапа автоматически создаются 3 группы (A, B, C).'
+		}),
 		('Даты', {
 			'fields': ('start_date', 'end_date')
 		}),
 		('Статус', {
 			'fields': ('is_active',)
+		}),
+	)
+
+
+@admin.register(Group)
+class GroupAdmin(admin.ModelAdmin):
+	"""Админ-панель для модели Group."""
+	
+	list_display = ['name', 'season', 'order', 'clubs_count', 'created_at']
+	list_filter = ['season']
+	search_fields = ['name', 'season__name']
+	ordering = ['season', 'order', 'name']
+	
+	def clubs_count(self, obj):
+		"""Количество команд в группе."""
+		return obj.club_seasons.count()
+	clubs_count.short_description = 'Команд в группе'
+	
+	fieldsets = (
+		('Основная информация', {
+			'fields': ('season', 'name', 'order')
 		}),
 	)
 

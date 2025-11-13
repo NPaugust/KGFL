@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth import authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
-from .models import User, Season, Partner, Media
+from .models import User, Season, Group, Partner, Media
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -78,8 +78,29 @@ class LoginSerializer(serializers.Serializer):
 class SeasonSerializer(serializers.ModelSerializer):
     """Сериализатор для модели Season."""
     
+    has_groups = serializers.BooleanField(read_only=True)
+    groups = serializers.SerializerMethodField()
+    
     class Meta:
         model = Season
+        fields = '__all__'
+    
+    def get_groups(self, obj):
+        """Получаем список групп сезона."""
+        if obj.has_groups:
+            groups = obj.groups.all()
+            return GroupSerializer(groups, many=True, context=self.context).data
+        return []
+
+
+class GroupSerializer(serializers.ModelSerializer):
+    """Сериализатор для модели Group."""
+    
+    clubs_count = serializers.IntegerField(read_only=True)
+    season_name = serializers.CharField(source='season.name', read_only=True)
+    
+    class Meta:
+        model = Group
         fields = '__all__'
 
 

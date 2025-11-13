@@ -32,7 +32,6 @@ export function useReferees() {
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
       if (event.detail.type === 'referee') {
-        console.log('Обновляем судей...', event.detail.type)
         fetchReferees()
       }
     }

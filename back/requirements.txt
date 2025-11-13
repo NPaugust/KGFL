@@ -20,3 +20,7 @@ flake8==7.1.1
 isort==5.13.2
 psycopg[binary]==3.2.3
 gunicorn==23.0.0
+# Опциональные зависимости для улучшений
+drf-spectacular==0.27.1
+sentry-sdk==2.18.0
+django-redis==5.4.0

@@ -6,8 +6,6 @@ import { useEffect } from 'react'
 export const useGlobalRefresh = (refetch?: () => void) => {
   useEffect(() => {
     const handleDataUpdate = (event: CustomEvent) => {
-      console.log('Данные обновлены:', event.detail)
-      
       // Обновляем данные в текущем компоненте
       if (refetch) {
         refetch()

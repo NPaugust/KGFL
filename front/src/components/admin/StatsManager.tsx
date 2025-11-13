@@ -85,7 +85,6 @@ export function StatsManager() {
   }
 
   const handleEdit = (player: any) => {
-    console.log('Editing player stats:', player)
     setEditingStats(player)
     setFormData({
       player: player.id,
@@ -105,7 +104,6 @@ export function StatsManager() {
   }
 
   const playersList = Array.isArray(players) ? players : []
-  console.log('Players list for stats:', playersList)
 
   return (
     <div className="p-6">

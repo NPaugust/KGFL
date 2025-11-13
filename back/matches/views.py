@@ -37,6 +37,20 @@ class MatchViewSet(viewsets.ModelViewSet):
             rest_framework.parsers.JSONParser(),
         ]
 
+    def get_queryset(self):
+        """Фильтрация матчей по сезону."""
+        qs = super().get_queryset()
+        
+        # Фильтрация по сезону
+        season_id = self.request.query_params.get('season')
+        
+        # Проверяем, что season_id не пустой и не None
+        if season_id and season_id.strip():
+            qs = qs.filter(season_id=season_id.strip())
+        # Если season_id пустой или None - не фильтруем, показываем все матчи
+        
+        return qs
+
     def get_serializer_context(self):
         context = super().get_serializer_context()
         context['request'] = self.request

@@ -46,11 +46,11 @@ export function SelectMenu({ label, value, onChange, options, className }: {
   return (
     <div ref={ref} className={clsx('relative flex items-center gap-3', className)}>
       {label && <span className="text-white/70 text-sm">{label}</span>}
-      <button type="button" onClick={() => setOpen((o) => !o)} className="min-w-[140px] rounded-lg border border-white/20 bg-brand-dark px-3 py-2 text-left text-sm text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-primary/60">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="min-w-[140px] rounded-none border border-white/20 bg-brand-dark px-3 py-2 text-left text-sm text-white shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-primary/60">
         {current}
       </button>
       {open && (
-        <div className="absolute left-[60px] top-full z-20 mt-2 w-[200px] overflow-hidden rounded-lg border border-white/10 bg-black/70 backdrop-blur-xl">
+        <div className="absolute left-[60px] top-full z-20 mt-2 w-[200px] overflow-hidden rounded-none border border-white/10 bg-black/70 backdrop-blur-xl">
           {options.map((o) => {
             const selected = o.value === value
             return (

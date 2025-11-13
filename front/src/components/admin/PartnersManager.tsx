@@ -35,8 +35,14 @@ export function PartnersManager() {
     partnership_type: 'sponsor',
     is_active: true
   })
+  const [activePartnerTab, setActivePartnerTab] = useState<'general' | 'contacts' | 'media'>('general')
 
   const { mutate, loading: mutationLoading } = useApiMutation()
+  const partnerModalTabs: { id: 'general' | 'contacts' | 'media'; label: string; description: string }[] = [
+    { id: 'general', label: 'Основное', description: 'Название и тип' },
+    { id: 'contacts', label: 'Контакты', description: 'Сайт и контактные данные' },
+    { id: 'media', label: 'Медиа', description: 'Логотип и активность' }
+  ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,6 +65,7 @@ export function PartnersManager() {
       }
 
       setIsModalOpen(false)
+      setActivePartnerTab('general')
       setEditingPartner(null)
       
       // Сбрасываем formData только при создании нового партнера
@@ -81,7 +88,6 @@ export function PartnersManager() {
         detail: { type: 'partner' } 
       }))
     } catch (error) {
-      console.error('Ошибка при сохранении партнера:', error)
       alert('Ошибка при сохранении партнера')
     }
   }
@@ -100,11 +106,13 @@ export function PartnersManager() {
       is_active: true,
       logo: undefined
     })
+    setActivePartnerTab('general')
     setIsModalOpen(true)
   }
 
   const handleEdit = (partner: any) => {
     setEditingPartner(partner)
+    setActivePartnerTab('general')
     setFormData({
       name: partner.name || '',
       description: partner.description || '',
@@ -211,69 +219,184 @@ export function PartnersManager() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingPartner(null); }}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingPartner(null)
+          setActivePartnerTab('general')
+          setFormData({
+            name: '',
+            description: '',
+            website: '',
+            contact_person: '',
+            contact_email: '',
+            contact_phone: '',
+            partnership_type: 'sponsor',
+            is_active: true,
+            logo: undefined
+          })
+        }}
         title={editingPartner ? 'Редактировать партнера' : 'Добавить партнера'}
-        size="md"
+        size="lg"
+        className="max-w-4xl"
       >
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Название *</label>
-                <input type="text" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="input w-full" required />
-              </div>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div className="flex flex-wrap gap-2">
+              {partnerModalTabs.map((tab) => {
+                const isActive = activePartnerTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActivePartnerTab(tab.id)}
+                    className={`px-4 py-2 rounded-xl border transition-all text-sm font-medium ${
+                      isActive
+                        ? 'border-brand-primary bg-brand-primary/20 text-brand-primary shadow-[0_0_20px_rgba(0,140,255,0.2)]'
+                        : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <div>{tab.label}</div>
+                    <div className="text-xs text-white/50 font-normal">{tab.description}</div>
+                  </button>
+                )
+              })}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Описание</label>
-                <textarea value={formData.description} onChange={(e) => setFormData({ ...formData, description: e.target.value })} className="textarea w-full" rows={3} />
-              </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              {activePartnerTab === 'general' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Название *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="input w-full"
+                      required
+                      placeholder="Название партнера"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Описание</label>
+                    <textarea
+                      value={formData.description}
+                      onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                      className="textarea w-full"
+                      rows={4}
+                      placeholder="Краткое описание сотрудничества"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Тип партнерства *</label>
+                    <select
+                      value={formData.partnership_type}
+                      onChange={(e) => setFormData({ ...formData, partnership_type: e.target.value })}
+                      className="input w-full"
+                      required
+                    >
+                      <option value="sponsor">Спонсор</option>
+                      <option value="partner">Партнер</option>
+                      <option value="supplier">Поставщик</option>
+                      <option value="media">Медиа-партнер</option>
+                    </select>
+                  </div>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Веб-сайт</label>
-                <input type="url" value={formData.website} onChange={(e) => setFormData({ ...formData, website: e.target.value })} className="input w-full" />
-              </div>
+              {activePartnerTab === 'contacts' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Веб-сайт</label>
+                    <input
+                      type="url"
+                      value={formData.website}
+                      onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                      className="input w-full"
+                      placeholder="https://partner.kg"
+                    />
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Контактное лицо</label>
+                      <input
+                        type="text"
+                        value={formData.contact_person}
+                        onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })}
+                        className="input w-full"
+                        placeholder="Имя контактного лица"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={formData.contact_email}
+                        onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })}
+                        className="input w-full"
+                        placeholder="email@partner.kg"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Телефон</label>
+                    <input
+                      type="tel"
+                      value={formData.contact_phone}
+                      onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })}
+                      className="input w-full"
+                      placeholder="Контактный номер"
+                    />
+                  </div>
+                </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Тип партнерства *</label>
-                <select value={formData.partnership_type} onChange={(e) => setFormData({ ...formData, partnership_type: e.target.value })} className="input w-full" required>
-                  <option value="sponsor">Спонсор</option>
-                  <option value="partner">Партнер</option>
-                  <option value="supplier">Поставщик</option>
-                  <option value="media">Медиа-партнер</option>
-                </select>
-              </div>
+              {activePartnerTab === 'media' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Логотип</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })}
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
+                    />
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    />
+                    Активен
+                  </label>
+                </div>
+              )}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Контактное лицо</label>
-                <input type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} className="input w-full" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input type="email" value={formData.contact_email} onChange={(e) => setFormData({ ...formData, contact_email: e.target.value })} className="input w-full" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Телефон</label>
-                <input type="tel" value={formData.contact_phone} onChange={(e) => setFormData({ ...formData, contact_phone: e.target.value })} className="input w-full" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Логотип</label>
-                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, logo: e.target.files?.[0] })} className="input w-full" />
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
-                  <span className="text-sm">Активен</span>
-                </label>
-              </div>
-
-            <div className="flex gap-3 pt-4">
-              <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
+            <div className="flex flex-col gap-3 md:flex-row md:gap-4 pt-4 border-t border-white/10">
+              <button type="submit" className="flex-1 btn btn-primary h-12" disabled={mutationLoading}>
                 {mutationLoading ? 'Сохранение...' : 'Сохранить'}
               </button>
-              <button type="button" onClick={() => { setIsModalOpen(false); setEditingPartner(null); }} className="btn btn-outline flex-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setEditingPartner(null)
+                  setActivePartnerTab('general')
+                  setFormData({
+                    name: '',
+                    description: '',
+                    website: '',
+                    contact_person: '',
+                    contact_email: '',
+                    contact_phone: '',
+                    partnership_type: 'sponsor',
+                    is_active: true,
+                    logo: undefined
+                  })
+                }}
+                className="flex-1 btn btn-outline h-12"
+              >
                 Отмена
               </button>
             </div>

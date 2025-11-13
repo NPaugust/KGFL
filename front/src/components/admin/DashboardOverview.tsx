@@ -16,7 +16,7 @@ export function DashboardOverview({ onSectionChange }: DashboardOverviewProps) {
     { id: 'transfers', title: 'Трансферы', description: 'Переходы игроков между клубами', color: 'from-orange-500 to-orange-600' },
     { id: 'referees', title: 'Судьи', description: 'Судейский состав лиги', color: 'from-red-500 to-red-600' },
     { id: 'management', title: 'Руководство', description: 'Администрация лиги', color: 'from-indigo-500 to-indigo-600' },
-    { id: 'media', title: 'Медиа', description: 'Новости и фотографии', color: 'from-pink-500 to-pink-600' },
+    { id: 'media', title: 'Медиа', description: 'Фотографии', color: 'from-pink-500 to-pink-600' },
     { id: 'partners', title: 'Партнеры', description: 'Спонсоры и партнеры', color: 'from-teal-500 to-teal-600' },
     { id: 'seasons', title: 'Сезоны', description: 'Управление сезонами', color: 'from-cyan-500 to-cyan-600' },
   ]

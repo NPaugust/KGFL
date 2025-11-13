@@ -33,7 +33,6 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
   }
 
         if (requiredRole && user?.role !== requiredRole && !user?.is_superuser) {
-        console.log('User role:', user?.role, 'Required role:', requiredRole, 'Is superuser:', user?.is_superuser)
         return (
           <div className="min-h-screen flex items-center justify-center bg-brand-dark">
             <div className="text-center">

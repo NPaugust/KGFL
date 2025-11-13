@@ -72,7 +72,6 @@ export default function AdminMatchesPage() {
       setMatches(matchesData);
       setClubs(clubsData);
     } catch (error) {
-      console.error('Error fetching data:', error);
     } finally {
       setLoading(false);
     }
@@ -109,7 +108,6 @@ export default function AdminMatchesPage() {
         setEditForm({ home_score: '', away_score: '', status: 'scheduled' });
       }
     } catch (error) {
-      console.error('Error updating match:', error);
     }
   };
 

@@ -1,4 +1,4 @@
-echo "# Dependencies
+# Dependencies
 node_modules/
 npm-debug.log*
 yarn-debug.log*
@@ -15,6 +15,8 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
+# Но примеры оставляем
+!.env.example
 
 # Python
 __pycache__/
@@ -29,4 +31,11 @@ env/
 
 # OS
 .DS_Store
-Thumbs.db" > .gitignore
+Thumbs.db
+
+# Docker
+data/
+
+# Logs
+*.log
+logs/

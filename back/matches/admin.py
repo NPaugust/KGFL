@@ -6,14 +6,26 @@ from .models import Match, Goal, Card, Substitution
 class MatchAdmin(admin.ModelAdmin):
 	"""Админ-панель для модели Match."""
 	
-	list_display = ['date', 'time', 'home_team', 'away_team', 'score_display', 'status', 'stadium', 'stadium_ref']
-	list_filter = ['status', 'date', 'season', 'home_team', 'away_team', 'stadium_ref']
+	list_display = ['date', 'time', 'home_team', 'away_team', 'score_display', 'status', 'season', 'group', 'stadium', 'stadium_ref']
+	list_filter = ['status', 'date', 'season', 'group', 'home_team', 'away_team', 'stadium_ref']
 	search_fields = ['home_team__name', 'away_team__name', 'stadium']
 	ordering = ['-date', '-time']
 	
+	def get_form(self, request, obj=None, **kwargs):
+		"""Динамически показываем/скрываем поле group в зависимости от сезона."""
+		form = super().get_form(request, obj, **kwargs)
+		
+		# Если объект существует и сезон не имеет групп - делаем поле group необязательным
+		if obj and obj.season and obj.season.format != 'groups':
+			form.base_fields['group'].required = False
+			form.base_fields['group'].help_text = 'Этот сезон не имеет группового этапа. Поле можно оставить пустым.'
+		
+		return form
+	
 	fieldsets = (
 		('Команды и сезон', {
-			'fields': ('home_team', 'away_team', 'season')
+			'fields': ('home_team', 'away_team', 'season', 'group'),
+			'description': 'Если сезон имеет групповой этап - выберите группу для матча.'
 		}),
 		('Время и место', {
 			'fields': ('date', 'time', 'stadium_ref', 'stadium', 'round', 'attendance')

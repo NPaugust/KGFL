@@ -14,21 +14,28 @@ export type Season = {
 type State = {
   seasons: Season[]
   selectedSeasonId: string
+  selectedGroupId: string | null
   loading: boolean
   error: string | null
   setSeason: (id: string) => void
+  setGroup: (id: string | null) => void
   fetchSeasons: () => Promise<void>
 }
 
 export const useSeasonStore = create<State>((set, get) => ({
   seasons: [],
   selectedSeasonId: '',
+  selectedGroupId: null,
   loading: false,
   error: null,
   
   setSeason: (id) => {
-    set({ selectedSeasonId: id })
+    set({ selectedSeasonId: id, selectedGroupId: null }) // Сбрасываем группу при смене сезона
     // Убираем автоматические события чтобы избежать бесконечных циклов
+  },
+  
+  setGroup: (id) => {
+    set({ selectedGroupId: id })
   },
   
   fetchSeasons: async () => {
@@ -65,31 +72,18 @@ export const useSeasonStore = create<State>((set, get) => ({
         description: season.description
       }))
       
-      // Получаем текущий выбранный сезон
-      const currentSelectedId = get().selectedSeasonId
-      
-      // Выбираем сезон: сохраняем текущий выбор или выбираем активный/первый
-      let newSelectedSeasonId = currentSelectedId
-      if (seasons.length > 0) {
-        if (currentSelectedId && seasons.find(s => s.id === currentSelectedId)) {
-          // Если текущий выбранный сезон все еще существует, оставляем его
-          newSelectedSeasonId = currentSelectedId
-        } else {
-          // Иначе выбираем активный или первый доступный
-          const activeSeason = seasons.find(s => s.is_active)
-          newSelectedSeasonId = activeSeason ? activeSeason.id : seasons[0].id
-        }
-      }
+      // По умолчанию выбираем активный сезон, если он есть
+      const activeSeason = seasons.find(s => s.is_active)
+      const defaultSeasonId = activeSeason ? activeSeason.id : ''
       
       set({ 
         seasons,
-        selectedSeasonId: newSelectedSeasonId,
+        selectedSeasonId: defaultSeasonId,
         loading: false 
       })
       
       // Убираем автоматические события чтобы избежать бесконечных циклов
     } catch (error) {
-      console.error('Ошибка загрузки сезонов:', error)
       set({ 
         error: error instanceof Error ? error.message : 'Ошибка загрузки сезонов',
         loading: false 

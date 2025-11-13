@@ -56,7 +56,6 @@ export default function TransfersPage() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['transfer', 'player', 'club']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем трансферы...', event.detail.type)
         refetch()
       }
     }

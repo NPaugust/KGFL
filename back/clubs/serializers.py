@@ -25,6 +25,8 @@ class ClubListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка клубов."""
     
     logo_url = serializers.SerializerMethodField()
+    season_name = serializers.SerializerMethodField()
+    group_name = serializers.SerializerMethodField()
     
     class Meta:
         model = Club
@@ -33,7 +35,7 @@ class ClubListSerializer(serializers.ModelSerializer):
             'primary_kit_color', 'secondary_kit_color', 'coach_full_name',
             'assistant_full_name', 'captain_full_name', 'contact_phone',
             'contact_email', 'social_media', 'description', 'participation_fee',
-            'status', 'website', 'is_active'
+            'status', 'website', 'is_active', 'season_name', 'group_name'
         ]
     
     def get_logo_url(self, obj):
@@ -43,6 +45,21 @@ class ClubListSerializer(serializers.ModelSerializer):
                 return request.build_absolute_uri(obj.logo.url) if request else obj.logo.url
             except:
                 return obj.logo.url
+        return None
+    
+    def get_season_name(self, obj):
+        """Получаем имя сезона из самой последней записи ClubSeason."""
+        latest_season = obj.seasons.order_by('-created_at').first()
+        if latest_season and latest_season.season:
+            return latest_season.season.name
+        # Если у клуба нет сезона, возвращаем None (не отображаем "Без сезона")
+        return None
+    
+    def get_group_name(self, obj):
+        """Получаем имя группы из самой последней записи ClubSeason."""
+        latest_season = obj.seasons.order_by('-created_at').first()
+        if latest_season and latest_season.group:
+            return latest_season.group.name
         return None
 
 
@@ -63,6 +80,8 @@ class ClubSeasonSerializer(serializers.ModelSerializer):
     club_name = serializers.CharField(source='club.name', read_only=True)
     club_logo = serializers.CharField(source='club.logo', read_only=True)
     season_name = serializers.CharField(source='season.name', read_only=True)
+    group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
+    group_id = serializers.IntegerField(source='group.id', read_only=True, allow_null=True)
     
     class Meta:
         model = ClubSeason
@@ -86,18 +105,22 @@ class TableRowSerializer(serializers.ModelSerializer):
     club_name = serializers.CharField(source='club.name', read_only=True)
     club_id = serializers.IntegerField(source='club.id', read_only=True)
     club_logo = serializers.SerializerMethodField()
-    goals_formatted = serializers.CharField(read_only=True)
+    goals_formatted = serializers.SerializerMethodField()
     goal_difference = serializers.IntegerField(read_only=True)
-    last_5 = serializers.ListField(read_only=True)
+    last_5 = serializers.SerializerMethodField()
+    group_name = serializers.CharField(source='group.name', read_only=True, allow_null=True)
+    group_id = serializers.IntegerField(source='group.id', read_only=True, allow_null=True)
+    id = serializers.IntegerField(read_only=True, required=False, allow_null=True)  # id может быть None для временных объектов
     
     class Meta:
         model = ClubSeason
         fields = [
             'id', 'club_id', 'club_name', 'club_logo', 'position', 'points',
             'matches_played', 'wins', 'draws', 'losses',
-            'goals_for', 'goals_against', 'goals_formatted', 'goal_difference', 'last_5'
+            'goals_for', 'goals_against', 'goals_formatted', 'goal_difference', 
+            'last_5', 'group_id', 'group_name'
         ] 
-
+    
     def get_club_logo(self, obj):
         if obj.club and obj.club.logo:
             request = self.context.get('request')
@@ -107,6 +130,20 @@ class TableRowSerializer(serializers.ModelSerializer):
             except:
                 return url
         return None
+    
+    def get_goals_formatted(self, obj):
+        """Получаем форматированные голы."""
+        try:
+            return f"{obj.goals_for or 0}:{obj.goals_against or 0}"
+        except:
+            return "0:0"
+    
+    def get_last_5(self, obj):
+        """Получаем результаты последних 5 матчей."""
+        try:
+            return obj.last_5
+        except:
+            return [None] * 5
 
 
 class ClubApplicationSerializer(serializers.ModelSerializer):

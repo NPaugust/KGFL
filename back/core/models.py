@@ -69,10 +69,22 @@ class User(AbstractUser):
 class Season(models.Model):
     """Модель сезона."""
     
+    class Format(models.TextChoices):
+        SINGLE = 'single', _('Одна таблица')
+        GROUPS = 'groups', _('Групповой этап')
+    
     name = models.CharField(
         max_length=100,
         blank=True,
         verbose_name=_('Название')
+    )
+    
+    format = models.CharField(
+        max_length=20,
+        choices=Format.choices,
+        default=Format.SINGLE,
+        verbose_name=_('Формат турнира'),
+        help_text=_('Выберите формат: одна таблица или групповой этап')
     )
     
     start_date = models.DateField(
@@ -115,9 +127,79 @@ class Season(models.Model):
     def __str__(self):
         return self.name
     
+    @property
+    def has_groups(self):
+        """Проверка, есть ли у сезона группы."""
+        return self.format == self.Format.GROUPS
+    
     def save(self, *args, **kwargs):
         # Сохраняем сезон (деактивация других сезонов обрабатывается сигналом)
+        was_groups = False
+        if self.pk:
+            try:
+                old_season = Season.objects.get(pk=self.pk)
+                was_groups = old_season.format == self.Format.GROUPS
+            except Season.DoesNotExist:
+                pass
+        
         super().save(*args, **kwargs)
+        
+        # Если формат изменился на "групповой этап" и групп еще нет - создаем 3 группы
+        if self.format == self.Format.GROUPS and not self.groups.exists():
+            # Используем apps.get_model() чтобы избежать циклического импорта
+            from django.apps import apps
+            GroupModel = apps.get_model('core', 'Group')
+            GroupModel.objects.bulk_create([
+                GroupModel(season=self, name='Группа A', order=1),
+                GroupModel(season=self, name='Группа B', order=2),
+                GroupModel(season=self, name='Группа C', order=3),
+            ])
+
+
+class Group(models.Model):
+    """Модель группы в сезоне (для групповых этапов)."""
+    
+    season = models.ForeignKey(
+        Season,
+        on_delete=models.CASCADE,
+        related_name='groups',
+        verbose_name=_('Сезон')
+    )
+    
+    name = models.CharField(
+        max_length=100,
+        verbose_name=_('Название группы'),
+        help_text=_('Например: "Группа A", "Группа 1"')
+    )
+    
+    order = models.PositiveIntegerField(
+        default=0,
+        verbose_name=_('Порядок сортировки')
+    )
+    
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name=_('Дата создания')
+    )
+    
+    updated_at = models.DateTimeField(
+        auto_now=True,
+        verbose_name=_('Дата обновления')
+    )
+    
+    class Meta:
+        verbose_name = _('Группа')
+        verbose_name_plural = _('Группы')
+        unique_together = ['season', 'name']
+        ordering = ['season', 'order', 'name']
+    
+    def __str__(self):
+        return f"{self.season.name} - {self.name}"
+    
+    @property
+    def clubs_count(self):
+        """Количество команд в группе."""
+        return self.club_seasons.count()
 
 
 class Partner(models.Model):

@@ -125,6 +125,8 @@ export interface Season {
   end_date?: string
   isActive?: boolean
   is_active?: boolean
+  format?: 'single' | 'groups'
+  has_groups?: boolean
 }
 
 export interface Referee {

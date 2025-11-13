@@ -23,8 +23,6 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: any) {
-    console.error('ErrorBoundary caught an error:', error, errorInfo)
-    
     // Здесь можно отправить ошибку в сервис аналитики
     // например, Sentry, LogRocket и т.д.
   }
@@ -100,8 +98,6 @@ export class ErrorBoundary extends Component<Props, State> {
 // Хук для обработки ошибок в функциональных компонентах
 export function useErrorHandler() {
   return (error: Error) => {
-    console.error('Error caught by useErrorHandler:', error)
-    
     // Здесь можно отправить ошибку в сервис аналитики
     // или показать уведомление пользователю
   }

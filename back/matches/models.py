@@ -112,6 +112,16 @@ class Match(models.Model):
         verbose_name=_('Сезон')
     )
     
+    group = models.ForeignKey(
+        'core.Group',
+        on_delete=models.SET_NULL,
+        related_name='group_matches',
+        blank=True,
+        null=True,
+        verbose_name=_('Группа'),
+        help_text=_('Группа для групповых этапов. Если не указана - обычный матч.')
+    )
+    
     home_score_ht = models.PositiveIntegerField(
         blank=True,
         null=True,

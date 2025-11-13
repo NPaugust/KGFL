@@ -4,9 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getImageUrl } from '@/utils'
 import { SeasonFilter } from './SeasonFilter'
+import { GroupFilter } from './GroupFilter'
 import { useClubs } from '@/hooks/useClubs'
 import { Loading } from './Loading'
 import { TableRow } from '@/types'
+import { useSeasonStore } from '@/store/useSeasonStore'
 
 function Th({ title, hint, align = 'center' }: { title: string; hint: string; align?: 'left' | 'center' | 'right' }) {
   return (
@@ -20,64 +22,18 @@ function Th({ title, hint, align = 'center' }: { title: string; hint: string; al
 
 type HeaderMode = 'full' | 'compact' | 'none'
 export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitle = false }: { headerMode?: HeaderMode; embedded?: boolean; hideSubtitle?: boolean }) {
-  const { table, tableLoading, tableError } = useClubs()
+  const { table, tableLoading, tableError, groupsData } = useClubs()
   const router = useRouter()
 
-  if (tableLoading) {
+  const renderTable = (teams: TableRow[], groupTitle?: string) => {
     return (
-      <section id="table" className={`${embedded ? '' : 'container-px'} ${embedded ? 'py-0' : 'py-16'}`}>
-        <Loading />
-      </section>
-    )
-  }
-
-  if (tableError) {
-    return (
-      <section id="table" className={`${embedded ? '' : 'container-px'} ${embedded ? 'py-0' : 'py-16'}`}>
-        <div className="text-center text-red-400">
-          Ошибка загрузки таблицы: {typeof tableError === 'string' ? tableError : 'Неизвестная ошибка'}
-        </div>
-      </section>
-    )
-  }
-
-  return (
-    <section id="table" className={`${embedded ? '' : 'container-px'} ${embedded ? 'py-0' : 'py-16'}`}>
-      {headerMode === 'full' && (
-        <div className="mb-6 grid grid-cols-3 items-end gap-4">
-          <div />
-          <div className="text-center">
-
-          </div>
-          <div className="justify-self-end"><SeasonFilter /></div>
-        </div>
-      )}
-      {headerMode === 'compact' && (
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div className="text-left">
-            <h2 className="text-lg font-semibold">Таблица</h2>
-            {!hideSubtitle && <p className="text-white/70 text-sm">Обновляется в реальном времени по окончании матчей</p>}
-          </div>
-          <SeasonFilter />
-        </div>
-      )}
-      {headerMode === 'none' && (
-        <div className="mb-4 flex items-end justify-end">
-          <SeasonFilter />
-        </div>
-      )}
-
-      {/* Заголовок и описание по центру (над таблицей) */}
-      {!embedded && headerMode !== 'compact' && (
-        <div className="text-center mb-4">
-          <h2 className="text-4xl font-bold mb-2">Турнирная таблица</h2>
-          {!hideSubtitle && (
-            <p className="text-white/70 mb-2">Следите за результатами и статистикой клубов в текущем сезоне KGFL </p>
-          )}
-        </div>
-      )}
-
       <div className="card overflow-hidden reveal relative">
+        {/* Заголовок группы, если указан */}
+        {groupTitle && (
+          <div className="px-6 py-4 bg-white/5 border-b border-white/10">
+            <h3 className="text-xl font-bold text-white">{groupTitle}</h3>
+          </div>
+        )}
         {/* Только верхняя цветная линия (учитывает скругления по углам) */}
         <div className="absolute top-0 left-0 right-0 h-1 rounded-t-2xl bg-gradient-to-r from-brand-primary via-red-500 to-orange-400" />
         <div className="max-h-[730px] overflow-y-auto scroll-y">
@@ -97,7 +53,7 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
             </tr>
           </thead>
           <tbody>
-            {table.map((r, idx) => {
+            {teams.length > 0 ? teams.map((r, idx) => {
               const position = r.position || idx + 1;
               // Цветные левые линии топ-5 разных цветов
               const posColors = ['border-emerald-500','border-sky-500','border-amber-500','border-fuchsia-500','border-rose-500'] as const;
@@ -117,7 +73,7 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
 
               return (
                 <tr 
-                  key={r.id} 
+                  key={r.id || idx} 
                   onClick={() => router.push(`/clubs/${r.club_id}`)}
                   className={`hover:bg-white/20 cursor-pointer transition-colors ${posClass} ${idx % 2 ? 'bg-white/[0.03]' : 'bg-white/[0.06]'}`}
                 >
@@ -174,11 +130,111 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
                   </td>
                 </tr>
               );
-            })}
+            }) : (
+              <tr>
+                <td colSpan={10} className="px-4 py-8 text-center text-white/60">
+                  Команды не найдены
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         </div>
       </div>
+    )
+  }
+
+  if (tableLoading) {
+    return (
+      <section id="table" className={`${embedded ? '' : 'container-px'} ${embedded ? 'py-0' : 'py-16'}`}>
+        <Loading />
+      </section>
+    )
+  }
+
+  if (tableError) {
+    return (
+      <section id="table" className={`${embedded ? '' : 'container-px'} ${embedded ? 'py-0' : 'py-16'}`}>
+        <div className="text-center text-red-400">
+          Ошибка загрузки таблицы: {typeof tableError === 'string' ? tableError : 'Неизвестная ошибка'}
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section id="table" className={`${embedded ? '' : 'container-px'} ${embedded ? 'py-0' : 'py-16'}`}>
+      {headerMode === 'full' && (
+        <div className="mb-6 grid grid-cols-3 items-end gap-4">
+          <div />
+          <div className="text-center">
+
+          </div>
+          <div className="justify-self-end flex items-center gap-3">
+            <SeasonFilter />
+            <GroupFilter />
+          </div>
+        </div>
+      )}
+      {headerMode === 'compact' && (
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div className="text-left">
+            <h2 className="text-lg font-semibold">Таблица</h2>
+            {!hideSubtitle && <p className="text-white/70 text-sm">Обновляется в реальном времени по окончании матчей</p>}
+          </div>
+          <div className="flex items-center gap-3">
+            <SeasonFilter />
+            <GroupFilter />
+          </div>
+        </div>
+      )}
+      {headerMode === 'none' && (
+        <div className="mb-4 flex items-end justify-end gap-3">
+          <SeasonFilter />
+          <GroupFilter />
+        </div>
+      )}
+
+      {/* Заголовок и описание по центру (над таблицей) */}
+      {!embedded && headerMode !== 'compact' && (
+        <div className="text-center mb-4">
+          <h2 className="text-4xl font-bold mb-2">Турнирная таблица</h2>
+          {!hideSubtitle && (
+            <p className="text-white/70 mb-2">Следите за результатами и статистикой клубов в текущем сезоне KGFL </p>
+          )}
+        </div>
+      )}
+
+      {/* Если выбрана конкретная группа - показываем только её с заголовком */}
+      {(() => {
+        const { selectedGroupId } = useSeasonStore.getState()
+        const selectedGroup = groupsData?.groups?.find((g: any) => g.group?.id?.toString() === selectedGroupId?.toString())
+        
+        // Если выбрана конкретная группа - показываем только её с заголовком
+        if (selectedGroupId && selectedGroup) {
+          return (
+            <div>
+              {renderTable(selectedGroup.teams || [], selectedGroup.group?.name)}
+            </div>
+          )
+        }
+        
+        // Если есть группы и не выбрана конкретная - показываем все группы
+        if (groupsData && groupsData.groups && groupsData.groups.length > 0) {
+          return (
+            <div className="space-y-6">
+              {groupsData.groups.map((groupItem: any) => (
+                <div key={groupItem.group?.id || Math.random()}>
+                  {renderTable(groupItem.teams || [], groupItem.group?.name)}
+                </div>
+              ))}
+            </div>
+          )
+        }
+        
+        // Обычная таблица (без групп или одна группа)
+        return renderTable(table)
+      })()}
     </section>
   )
 }

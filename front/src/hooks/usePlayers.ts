@@ -3,20 +3,27 @@ import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '@/services/api'
 import { API_ENDPOINTS } from '@/services/api'
 import { Player, PaginatedResponse } from '@/types'
+import { useSeasonStore } from '@/store/useSeasonStore'
 
 export function usePlayers() {
+  const { selectedSeasonId } = useSeasonStore()
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
-  const fetchPlayers = async () => {
+  const fetchPlayers = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
-      // Добавляем cache-busting timestamp
-      const timestamp = Date.now()
-      const url = `${API_ENDPOINTS.PLAYERS}?_ts=${timestamp}`
+      // Добавляем cache-busting timestamp и фильтр по сезону
+      const params: any = { _ts: Date.now() }
+      if (selectedSeasonId && selectedSeasonId.trim() !== '') {
+        params.season = selectedSeasonId
+      }
+      // Если selectedSeasonId пустой - не передаем параметр, бэкенд вернет всех игроков
+      
+      const url = `${API_ENDPOINTS.PLAYERS}?${new URLSearchParams(params).toString()}`
       const result = await apiClient.get<PaginatedResponse<Player> | Player[]>(url)
       // Обрабатываем пагинацию
       if (result && typeof result === 'object' && 'results' in result) {
@@ -29,14 +36,13 @@ export function usePlayers() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedSeasonId])
 
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем игроков...', event.detail.type)
         fetchPlayers()
       }
     }
@@ -45,11 +51,11 @@ export function usePlayers() {
     return () => {
       window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
     }
-  }, [])
+  }, [fetchPlayers])
 
   useEffect(() => {
     fetchPlayers()
-  }, [refreshKey])
+  }, [refreshKey, fetchPlayers])
 
   const refetch = () => {
     setRefreshKey(prev => prev + 1)
@@ -96,23 +102,29 @@ export function usePlayer(id: string) {
 }
 
 export function useTopScorers() {
+  const { selectedSeasonId } = useSeasonStore()
   const [topScorers, setTopScorers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchTopScorers = async () => {
+  const fetchTopScorers = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
       const ts = Date.now()
-      const result = await apiClient.get<Player[]>(`${API_ENDPOINTS.TOP_SCORERS}?_ts=${ts}`)
+      const params: any = { _ts: ts }
+      if (selectedSeasonId && selectedSeasonId.trim() !== '') {
+        params.season = selectedSeasonId
+      }
+      const url = `${API_ENDPOINTS.TOP_SCORERS}?${new URLSearchParams(params).toString()}`
+      const result = await apiClient.get<Player[]>(url)
       setTopScorers(result || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка')
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedSeasonId])
 
   // Слушаем события обновления данных
   useEffect(() => {
@@ -127,11 +139,11 @@ export function useTopScorers() {
     return () => {
       window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
     }
-  }, [])
+  }, [fetchTopScorers])
 
   useEffect(() => {
     fetchTopScorers()
-  }, [])
+  }, [fetchTopScorers])
 
   return {
     topScorers: topScorers || [],

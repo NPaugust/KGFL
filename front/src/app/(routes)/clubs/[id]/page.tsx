@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Trophy, 
@@ -29,6 +30,7 @@ import { PlayerTransfer } from '@/types';
 import { apiClient, API_ENDPOINTS } from '@/services/api';
 import { SeasonFilter } from '@/components/SeasonFilter';
 import { useSeasonStore } from '@/store/useSeasonStore';
+import { SelectMenu } from '@/components/Filters';
 import { formatDate, getImageUrl } from '@/utils';
 import { POSITION_LABELS, POSITION_LABELS_SINGULAR, POSITION_COLORS } from '@/utils/constants';
 import Image from 'next/image';
@@ -83,18 +85,43 @@ export default function ClubPage() {
   const searchParams = useSearchParams();
   const { club, loading: clubLoading, error: clubError } = useClub(params.id as string);
   
+  // Локальный state для фильтра сезона на странице клуба (по умолчанию "Все сезоны")
+  const [localSeasonId, setLocalSeasonId] = useState<string>('')
+  
   const { data: players, loading: playersLoading } = useApi<Player[]>(
-    API_ENDPOINTS.CLUB_PLAYERS(params.id as string)
+    `${API_ENDPOINTS.CLUB_PLAYERS(params.id as string)}${localSeasonId ? `?season=${localSeasonId}` : ''}`,
+    undefined,
+    [localSeasonId] // Используем локальный seasonId
   );
   
-  const { selectedSeasonId } = useSeasonStore();
   const { data: matches, loading: matchesLoading } = useApi<Match[]>(
-    `${API_ENDPOINTS.CLUB_MATCHES(params.id as string)}${selectedSeasonId ? `?season=${selectedSeasonId}` : ''}`
+    `${API_ENDPOINTS.CLUB_MATCHES(params.id as string)}${localSeasonId ? `?season=${localSeasonId}` : ''}`,
+    undefined,
+    [localSeasonId] // Используем локальный seasonId
   );
   
   const { data: coaches, loading: coachesLoading } = useApi<Coach[]>(
     `${API_ENDPOINTS.COACHES}?club_id=${params.id}`
   );
+  
+  // Компонент фильтра сезона для страницы клуба
+  const { seasons } = useSeasonStore();
+  
+  function ClubSeasonFilter({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+    const options = [
+      { label: 'Все сезоны', value: '' },
+      ...seasons.map((s) => ({ label: s.name, value: s.id }))
+    ];
+    
+    return (
+      <SelectMenu
+        label="Сезоны"
+        value={value || ''}
+        onChange={(id) => onChange(id || '')}
+        options={options}
+      />
+    );
+  }
   
   const [selectedPlayer, setSelectedPlayer] = useState<Player | null>(null);
   const [playerTransfers, setPlayerTransfers] = useState<PlayerTransfer[]>([]);
@@ -296,6 +323,12 @@ export default function ClubPage() {
               exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
+              {/* Season Filter */}
+              <div className="flex justify-between items-center">
+                <h3 className="text-xl font-semibold text-white">Состав клуба</h3>
+                <ClubSeasonFilter value={localSeasonId} onChange={setLocalSeasonId} />
+              </div>
+              
               {Object.entries(groupedPlayers).map(([position, positionPlayers]) => {
                 const isExpanded = expandedSections[position];
                 
@@ -358,7 +391,7 @@ export default function ClubPage() {
               {/* Season Filter */}
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-semibold text-white">Матчи клуба</h3>
-                <SeasonFilter />
+                <ClubSeasonFilter value={localSeasonId} onChange={setLocalSeasonId} />
               </div>
 
               {/* Matches Table */}
@@ -702,8 +735,18 @@ export default function ClubPage() {
                       <div className="text-4xl font-black text-red-400 mb-2">{playerStats?.red_cards || 0}</div>
                       <div className="text-sm text-white/70 font-medium">Красные карточки</div>
                     </div>
-                  </div>
+                    </div>
                 )}
+              </div>
+
+              {/* Кнопка "Подробнее" */}
+              <div className="px-8 pb-8">
+                <Link
+                  href={`/players/${selectedPlayer.id}`}
+                  className="w-full btn btn-primary flex items-center justify-center gap-2"
+                >
+                  Подробнее
+                </Link>
               </div>
             </div>
           </motion.div>

@@ -37,8 +37,14 @@ export function ManagementManager() {
     order: 0,
     is_active: true
   })
+  const [activeManagerTab, setActiveManagerTab] = useState<'general' | 'contacts' | 'bio'>('general')
 
   const { mutate, loading: mutationLoading } = useApiMutation<Manager>()
+  const managerModalTabs: { id: 'general' | 'contacts' | 'bio'; label: string; description: string }[] = [
+    { id: 'general', label: 'Основное', description: 'Имя и должность' },
+    { id: 'contacts', label: 'Контакты', description: 'Email, телефон, порядок' },
+    { id: 'bio', label: 'Биография', description: 'Описание и фото' }
+  ]
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -67,18 +73,48 @@ export function ManagementManager() {
         )
       }
       refetch()
-      
+      setIsModalOpen(false)
+      setEditingManager(null)
+      setActiveManagerTab('general')
+      if (!editingManager) {
+        setFormData({
+          first_name: '',
+          last_name: '',
+          position: 'president',
+          bio: '',
+          email: '',
+          phone: '',
+          order: 0,
+          is_active: true
+        })
+      }
       window.dispatchEvent(new CustomEvent('data-refresh', { 
         detail: { type: 'management' } 
       }))
     } catch (error) {
-      console.error(error);
       alert('Ошибка при сохранении сотрудника.');
     }
   }
 
+  const handleCreateClick = () => {
+    setEditingManager(null)
+    setFormData({
+      first_name: '',
+      last_name: '',
+      position: 'president',
+      bio: '',
+      email: '',
+      phone: '',
+      order: 0,
+      is_active: true
+    })
+    setActiveManagerTab('general')
+    setIsModalOpen(true)
+  }
+
   const handleEdit = (manager: Manager) => {
     setEditingManager(manager);
+    setActiveManagerTab('general')
     setFormData({
       first_name: manager.first_name || '',
       last_name: manager.last_name || '',
@@ -111,7 +147,7 @@ export function ManagementManager() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-white">Управление руководством</h1>
-        <button onClick={() => setIsModalOpen(true)} className="btn btn-primary">Добавить руководителя</button>
+        <button onClick={handleCreateClick} className="btn btn-primary">Добавить руководителя</button>
       </div>
 
       <div className="card overflow-hidden">
@@ -174,71 +210,191 @@ export function ManagementManager() {
 
       <Modal
         isOpen={isModalOpen}
-        onClose={() => { setIsModalOpen(false); setEditingManager(null); }}
+        onClose={() => {
+          setIsModalOpen(false)
+          setEditingManager(null)
+          setActiveManagerTab('general')
+          setFormData({
+            first_name: '',
+            last_name: '',
+            position: 'president',
+            bio: '',
+            email: '',
+            phone: '',
+            order: 0,
+            is_active: true
+          })
+        }}
         title={editingManager ? 'Редактировать руководителя' : 'Добавить руководителя'}
-        size="md"
+        size="lg"
+        className="max-w-4xl"
       >
         <div className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Имя *</label>
-                  <input type="text" value={formData.first_name} onChange={(e) => setFormData({ ...formData, first_name: e.target.value })} className="input w-full" required />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+            <div className="flex flex-wrap gap-2">
+              {managerModalTabs.map((tab) => {
+                const isActive = activeManagerTab === tab.id
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveManagerTab(tab.id)}
+                    className={`px-4 py-2 rounded-xl border transition-all text-sm font-medium ${
+                      isActive
+                        ? 'border-brand-primary bg-brand-primary/20 text-brand-primary shadow-[0_0_20px_rgba(0,140,255,0.2)]'
+                        : 'border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white'
+                    }`}
+                  >
+                    <div>{tab.label}</div>
+                    <div className="text-xs text-white/50 font-normal">{tab.description}</div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+              {activeManagerTab === 'general' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Имя *</label>
+                      <input
+                        type="text"
+                        value={formData.first_name}
+                        onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+                        className="input w-full"
+                        required
+                        placeholder="Имя"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Фамилия *</label>
+                      <input
+                        type="text"
+                        value={formData.last_name}
+                        onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                        className="input w-full"
+                        required
+                        placeholder="Фамилия"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Должность *</label>
+                    <select
+                      value={formData.position}
+                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                      className="input w-full"
+                      required
+                    >
+                      <option value="president">Президент</option>
+                      <option value="vice_president">Вице-президент</option>
+                      <option value="general_secretary">Генеральный секретарь</option>
+                      <option value="director">Директор</option>
+                      <option value="manager">Менеджер</option>
+                    </select>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Фамилия *</label>
-                  <input type="text" value={formData.last_name} onChange={(e) => setFormData({ ...formData, last_name: e.target.value })} className="input w-full" required />
+              )}
+
+              {activeManagerTab === 'contacts' && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        className="input w-full"
+                        placeholder="email@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Телефон</label>
+                      <input
+                        type="tel"
+                        value={formData.phone}
+                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                        className="input w-full"
+                        placeholder="Контактный номер"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Порядок отображения</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.order}
+                      onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value, 10) || 0 })}
+                      className="input w-full"
+                    />
+                  </div>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formData.is_active}
+                      onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                    />
+                    Активен
+                  </label>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Должность *</label>
-                <select value={formData.position} onChange={(e) => setFormData({ ...formData, position: e.target.value })} className="input w-full" required style={{ colorScheme: 'dark' as any }}>
-                  <option value="president">Президент</option>
-                  <option value="vice_president">Вице-президент</option>
-                  <option value="general_secretary">Генеральный секретарь</option>
-                  <option value="director">Директор</option>
-                  <option value="manager">Менеджер</option>
-                </select>
-              </div>
+              {activeManagerTab === 'bio' && (
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Биография</label>
+                    <textarea
+                      value={formData.bio}
+                      onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                      className="textarea w-full"
+                      rows={4}
+                      placeholder="Краткая информация о сотруднике"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
-                <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="input w-full" />
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Фото {editingManager ? '(не обязательно)' : '*'}</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
+                      className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
+                      required={!editingManager}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
-              <div>
-                <label className="block text-sm font-medium mb-1">Телефон</label>
-                <input type="tel" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="input w-full" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Порядок отображения</label>
-                <input type="number" min="0" value={formData.order} onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) || 0 })} className="input w-full" />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Биография</label>
-                <textarea value={formData.bio} onChange={(e) => setFormData({ ...formData, bio: e.target.value })} className="textarea w-full" rows={3} />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Фото {editingManager ? '(не обязательно)' : '*'}</label>
-                <input type="file" accept="image/*" onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })} className="input w-full" required={!editingManager} />
-              </div>
-
-              <div>
-                <label className="flex items-center gap-2">
-                  <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })} />
-                  <span className="text-sm">Активен</span>
-                </label>
-              </div>
-
-            <div className="flex gap-3 pt-4">
-              <button type="submit" className="btn btn-primary flex-1" disabled={mutationLoading}>
+            <div className="flex flex-col gap-3 md:flex-row md:gap-4 pt-4 border-t border-white/10">
+              <button type="submit" className="flex-1 btn btn-primary h-12" disabled={mutationLoading}>
                 {mutationLoading ? 'Сохранение...' : 'Сохранить'}
               </button>
-              <button type="button" onClick={() => { setIsModalOpen(false); setEditingManager(null); }} className="btn btn-outline flex-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setEditingManager(null)
+                  setActiveManagerTab('general')
+                  setFormData({
+                    first_name: '',
+                    last_name: '',
+                    position: 'president',
+                    bio: '',
+                    email: '',
+                    phone: '',
+                    order: 0,
+                    is_active: true
+                  })
+                }}
+                className="flex-1 btn btn-outline h-12"
+              >
                 Отмена
               </button>
             </div>

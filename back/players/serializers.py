@@ -192,6 +192,7 @@ class PlayerListSerializer(serializers.ModelSerializer):
     """Сериализатор для списка игроков."""
     
     club_name = serializers.CharField(source='club.name', read_only=True)
+    season_name = serializers.CharField(source='season.name', read_only=True)
     photo_url = serializers.SerializerMethodField()
     club_logo = serializers.SerializerMethodField()
     goals_scored = serializers.SerializerMethodField()
@@ -204,7 +205,7 @@ class PlayerListSerializer(serializers.ModelSerializer):
         model = Player
         fields = [
             'id', 'first_name', 'last_name', 'photo', 'photo_url', 'position', 
-            'number', 'club', 'club_name', 'club_logo', 'date_of_birth', 'nationality', 
+            'number', 'club', 'club_name', 'club_logo', 'season', 'season_name', 'date_of_birth', 'nationality', 
             'height', 'weight', 'phone', 'notes', 'status', 'is_active',
             'goals_scored', 'assists', 'yellow_cards', 'red_cards', 'matches_played'
         ]

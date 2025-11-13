@@ -11,7 +11,7 @@ export function AdminSidebar({ activeSection, onSectionChange }: AdminSidebarPro
     { id: 'matches', label: 'Матчи', description: 'Расписание и результаты' },
     { id: 'referees', label: 'Судьи', description: 'Судейский состав' },
     { id: 'management', label: 'Руководство', description: 'Администрация лиги' },
-    { id: 'media', label: 'Медиа', description: 'Новости и фото' },
+    { id: 'media', label: 'Медиа', description: 'Фотографии' },
     { id: 'partners', label: 'Партнеры', description: 'Спонсоры и партнеры' },
     { id: 'transfers', label: 'Трансферы', description: 'Переходы игроков' },
     { id: 'seasons', label: 'Сезоны', description: 'Управление сезонами' },

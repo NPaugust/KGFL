@@ -30,7 +30,6 @@ export default function StatsPage() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем статистику игроков...', event.detail.type)
         refetch()
       }
     }
@@ -71,23 +70,8 @@ export default function StatsPage() {
 
   const playersList = Array.isArray(players) ? players : []
 
-  if (playersList.length === 0) {
-    return (
-      <div className="min-h-screen bg-brand-dark">
-        <div className="container mx-auto px-4 py-8">
-          <Breadcrumbs items={[{ label: 'Статистика' }]} />
-          <h1 className="text-3xl font-bold text-center">Статистика игроков</h1>
-          <div className="text-center py-16">
-            <div className="w-40 h-40 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
-              <Trophy className="w-10 h-10 text-brand-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Статистика не найдена</h3>
-            <p className="text-white/70">Статистика игроков будет доступна после начала сезона</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Если игроков нет, показываем сообщение, но фильтр остается видимым
+  const hasNoPlayers = playersList.length === 0
 
   // Сортируем игроков по голам
   const topScorers = [...playersList]
@@ -109,7 +93,20 @@ export default function StatsPage() {
         <div className="mb-6">
           <SeasonFilter />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {hasNoPlayers ? (
+          <div className="card p-6">
+            <div className="text-center py-16">
+              <div className="w-40 h-40 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
+                <Trophy className="w-10 h-10 text-brand-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Статистика не найдена</h3>
+              <p className="text-white/70">Статистика игроков будет доступна после начала сезона для выбранного сезона</p>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Top Scorers */}
           <div className="card p-6">
             <h2 className="text-2xl font-bold text-white mb-6">Лучшие бомбардиры</h2>
@@ -120,7 +117,7 @@ export default function StatsPage() {
                   <div 
                     key={player.id} 
                     className="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/clubs/${(player as any).club || player.club_id}?player=${player.id}`)}
+                    onClick={() => router.push(`/players/${player.id}`)}
                   >
                     <div className="w-8 h-8 bg-brand-primary/20 rounded-full flex items-center justify-center text-brand-primary font-bold">
                       {index + 1}
@@ -180,7 +177,7 @@ export default function StatsPage() {
                   <div 
                     key={player.id} 
                     className="flex items-center gap-4 p-3 bg-white/5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/clubs/${(player as any).club || player.club_id}?player=${player.id}`)}
+                    onClick={() => router.push(`/players/${player.id}`)}
                   >
                     <div className="w-8 h-8 bg-brand-primary/20 rounded-full flex items-center justify-center text-brand-primary font-bold">
                       {index + 1}
@@ -254,7 +251,7 @@ export default function StatsPage() {
                   <tr 
                     key={player.id} 
                     className="border-b border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
-                    onClick={() => router.push(`/clubs/${(player as any).club || player.club_id}?player=${player.id}`)}
+                    onClick={() => router.push(`/players/${player.id}`)}
                   >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -329,6 +326,8 @@ export default function StatsPage() {
             </table>
           </div>
         </div>
+          </>
+        )}
       </div>
     </div>
   )

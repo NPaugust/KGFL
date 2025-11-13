@@ -90,7 +90,6 @@ class Migration(migrations.Migration):
                     models.CharField(
                         choices=[
                             ("gallery", "Галерея"),
-                            ("news", "Новости"),
                             ("events", "События"),
                             ("other", "Другое"),
                         ],

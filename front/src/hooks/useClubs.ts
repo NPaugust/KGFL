@@ -15,12 +15,14 @@ export function useClubs() {
   const [tableLoading, setTableLoading] = useState(true)
   const [tableError, setTableError] = useState<string | null>(null)
   
+  const [groupsData, setGroupsData] = useState<{ season: any; groups: Array<{ group: any; teams: TableRow[] }> } | null>(null)
+  
   const [activeSeason, setActiveSeason] = useState<any>(null)
   const [seasonLoading, setSeasonLoading] = useState(true)
   const [seasonError, setSeasonError] = useState<string | null>(null)
 
-  // Получаем выбранный сезон из глобального store
-  const { selectedSeasonId } = useSeasonStore()
+  // Получаем выбранный сезон и группу из глобального store
+  const { selectedSeasonId, selectedGroupId } = useSeasonStore()
 
   const fetchClubs = useCallback(async () => {
     try {
@@ -40,22 +42,47 @@ export function useClubs() {
     }
   }, [])
 
-  const fetchTable = useCallback(async (seasonId?: string) => {
+  const fetchTable = useCallback(async (seasonId?: string, groupId?: string | null) => {
     try {
       setTableLoading(true)
       setTableError(null)
       const params: any = { _ts: Date.now() }
-      if (seasonId) params.season = seasonId
+      // Передаем season только если он указан и не пустой
+      if (seasonId && seasonId.trim() !== '') {
+        params.season = seasonId
+      }
+      // Передаем group только если он указан
+      if (groupId && (typeof groupId === 'string' ? groupId.trim() !== '' : groupId !== null && groupId !== undefined)) {
+        params.group = typeof groupId === 'string' ? groupId : String(groupId)
+      }
+      // Если seasonId пустой или undefined - не передаем параметр, бэкенд вернет агрегированные данные
       
-      const result = await apiClient.get<PaginatedResponse<TableRow> | TableRow[]>(API_ENDPOINTS.TABLE, params)
-      // Обрабатываем пагинацию
-      if (result && typeof result === 'object' && 'results' in result) {
+      const result = await apiClient.get<any>(API_ENDPOINTS.TABLE, params)
+      
+      // Проверяем, является ли результат объектом с группами (для сезонов с групповым этапом)
+      if (result && typeof result === 'object' && 'groups' in result && Array.isArray(result.groups)) {
+        // Это сезон с группами без указания конкретной группы - сохраняем структуру групп
+        setGroupsData({
+          season: result.season || null,
+          groups: result.groups || []
+        })
+        setTable([]) // Очищаем обычную таблицу
+      } else if (result && typeof result === 'object' && 'results' in result) {
+        // Пагинация
+        setGroupsData(null) // Очищаем данные групп
         setTable((result as PaginatedResponse<TableRow>).results)
+      } else if (Array.isArray(result)) {
+        // Обычный массив команд
+        setGroupsData(null) // Очищаем данные групп
+        setTable(result)
       } else {
-        setTable(result as TableRow[] || [])
+        // Неожиданный формат - устанавливаем пустой массив
+        setGroupsData(null)
+        setTable([])
       }
     } catch (err) {
       setTableError(err instanceof Error ? err.message : 'Произошла ошибка')
+      setTable([]) // Устанавливаем пустой массив при ошибке
     } finally {
       setTableLoading(false)
     }
@@ -81,9 +108,9 @@ export function useClubs() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'club', 'player', 'player_stats', 'transfer', 'season']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем клубы и таблицу...', event.detail.type)
         fetchClubs()
-        fetchTable(selectedSeasonId)
+        // Если selectedSeasonId пустой или null - передаем undefined для "Все сезоны"
+        fetchTable(selectedSeasonId && selectedSeasonId.trim() !== '' ? selectedSeasonId : undefined, selectedGroupId)
       }
     }
 
@@ -91,20 +118,21 @@ export function useClubs() {
     return () => {
       window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
     }
-  }, [fetchClubs, fetchTable, selectedSeasonId])
+  }, [fetchClubs, fetchTable, selectedSeasonId, selectedGroupId])
 
-  // Загружаем данные при изменении сезона
+  // Загружаем данные при изменении сезона или группы
   useEffect(() => {
-    if (selectedSeasonId) {
-      fetchTable(selectedSeasonId)
-    }
-  }, [selectedSeasonId, fetchTable])
+    // Если selectedSeasonId пустой или null - передаем undefined для "Все сезоны"
+    fetchTable(selectedSeasonId && selectedSeasonId.trim() !== '' ? selectedSeasonId : undefined, selectedGroupId)
+  }, [selectedSeasonId, selectedGroupId, fetchTable])
 
-  // Загружаем клубы и активный сезон при монтировании
+  // Загружаем клубы и активный сезон при монтировании  
   useEffect(() => {
     fetchClubs()
     fetchActiveSeason()
-  }, [fetchClubs, fetchActiveSeason])
+    // Если selectedSeasonId пустой или null - передаем undefined для "Все сезоны"
+    fetchTable(selectedSeasonId && selectedSeasonId.trim() !== '' ? selectedSeasonId : undefined, selectedGroupId)
+  }, [fetchClubs, fetchActiveSeason, fetchTable, selectedSeasonId, selectedGroupId])
 
 
   const refetchClubs = useCallback(() => {
@@ -112,7 +140,7 @@ export function useClubs() {
   }, [fetchClubs])
 
   const refetchTable = () => {
-    fetchTable(selectedSeasonId)
+    fetchTable(selectedSeasonId && selectedSeasonId.trim() !== '' ? selectedSeasonId : undefined, selectedGroupId)
   }
   //123
   return {
@@ -121,6 +149,7 @@ export function useClubs() {
     clubsError,
     refetchClubs,
     table: table || [],
+    groupsData, // Добавляем данные групп
     tableLoading,
     tableError,
     refetchTable,

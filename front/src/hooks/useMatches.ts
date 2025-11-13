@@ -2,17 +2,29 @@
 import { useApi } from './useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Match } from '@/types'
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
+import { useSeasonStore } from '@/store/useSeasonStore'
 
 export function useMatches() {
-  const { data: matches, loading, error, refetch } = useApi<any>(API_ENDPOINTS.MATCHES)
+  const { selectedSeasonId } = useSeasonStore()
+  
+  // Формируем URL с параметрами
+  const url = useMemo(() => {
+    const params: any = { _ts: Date.now() }
+    if (selectedSeasonId && selectedSeasonId.trim() !== '') {
+      params.season = selectedSeasonId
+    }
+    const queryString = new URLSearchParams(params).toString()
+    return `${API_ENDPOINTS.MATCHES}?${queryString}`
+  }, [selectedSeasonId])
+  
+  const { data: matches, loading, error, refetch } = useApi<any>(url)
   
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'club', 'stadium', 'season', 'player', 'player_stats']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем матчи...', event.detail.type)
         refetch()
       }
     }
@@ -43,7 +55,6 @@ export function useUpcomingMatches() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'club', 'stadium', 'season']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем предстоящие матчи...', event.detail.type)
         refetch()
       }
     }
@@ -66,7 +77,6 @@ export function useLatestMatches() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'club', 'stadium', 'season', 'player', 'player_stats']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем последние матчи...', event.detail.type)
         refetch()
       }
     }

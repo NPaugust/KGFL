@@ -23,7 +23,6 @@ export default function SchedulePage() {
     const handleDataRefresh = (event: CustomEvent) => {
       const refreshTypes = ['match', 'club', 'stadium', 'season']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем расписание...', event.detail.type)
         refetch()
       }
     }
@@ -64,23 +63,8 @@ export default function SchedulePage() {
 
   const matchesList = Array.isArray(matches) ? matches : []
 
-  if (matchesList.length === 0) {
-    return (
-      <div className="min-h-screen bg-brand-dark">
-        <div className="container mx-auto px-4 py-8">
-          <Breadcrumbs items={[{ label: 'Матчи' }]} />
-          <h1 className="text-3xl font-bold text-center">Матчи</h1>
-          <div className="text-center py-16">
-            <div className="w-40 h-40 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
-              <Calendar className="w-10 h-10 text-brand-primary" />
-            </div>
-            <h3 className="text-xl font-semibold mb-2">Матчи не найдены</h3>
-            <p className="text-white/70">Расписание матчей пока не доступно</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  // Если матчей нет, показываем сообщение, но фильтр остается видимым
+  const hasNoMatches = matchesList.length === 0
 
   return (
     <div className="min-h-screen bg-brand-dark">
@@ -91,25 +75,36 @@ export default function SchedulePage() {
           <SeasonFilter />
         </div>
         
-        <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-          <div className="bg-gradient-to-r from-brand-primary/20 to-brand-primary/10 px-6 py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold text-white">Матчи сезона</h2>
+        {hasNoMatches ? (
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div className="text-center py-16">
+              <div className="w-40 h-40 bg-brand-primary/20 rounded-full mb-4 flex items-center justify-center mx-auto">
+                <Calendar className="w-10 h-10 text-brand-primary" />
+              </div>
+              <h3 className="text-xl font-semibold mb-2">Матчи не найдены</h3>
+              <p className="text-white/70">Расписание матчей пока не доступно для выбранного сезона</p>
+            </div>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white/5">
-                <tr>
-                  <th className="px-6 py-4 text-left text-white font-medium">#</th>
-                  <th className="px-6 py-4 text-left text-white font-medium">Дата</th>
-                  <th className="px-6 py-4 text-left text-white font-medium">Хозяева</th>
-                  <th className="px-6 py-4 text-center text-white font-medium">Счёт</th>
-                  <th className="px-6 py-4 text-left text-white font-medium">Гости</th>
-                  <th className="px-6 py-4 text-left text-white font-medium">Стадион</th>
-                  <th className="px-6 py-4 text-left text-white font-medium">Статус</th>
-                </tr>
-              </thead>
-              <tbody>
-                {matchesList.map((match, index) => {
+        ) : (
+          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+            <div className="bg-gradient-to-r from-brand-primary/20 to-brand-primary/10 px-6 py-4 border-b border-white/10">
+              <h2 className="text-xl font-semibold text-white">Матчи сезона</h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-white/5">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-white font-medium">#</th>
+                    <th className="px-6 py-4 text-left text-white font-medium">Дата</th>
+                    <th className="px-6 py-4 text-left text-white font-medium">Хозяева</th>
+                    <th className="px-6 py-4 text-center text-white font-medium">Счёт</th>
+                    <th className="px-6 py-4 text-left text-white font-medium">Гости</th>
+                    <th className="px-6 py-4 text-left text-white font-medium">Стадион</th>
+                    <th className="px-6 py-4 text-left text-white font-medium">Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {matchesList.map((match, index) => {
                   const isFinished = match.status === 'finished'
                   const isLive = match.status === 'live'
                   
@@ -227,11 +222,12 @@ export default function SchedulePage() {
                       </td>
                     </tr>
                   )
-                })}
-              </tbody>
-            </table>
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

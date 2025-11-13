@@ -9,6 +9,8 @@ interface SearchProps {
   className?: string
   debounceMs?: number
   initialValue?: string
+  hideIcon?: boolean
+  square?: boolean
 }
 
 export function Search({ 
@@ -16,11 +18,18 @@ export function Search({
   onSearch, 
   className,
   debounceMs = 300,
-  initialValue = ""
+  initialValue = "",
+  hideIcon = false,
+  square = false
 }: SearchProps) {
   const [query, setQuery] = useState(initialValue)
   const [isFocused, setIsFocused] = useState(false)
   const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined)
+
+  // Обновляем локальное состояние, если пришло новое initialValue
+  useEffect(() => {
+    setQuery(initialValue)
+  }, [initialValue])
 
   useEffect(() => {
     if (timeoutRef.current) {
@@ -54,7 +63,9 @@ export function Search({
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
           className={cn(
-            "w-full px-4 py-2 pl-10 pr-10 bg-white/5 border border-white/10 rounded-lg",
+            "w-full px-4 py-2 bg-white/5 border border-white/10",
+            hideIcon ? "pl-3 pr-10" : "pl-10 pr-10",
+            square ? "rounded-none" : "rounded-lg",
             "text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-brand-primary/50",
             "transition-all duration-200",
             isFocused && "border-white/20 bg-white/10"
@@ -62,19 +73,21 @@ export function Search({
         />
         
         {/* Search Icon */}
-        <svg
-          className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+        {!hideIcon && (
+          <svg
+            className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+        )}
 
         {/* Clear Button */}
         {query && (

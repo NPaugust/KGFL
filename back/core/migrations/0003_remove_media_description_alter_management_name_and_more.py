@@ -33,7 +33,6 @@ class Migration(migrations.Migration):
                 blank=True,
                 choices=[
                     ("gallery", "Галерея"),
-                    ("news", "Новости"),
                     ("events", "События"),
                     ("other", "Другое"),
                 ],

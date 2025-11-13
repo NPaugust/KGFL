@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { apiClient } from '@/services/api'
 import { API_ENDPOINTS } from '@/services/api'
+import { useSeasonStore } from '@/store/useSeasonStore'
 
 export interface PlayerStats {
   matches_played: number
@@ -15,6 +16,7 @@ export interface PlayerStats {
 }
 
 export function usePlayerStats(playerId: string | null) {
+  const { selectedSeasonId } = useSeasonStore()
   const [stats, setStats] = useState<PlayerStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,7 +30,14 @@ export function usePlayerStats(playerId: string | null) {
     try {
       setLoading(true)
       setError(null)
-      const result = await apiClient.get<PlayerStats>(API_ENDPOINTS.PLAYER_STATS(playerId))
+      // Передаем season в query параметрах (если "Все сезоны" - не передаем, иначе передаем ID)
+      const params: any = {}
+      if (selectedSeasonId) {
+        params.season = selectedSeasonId
+      }
+      
+      const url = `${API_ENDPOINTS.PLAYER_STATS(playerId)}${selectedSeasonId ? `?season=${selectedSeasonId}` : ''}`
+      const result = await apiClient.get<PlayerStats>(url)
       setStats(result)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Произошла ошибка')
@@ -46,7 +55,7 @@ export function usePlayerStats(playerId: string | null) {
     } finally {
       setLoading(false)
     }
-  }, [playerId])
+  }, [playerId, selectedSeasonId])
 
   useEffect(() => {
     fetchStats()
@@ -55,9 +64,8 @@ export function usePlayerStats(playerId: string | null) {
   // Слушаем события обновления данных
   useEffect(() => {
     const handleDataRefresh = (event: CustomEvent) => {
-      const refreshTypes = ['match', 'player', 'player_stats', 'goal', 'card', 'substitution']
+      const refreshTypes = ['match', 'player', 'player_stats', 'goal', 'card', 'substitution', 'assist']
       if (refreshTypes.includes(event.detail.type)) {
-        console.log('Обновляем статистику игрока...', event.detail.type)
         fetchStats()
       }
     }

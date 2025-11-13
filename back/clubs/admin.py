@@ -76,14 +76,26 @@ class CoachAdmin(admin.ModelAdmin):
 class ClubSeasonAdmin(admin.ModelAdmin):
 	"""Админ-панель для модели ClubSeason."""
 	
-	list_display = ['club', 'season', 'position', 'points', 'games', 'wins', 'draws', 'losses', 'goals_for', 'goals_against', 'goal_difference']
-	list_filter = ['season', 'club', 'created_at']
-	search_fields = ['club__name', 'season__name']
-	ordering = ['season', 'position']
+	list_display = ['club', 'season', 'group', 'position', 'points', 'games', 'wins', 'draws', 'losses', 'goals_for', 'goals_against', 'goal_difference']
+	list_filter = ['season', 'group', 'club', 'created_at']
+	search_fields = ['club__name', 'season__name', 'group__name']
+	ordering = ['season', 'group', 'position']
+	
+	def get_form(self, request, obj=None, **kwargs):
+		"""Динамически показываем/скрываем поле group в зависимости от сезона."""
+		form = super().get_form(request, obj, **kwargs)
+		
+		# Если объект существует и сезон не имеет групп - делаем поле group необязательным
+		if obj and obj.season and obj.season.format != 'groups':
+			form.base_fields['group'].required = False
+			form.base_fields['group'].help_text = 'Этот сезон не имеет группового этапа. Поле можно оставить пустым.'
+		
+		return form
 	
 	fieldsets = (
 		('Клуб и сезон', {
-			'fields': ('club', 'season')
+			'fields': ('club', 'season', 'group'),
+			'description': 'Если сезон имеет групповой этап - выберите группу для клуба.'
 		}),
 		('Статистика матчей', {
 			'fields': ('games', 'wins', 'draws', 'losses')
