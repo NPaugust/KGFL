@@ -35,7 +35,8 @@ env/
 Thumbs.db
 
 # Docker
-# data/ - разрешено коммитить
+
+data/ - разрешено коммитить
 
 # Logs
 *.log
