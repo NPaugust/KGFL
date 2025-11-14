@@ -17,6 +17,7 @@ build/
 .env.production.local
 # Но примеры оставляем
 !.env.example
+!.env.production
 
 # Python
 __pycache__/
