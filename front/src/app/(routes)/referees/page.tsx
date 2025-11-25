@@ -119,10 +119,14 @@ ${referee.bio ? `\nБиография: ${referee.bio}` : ''}
                         className="w-full h-full object-cover" 
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-brand-primary to-blue-500 flex items-center justify-center">
-                        <span className="text-white font-bold text-2xl">
-                          {(referee.first_name?.[0] || '') + (referee.last_name?.[0] || '') || 'С'}
-                        </span>
+                      <div className="w-full h-full flex items-center justify-center bg-white/5">
+                        <Image
+                          src="/images/player-silhouette.png"
+                          alt="Referee silhouette"
+                          width={120}
+                          height={120}
+                          className="opacity-70 object-contain"
+                        />
                       </div>
                     )}
                   </div>

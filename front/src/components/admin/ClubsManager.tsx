@@ -1,5 +1,5 @@
 "use client"
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useClubs } from '@/hooks/useClubs'
 import { HexColorPicker } from 'react-colorful'
 import { useApiMutation, useApi } from '@/hooks/useApi'
@@ -11,6 +11,7 @@ import Image from 'next/image'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { useSeasonStore } from '@/store/useSeasonStore'
 import { Search } from '@/components/Search'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 interface ClubFormData {
   name: string
@@ -40,6 +41,8 @@ const statusMap = {
   withdrawn: 'Выбыл',
 };
 
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
+
 export function ClubsManager() {
   const { clubs, clubsLoading, refetchClubs } = useClubs()
   const { seasons, selectedSeasonId } = useSeasonStore()
@@ -56,6 +59,7 @@ const [searchTerm, setSearchTerm] = useState('')
 const [statusFilter, setStatusFilter] = useState<string | null>(null)
 const [filterSeasonId, setFilterSeasonId] = useState<string>('')
 const [filterGroupId, setFilterGroupId] = useState<string>('')
+const [currentPage, setCurrentPage] = useState(1)
   const [formData, setFormData] = useState<ClubFormData>({
     name: '',
     city: '',
@@ -87,6 +91,10 @@ const resetFilters = () => {
   setFilterSeasonId('')
   setFilterGroupId('')
 }
+
+useEffect(() => {
+  setCurrentPage(1)
+}, [searchTerm, statusFilter, filterSeasonId, filterGroupId])
   
   // Загружаем группы для выбранного сезона в форме
   const groupsUrl = formData.season && formData.season.trim() !== '' 
@@ -319,7 +327,7 @@ const resetFilters = () => {
     }
   }
 
-  const filteredClubs = useMemo(() => {
+const filteredClubs = useMemo(() => {
   const normalizedSearch = searchTerm.trim().toLowerCase()
   const seasonNameFilter = filterSeasonId
     ? seasons.find((s) => s.id.toString() === filterSeasonId)?.name || null
@@ -358,7 +366,22 @@ const resetFilters = () => {
   })
 }, [clubsList, searchTerm, statusFilter, filterSeasonId, filterGroupId, seasons, filterGroups])
 
-const groupedClubs = filteredClubs.reduce((acc: any, club: any) => {
+const totalClubs = filteredClubs.length
+const totalClubPages = Math.max(1, Math.ceil(totalClubs / ITEMS_PER_PAGE))
+const safeClubPage = Math.min(currentPage, totalClubPages)
+
+useEffect(() => {
+  if (currentPage !== safeClubPage) {
+    setCurrentPage(safeClubPage)
+  }
+}, [currentPage, safeClubPage])
+
+const paginatedClubs = useMemo(() => {
+  const startIndex = (safeClubPage - 1) * ITEMS_PER_PAGE
+  return filteredClubs.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+}, [filteredClubs, safeClubPage])
+
+const groupedClubs = paginatedClubs.reduce((acc: any, club: any) => {
   const seasonName = (club as any).season_name || 'Без сезона'
   const groupName = (club as any).group_name || 'Без группы'
   const key = `${seasonName}__${groupName}`
@@ -508,6 +531,13 @@ return (
           })}
         </div>
       </div>
+
+      <PaginationControls
+        page={safeClubPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalClubs}
+        onPageChange={setCurrentPage}
+      />
     </div>
 
     <div className="card overflow-hidden">
@@ -617,7 +647,9 @@ return (
                 </React.Fragment>
               )) : (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-white/60">Клубы не найдены</td>
+                  <td colSpan={9} className="px-4 py-8 text-center text-white/60">
+                    {filteredClubs.length === 0 ? 'Клубы не найдены' : 'Нет результатов для текущей страницы'}
+                  </td>
                 </tr>
               )}
             </tbody>

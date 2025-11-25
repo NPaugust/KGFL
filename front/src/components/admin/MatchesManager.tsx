@@ -12,6 +12,7 @@ import { useSeasonStore } from '@/store/useSeasonStore'
 import { useApi } from '@/hooks/useApi'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { Search } from '@/components/Search'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 // Компонент фильтра групп для списка матчей
 function GroupFilterForMatches({ seasonId, value, onChange }: { seasonId: string; value: string; onChange: (value: string) => void }) {
@@ -40,6 +41,8 @@ const logError = (message: string, error: any) => {
   }
   // В продакшене ошибки можно отправлять в Sentry или другой сервис мониторинга
 }
+
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
 
 interface MatchFormData {
   date: string
@@ -98,6 +101,7 @@ export function MatchesManager() {
     red_cards: []
   })
   const [activeMatchTab, setActiveMatchTab] = useState<'schedule' | 'teams' | 'events' | 'extras'>('schedule')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const matchStatusOptions = [
     { value: 'scheduled', label: 'Запланирован' },
@@ -119,6 +123,10 @@ export function MatchesManager() {
     setFilterSeasonId('')
     setFilterGroupId('')
   }
+
+useEffect(() => {
+  setCurrentPage(1)
+}, [searchTerm, statusFilter, filterSeasonId, filterGroupId])
   
   // Загружаем группы для выбранного сезона (только для фильтрации команд)
   const groupsUrl = formData.season && formData.season.trim() !== '' 
@@ -816,6 +824,21 @@ export function MatchesManager() {
   })
 }, [filteredMatches, sortField, sortDirection])
 
+const totalMatches = sortedMatches.length
+const totalMatchPages = Math.max(1, Math.ceil(totalMatches / ITEMS_PER_PAGE))
+const safeMatchPage = Math.min(currentPage, totalMatchPages)
+
+useEffect(() => {
+  if (currentPage !== safeMatchPage) {
+    setCurrentPage(safeMatchPage)
+  }
+}, [currentPage, safeMatchPage])
+
+const paginatedMatches = useMemo(() => {
+  const startIndex = (safeMatchPage - 1) * ITEMS_PER_PAGE
+  return sortedMatches.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+}, [sortedMatches, safeMatchPage])
+
   if (loading) {
     return <Loading />
   }
@@ -968,7 +991,7 @@ export function MatchesManager() {
               </tr>
             </thead>
             <tbody>
-              {sortedMatches.length > 0 ? sortedMatches.map((match: any) => (
+              {paginatedMatches.length > 0 ? paginatedMatches.map((match: any) => (
                 <tr key={match.id} className="border-t border-white/10">
                   <td className="px-4 py-3">{formatDate(match.date)} {match.time}</td>
                   <td className="px-4 py-3">
@@ -1029,13 +1052,22 @@ export function MatchesManager() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-white/60">Матчи не найдены</td>
+                  <td colSpan={9} className="px-4 py-8 text-center text-white/60">
+                    {sortedMatches.length === 0 ? 'Матчи не найдены' : 'Нет результатов для текущей страницы'}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safeMatchPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalMatches}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}

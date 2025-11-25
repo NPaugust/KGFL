@@ -1,36 +1,6 @@
 // Утилиты для форматирования данных
 export * from './formatting'
 
-export const formatDate = (date: string | Date): string => {
-  const d = new Date(date)
-  return d.toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  })
-}
-
-export const formatTime = (time: string): string => {
-  if (!time) return '';
-  
-  // Если строка уже в формате HH:MM, возвращаем как есть
-  if (/^\d{2}:\d{2}$/.test(time)) {
-    return time;
-  }
-  
-  // Если строка в формате HH:MM:SS, обрезаем секунды
-  if (/^\d{2}:\d{2}:\d{2}$/.test(time)) {
-    return time.slice(0, 5);
-  }
-  
-  return time;
-}
-
-export const formatDateTime = (date: string | Date, time?: string): string => {
-  const formattedDate = formatDate(date)
-  return time ? `${formattedDate}, ${time}` : formattedDate
-}
-
 // Форматирование статистики
 export const formatGoals = (goalsFor: number, goalsAgainst: number): string => {
   return `${goalsFor}:${goalsAgainst}`
@@ -140,16 +110,10 @@ export const paginate = <T>(items: T[], page: number, limit: number): T[] => {
 
 // Утилиты для валидации
 export * from './validation'
-
-export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  return emailRegex.test(email)
-}
-
-export const isValidPhone = (phone: string): boolean => {
-  const phoneRegex = /^\+?[1-9]\d{1,14}$/
-  return phoneRegex.test(phone.replace(/\s/g, ''))
-}
+// Алиасы для совместимости (используйте validateEmail и validatePhone из validation.ts)
+import { validateEmail, validatePhone } from './validation'
+export const isValidEmail = validateEmail
+export const isValidPhone = validatePhone
 
 // Утилиты для работы с URL
 export const buildQueryString = (params: Record<string, any>): string => {
@@ -201,12 +165,4 @@ export const getImageUrl = (path: string): string => {
   return `${origin}${normalized}`
 }
 
-// Утилиты для работы с числами
-export const formatNumber = (num: number): string => {
-  return new Intl.NumberFormat('ru-RU').format(num)
-}
-
-export const formatPercentage = (value: number, total: number): string => {
-  if (total === 0) return '0%'
-  return `${Math.round((value / total) * 100)}%`
-} 
+// Утилиты для работы с числами (используйте formatNumber и formatPercentage из formatting.ts) 

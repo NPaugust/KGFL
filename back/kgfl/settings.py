@@ -129,14 +129,18 @@ DB_PASSWORD = config('DB_PASSWORD', default='')
 DB_HOST = config('DB_HOST', default='localhost')
 DB_PORT = config('DB_PORT', default='5432')
 
-# Если не указан явно, определяем автоматически
-if DB_ENGINE is None:
-    # Если DEBUG=True (локальная разработка) или хост 'db' (Docker) недоступен - используем SQLite
-    if DEBUG:
-        DB_ENGINE = 'django.db.backends.sqlite3'
-        DB_NAME = str(BASE_DIR / 'db.sqlite3')
-    else:
-        # Для продакшена пробуем PostgreSQL
+# В режиме разработки всегда принудительно используем SQLite
+if DEBUG:
+    DB_ENGINE = 'django.db.backends.sqlite3'
+    DB_NAME = str(BASE_DIR / 'db.sqlite3')
+    DB_USER = ''
+    DB_PASSWORD = ''
+    DB_HOST = ''
+    DB_PORT = ''
+else:
+    # Если не указан явно, определяем автоматически
+    if DB_ENGINE is None:
+        # Для продакшена по умолчанию используем PostgreSQL
         DB_ENGINE = 'django.db.backends.postgresql'
         DB_NAME = DB_NAME or 'kgfl_db'
 

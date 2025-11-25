@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
@@ -7,6 +7,7 @@ import { Loading } from '../Loading'
 import { formatDate } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { Search } from '@/components/Search'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 import { Player } from '@/types'
 
 interface TransferFormData {
@@ -37,6 +38,8 @@ const statusMap = {
   cancelled: 'Отменён',
 };
 
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
+
 export function TransfersManager() {
   const { data: transfers, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.PLAYER_TRANSFERS)
   const { data: players } = useApi<Player[]>(API_ENDPOINTS.PLAYERS)
@@ -51,6 +54,7 @@ export function TransfersManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [seasonFilter, setSeasonFilter] = useState<string>('')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { mutate, loading: mutationLoading } = useApiMutation()
   const transferModalTabs: { id: 'general' | 'details' | 'notes'; label: string; description: string }[] = [
@@ -58,6 +62,10 @@ export function TransfersManager() {
     { id: 'details', label: 'Детали', description: 'Дата, сумма, статус, сезон' },
     { id: 'notes', label: 'Заметки', description: 'Комментарий по трансферу' }
   ]
+
+useEffect(() => {
+  setCurrentPage(1)
+}, [searchTerm, statusFilter, seasonFilter])
 
   const availablePlayers = useMemo(() => {
     if (!formData.from_club || !players) return [];
@@ -177,6 +185,21 @@ export function TransfersManager() {
     })
   }, [transfersList, searchTerm, statusFilter, seasonFilter])
 
+const totalTransfers = filteredTransfers.length
+const totalTransferPages = Math.max(1, Math.ceil(totalTransfers / ITEMS_PER_PAGE))
+const safeTransferPage = Math.min(currentPage, totalTransferPages)
+
+useEffect(() => {
+  if (currentPage !== safeTransferPage) {
+    setCurrentPage(safeTransferPage)
+  }
+}, [currentPage, safeTransferPage])
+
+const paginatedTransfers = useMemo(() => {
+  const startIndex = (safeTransferPage - 1) * ITEMS_PER_PAGE
+  return filteredTransfers.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+}, [filteredTransfers, safeTransferPage])
+
   if (loading) return <Loading />
 
   return (
@@ -250,7 +273,7 @@ export function TransfersManager() {
               </tr>
             </thead>
             <tbody>
-              {filteredTransfers.length > 0 ? filteredTransfers.map((transfer) => (
+              {paginatedTransfers.length > 0 ? paginatedTransfers.map((transfer) => (
                 <tr key={transfer.id} className="border-b border-white/10">
                   <td className="px-4 py-3 font-medium">
                     {transfer.player_full_name || `${transfer.player?.first_name} ${transfer.player?.last_name}`}
@@ -294,7 +317,7 @@ export function TransfersManager() {
               )) : (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-white/60">
-                    {transfersList.length === 0 ? 'Трансферы не найдены' : 'Нет результатов по заданным фильтрам'}
+                    {filteredTransfers.length === 0 ? 'Трансферы не найдены' : 'Нет результатов для текущей страницы'}
                   </td>
                 </tr>
               )}
@@ -302,6 +325,13 @@ export function TransfersManager() {
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safeTransferPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalTransfers}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}

@@ -21,11 +21,28 @@ export const formatDateTime = (date: string | Date, locale: string = 'ru-RU'): s
 }
 
 export const formatTime = (time: string | Date, locale: string = 'ru-RU'): string => {
+  if (!time) return ''
+  
+  // Если строка уже в формате HH:MM, возвращаем как есть
+  if (typeof time === 'string' && /^\d{2}:\d{2}$/.test(time)) {
+    return time
+  }
+  
+  // Если строка в формате HH:MM:SS, обрезаем секунды
+  if (typeof time === 'string' && /^\d{2}:\d{2}:\d{2}$/.test(time)) {
+    return time.slice(0, 5)
+  }
+  
+  // Если это Date объект или строка, которую нужно распарсить
   const timeObj = typeof time === 'string' ? new Date(`2000-01-01T${time}`) : time
-  return timeObj.toLocaleTimeString(locale, {
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  try {
+    return timeObj.toLocaleTimeString(locale, {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return typeof time === 'string' ? time : ''
+  }
 }
 
 export const formatCurrency = (amount: number | string, currency: string = 'USD'): string => {

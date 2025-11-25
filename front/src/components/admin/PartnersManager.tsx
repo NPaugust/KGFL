@@ -1,11 +1,12 @@
 "use client"
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
 import { Loading } from '../Loading'
 import Image from 'next/image'
 import { Modal, ConfirmModal } from '../ui/Modal'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 interface PartnerFormData {
   name: string
@@ -18,6 +19,8 @@ interface PartnerFormData {
   partnership_type: string
   is_active: boolean
 }
+
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
 
 export function PartnersManager() {
   const { data: partners, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.PARTNERS)
@@ -36,6 +39,7 @@ export function PartnersManager() {
     is_active: true
   })
   const [activePartnerTab, setActivePartnerTab] = useState<'general' | 'contacts' | 'media'>('general')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { mutate, loading: mutationLoading } = useApiMutation()
   const partnerModalTabs: { id: 'general' | 'contacts' | 'media'; label: string; description: string }[] = [
@@ -148,7 +152,21 @@ export function PartnersManager() {
     return <Loading />
   }
 
-  const partnersList = Array.isArray(partners) ? partners : []
+  const partnersList = useMemo(() => Array.isArray(partners) ? partners : [], [partners])
+  const totalPartners = partnersList.length
+  const totalPartnerPages = Math.max(1, Math.ceil(totalPartners / ITEMS_PER_PAGE))
+  const safePartnerPage = Math.min(currentPage, totalPartnerPages)
+
+  useEffect(() => {
+    if (currentPage !== safePartnerPage) {
+      setCurrentPage(safePartnerPage)
+    }
+  }, [currentPage, safePartnerPage])
+
+  const paginatedPartners = useMemo(() => {
+    const startIndex = (safePartnerPage - 1) * ITEMS_PER_PAGE
+    return partnersList.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [partnersList, safePartnerPage])
 
   return (
     <div className="p-6">
@@ -172,7 +190,7 @@ export function PartnersManager() {
               </tr>
             </thead>
             <tbody>
-              {partnersList.length > 0 ? partnersList.map((partner) => (
+              {paginatedPartners.length > 0 ? paginatedPartners.map((partner) => (
                 <tr key={partner.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
                     {partner.logo_url || partner.logo ? (
@@ -209,13 +227,22 @@ export function PartnersManager() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-white/60">Партнеры не найдены</td>
+                  <td colSpan={7} className="px-4 py-8 text-center text-white/60">
+                    {partnersList.length === 0 ? 'Партнеры не найдены' : 'Нет результатов для текущей страницы'}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safePartnerPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalPartners}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}

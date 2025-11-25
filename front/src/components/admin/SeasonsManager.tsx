@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
@@ -7,6 +7,7 @@ import { Loading } from '../Loading'
 import { formatDate } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { Search } from '@/components/Search'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 interface SeasonFormData {
   name: string
@@ -16,6 +17,8 @@ interface SeasonFormData {
   description: string
   format: 'single' | 'groups'
 }
+
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
 
 export function SeasonsManager() {
   const { data: seasons, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.SEASONS)
@@ -35,12 +38,17 @@ export function SeasonsManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [formatFilter, setFormatFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { mutate, loading: mutationLoading } = useApiMutation()
   const seasonModalTabs: { id: 'general' | 'options'; label: string; description: string }[] = [
     { id: 'general', label: 'Основное', description: 'Название и даты' },
     { id: 'options', label: 'Настройки', description: 'Формат, описание, активность' }
   ]
+
+useEffect(() => {
+  setCurrentPage(1)
+}, [searchTerm, formatFilter, statusFilter])
 
   const handleCreateClick = () => {
     setEditingSeason(null)
@@ -168,6 +176,21 @@ export function SeasonsManager() {
     })
   }, [seasonsList, searchTerm, formatFilter, statusFilter])
 
+const totalSeasons = filteredSeasons.length
+const totalSeasonPages = Math.max(1, Math.ceil(totalSeasons / ITEMS_PER_PAGE))
+const safeSeasonPage = Math.min(currentPage, totalSeasonPages)
+
+useEffect(() => {
+  if (currentPage !== safeSeasonPage) {
+    setCurrentPage(safeSeasonPage)
+  }
+}, [currentPage, safeSeasonPage])
+
+const paginatedSeasons = useMemo(() => {
+  const startIndex = (safeSeasonPage - 1) * ITEMS_PER_PAGE
+  return filteredSeasons.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+}, [filteredSeasons, safeSeasonPage])
+
   if (loading) {
     return <Loading />
   }
@@ -240,7 +263,7 @@ export function SeasonsManager() {
               </tr>
             </thead>
             <tbody>
-              {filteredSeasons.length > 0 ? filteredSeasons.map((season) => (
+              {paginatedSeasons.length > 0 ? paginatedSeasons.map((season) => (
                 <tr key={season.id} className="border-b border-white/10">
                   <td className="px-4 py-3 font-medium">{season.name}</td>
                   <td className="px-4 py-3">
@@ -272,7 +295,7 @@ export function SeasonsManager() {
               )) : (
                 <tr>
                   <td colSpan={6} className="px-4 py-8 text-center text-white/60">
-                    {seasonsList.length === 0 ? 'Сезоны не найдены' : 'Нет результатов по заданным фильтрам'}
+                    {filteredSeasons.length === 0 ? 'Сезоны не найдены' : 'Нет результатов для текущей страницы'}
                   </td>
                 </tr>
               )}
@@ -280,6 +303,13 @@ export function SeasonsManager() {
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safeSeasonPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalSeasons}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}

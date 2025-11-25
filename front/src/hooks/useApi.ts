@@ -29,7 +29,12 @@ export function useApi<T = any>(
       
       const parsedParams = paramsKey ? JSON.parse(paramsKey) : undefined
       // cache-buster чтобы не получать закешированный список после создания
-      const result = await apiClient.get<T>(url, { ...(parsedParams || {}), _ts: Date.now() })
+      // Убираем _ts из URL, так как он уже может быть в parsedParams
+      const params = { ...(parsedParams || {}) }
+      if (!params._ts) {
+        params._ts = Date.now()
+      }
+      const result = await apiClient.get<T>(url, params)
       
       // Проверяем, есть ли пагинация
       if (result && typeof result === 'object' && 'results' in result) {
@@ -37,9 +42,16 @@ export function useApi<T = any>(
       } else {
         setData(result as T)
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
-      setError(errorMessage)
+    } catch (err: any) {
+      // Улучшенная обработка ошибок сети
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        setError('Превышено время ожидания. Проверьте подключение к серверу.')
+      } else if (err.code === 'ERR_NETWORK' || err.message?.includes('Network Error')) {
+        setError('Ошибка сети. Убедитесь, что сервер запущен.')
+      } else {
+        const errorMessage = err instanceof Error ? err.message : 'Произошла ошибка'
+        setError(errorMessage)
+      }
     } finally {
       setLoading(false)
     }
@@ -51,16 +63,35 @@ export function useApi<T = any>(
 
   useEffect(() => {
     let isMounted = true
+    let timeoutId: NodeJS.Timeout | null = null
+    
     // защита от двойного вызова useEffect в StrictMode при dev
     const call = async () => {
-      await fetchData()
+      // Небольшая задержка при перезапуске dev сервера, чтобы дать API время запуститься
+      if (process.env.NODE_ENV === 'development') {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+      if (isMounted) {
+        await fetchData()
+      }
     }
-    if (isMounted) call()
+    
+    // Таймаут для предотвращения бесконечной загрузки (35 секунд, больше чем axios timeout)
+    timeoutId = setTimeout(() => {
+      if (isMounted && loading) {
+        setError('Превышено время ожидания ответа от сервера')
+        setLoading(false)
+      }
+    }, 35000) // 35 секунд максимум (больше чем axios timeout 30 секунд)
+    
+    call()
     
     const handleDataUpdate = (event: CustomEvent) => {
       const { url: updatedUrl, method } = event.detail
       if (url && (updatedUrl.includes(url) || method === 'DELETE')) {
-        fetchData()
+        if (isMounted) {
+          fetchData()
+        }
       }
     }
     
@@ -68,10 +99,13 @@ export function useApi<T = any>(
     
     return () => {
       isMounted = false
+      if (timeoutId) {
+        clearTimeout(timeoutId)
+      }
       window.removeEventListener('data-updated', handleDataUpdate as EventListener)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, paramsKey, refreshTrigger, fetchData, ...dependencies])
+  }, [url, paramsKey, refreshTrigger, ...dependencies])
 
   return { data, loading, error, refetch }
 }

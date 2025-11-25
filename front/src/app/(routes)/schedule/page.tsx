@@ -1,5 +1,5 @@
 "use client"
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Loading } from '@/components/Loading'
 import { useMatches } from '@/hooks/useMatches'
@@ -7,16 +7,48 @@ import { formatDate } from '@/utils'
 import Image from 'next/image'
 import { Calendar, MapPin, Clock } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { SeasonFilter } from '@/components/SeasonFilter'
+import { PaginationControls } from '@/components/admin/PaginationControls'
+
+const getMatchTimestamp = (match: any) => {
+  if (!match?.date) return Number.MAX_SAFE_INTEGER
+  const rawTime = (match as any).time || (match as any).match_time || '00:00'
+  const normalizedTime = rawTime.length === 5 ? `${rawTime}:00` : (rawTime || '00:00:00')
+  const value = Date.parse(`${match.date}T${normalizedTime}`)
+  return Number.isNaN(value) ? Number.MAX_SAFE_INTEGER : value
+}
+
+const ITEMS_PER_PAGE = 6
 
 export default function SchedulePage() {
   const { matches, loading, error, refetch } = useMatches()
   const router = useRouter()
+  const [currentPage, setCurrentPage] = useState(1)
   
   const handleTeamClick = (teamId: number) => {
     router.push(`/clubs/${teamId}`)
   }
+  
+  // Сортируем матчи по дате (исправляем ошибку с хуками - useMemo должен быть до условных return)
+  const matchesList = useMemo(() => {
+    const base = Array.isArray(matches) ? matches : []
+    return [...base].sort((a: any, b: any) => getMatchTimestamp(a) - getMatchTimestamp(b))
+  }, [matches])
+
+  // Пагинация
+  const totalMatches = matchesList.length
+  const totalPages = Math.max(1, Math.ceil(totalMatches / ITEMS_PER_PAGE))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedMatches = useMemo(() => {
+    const startIndex = (safePage - 1) * ITEMS_PER_PAGE
+    return matchesList.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [matchesList, safePage])
+
+  useEffect(() => {
+    if (currentPage !== safePage) {
+      setCurrentPage(safePage)
+    }
+  }, [currentPage, safePage])
   
   // Слушаем события обновления данных
   useEffect(() => {
@@ -24,6 +56,7 @@ export default function SchedulePage() {
       const refreshTypes = ['match', 'club', 'stadium', 'season']
       if (refreshTypes.includes(event.detail.type)) {
         refetch()
+        setCurrentPage(1)
       }
     }
 
@@ -61,8 +94,6 @@ export default function SchedulePage() {
     )
   }
 
-  const matchesList = Array.isArray(matches) ? matches : []
-
   // Если матчей нет, показываем сообщение, но фильтр остается видимым
   const hasNoMatches = matchesList.length === 0
 
@@ -86,25 +117,27 @@ export default function SchedulePage() {
             </div>
           </div>
         ) : (
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
-            <div className="bg-gradient-to-r from-brand-primary/20 to-brand-primary/10 px-6 py-4 border-b border-white/10">
-              <h2 className="text-xl font-semibold text-white">Матчи сезона</h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-white/5">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-white font-medium">#</th>
-                    <th className="px-6 py-4 text-left text-white font-medium">Дата</th>
-                    <th className="px-6 py-4 text-left text-white font-medium">Хозяева</th>
-                    <th className="px-6 py-4 text-center text-white font-medium">Счёт</th>
-                    <th className="px-6 py-4 text-left text-white font-medium">Гости</th>
-                    <th className="px-6 py-4 text-left text-white font-medium">Стадион</th>
-                    <th className="px-6 py-4 text-left text-white font-medium">Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {matchesList.map((match, index) => {
+          <>
+            <div className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
+              <div className="bg-gradient-to-r from-brand-primary/20 to-brand-primary/10 px-6 py-4 border-b border-white/10">
+                <h2 className="text-xl font-semibold text-white">Матчи сезона</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-white/5">
+                    <tr>
+                      <th className="px-6 py-4 text-left text-white font-medium">#</th>
+                      <th className="px-6 py-4 text-left text-white font-medium">Дата</th>
+                      <th className="px-6 py-4 text-left text-white font-medium">Хозяева</th>
+                      <th className="px-6 py-4 text-center text-white font-medium">Счёт</th>
+                      <th className="px-6 py-4 text-left text-white font-medium">Гости</th>
+                      <th className="px-6 py-4 text-left text-white font-medium">Стадион</th>
+                      <th className="px-6 py-4 text-left text-white font-medium">Статус</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedMatches.map((match, index) => {
+                      const globalIndex = (safePage - 1) * ITEMS_PER_PAGE + index
                   const isFinished = match.status === 'finished'
                   const isLive = match.status === 'live'
                   
@@ -115,7 +148,7 @@ export default function SchedulePage() {
                       onClick={() => router.push(`/matches/${match.id}`)}
                     >
                       <td className="px-6 py-4 text-white/70 font-medium">
-                        {index + 1}
+                        {globalIndex + 1}
                       </td>
                       <td className="px-6 py-4">
                         <div className="text-white">
@@ -227,6 +260,18 @@ export default function SchedulePage() {
               </table>
             </div>
           </div>
+          
+          {totalMatches > ITEMS_PER_PAGE && (
+            <div className="px-6 py-4 border-t border-white/10">
+              <PaginationControls
+                page={safePage}
+                pageSize={ITEMS_PER_PAGE}
+                totalItems={totalMatches}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+          </>
         )}
       </div>
     </div>

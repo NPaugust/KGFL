@@ -1,5 +1,5 @@
 "use client"
-import { useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Breadcrumbs } from '@/components/Breadcrumbs'
 import { Loading } from '@/components/Loading'
 import { usePlayers } from '@/hooks/usePlayers'
@@ -9,6 +9,9 @@ import { getImageUrl } from '@/utils'
 import { SeasonFilter } from '@/components/SeasonFilter'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { PaginationControls } from '@/components/admin/PaginationControls'
+
+const ITEMS_PER_PAGE = 6
 
 const positionMap: { [key: string]: string } = {
   goalkeeper: 'Вратарь',
@@ -24,6 +27,7 @@ const positionMap: { [key: string]: string } = {
 export default function StatsPage() {
   const { players, loading, error, refetch } = usePlayers()
   const router = useRouter()
+  const [currentPage, setCurrentPage] = useState(1)
   
   // Слушаем события обновления данных
   useEffect(() => {
@@ -31,6 +35,7 @@ export default function StatsPage() {
       const refreshTypes = ['match', 'player', 'player_stats', 'club', 'transfer']
       if (refreshTypes.includes(event.detail.type)) {
         refetch()
+        setCurrentPage(1)
       }
     }
 
@@ -39,6 +44,41 @@ export default function StatsPage() {
       window.removeEventListener('data-refresh', handleDataRefresh as EventListener)
     }
   }, [refetch])
+
+  // Обрабатываем данные до условных return (исправляем ошибку с хуками)
+  const playersList = useMemo(() => Array.isArray(players) ? players : [], [players])
+  const hasNoPlayers = playersList.length === 0
+
+  // Сортируем игроков по голам
+  const topScorers = useMemo(() => {
+    return [...playersList]
+      .filter(player => (player.goals_scored || 0) > 0)
+      .sort((a, b) => (b.goals_scored || 0) - (a.goals_scored || 0))
+      .slice(0, 10)
+  }, [playersList])
+
+  // Сортируем игроков по ассистам (если есть)
+  const topAssisters = useMemo(() => {
+    return [...playersList]
+      .filter(player => (player.assists || 0) > 0)
+      .sort((a, b) => (b.assists || 0) - (a.assists || 0))
+      .slice(0, 10)
+  }, [playersList])
+
+  // Пагинация для таблицы всех игроков
+  const totalPlayers = playersList.length
+  const totalPages = Math.max(1, Math.ceil(totalPlayers / ITEMS_PER_PAGE))
+  const safePage = Math.min(currentPage, totalPages)
+  const paginatedPlayers = useMemo(() => {
+    const startIndex = (safePage - 1) * ITEMS_PER_PAGE
+    return playersList.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [playersList, safePage])
+
+  useEffect(() => {
+    if (currentPage !== safePage) {
+      setCurrentPage(safePage)
+    }
+  }, [currentPage, safePage])
 
   if (loading) {
     return (
@@ -67,23 +107,6 @@ export default function StatsPage() {
       </div>
     )
   }
-
-  const playersList = Array.isArray(players) ? players : []
-
-  // Если игроков нет, показываем сообщение, но фильтр остается видимым
-  const hasNoPlayers = playersList.length === 0
-
-  // Сортируем игроков по голам
-  const topScorers = [...playersList]
-    .filter(player => (player.goals_scored || 0) > 0)
-    .sort((a, b) => (b.goals_scored || 0) - (a.goals_scored || 0))
-    .slice(0, 10)
-
-  // Сортируем игроков по ассистам (если есть)
-  const topAssisters = [...playersList]
-    .filter(player => (player.assists || 0) > 0)
-    .sort((a, b) => (b.assists || 0) - (a.assists || 0))
-    .slice(0, 10)
 
   return (
     <div className="min-h-screen bg-brand-dark">
@@ -247,7 +270,7 @@ export default function StatsPage() {
                 </tr>
               </thead>
               <tbody>
-                {playersList.map((player) => (
+                {paginatedPlayers.map((player) => (
                   <tr 
                     key={player.id} 
                     className="border-b border-white/10 hover:bg-white/10 cursor-pointer transition-colors"
@@ -325,6 +348,17 @@ export default function StatsPage() {
               </tbody>
             </table>
           </div>
+          
+          {totalPlayers > ITEMS_PER_PAGE && (
+            <div className="px-6 py-4 border-t border-white/10">
+              <PaginationControls
+                page={safePage}
+                pageSize={ITEMS_PER_PAGE}
+                totalItems={totalPlayers}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
         </div>
           </>
         )}

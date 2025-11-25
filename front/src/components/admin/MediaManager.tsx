@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { Media } from '@/types'
 import { getImageUrl } from '@/utils'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 // Восстанавливаем интерфейс формы в соответствии с ТЗ
 interface MediaFormData {
@@ -36,6 +37,8 @@ const mediaTypeMap = {
   document: 'Документ (ссылка)',
 };
 
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
+
 export function MediaManager() {
   const { data: media, loading, refetch } = useApi<Media[]>(API_ENDPOINTS.MEDIA)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -43,6 +46,7 @@ export function MediaManager() {
   const [toDelete, setToDelete] = useState<Media | null>(null)
   const [formData, setFormData] = useState<MediaFormData>(initialFormData)
   const [activeMediaTab, setActiveMediaTab] = useState<'content' | 'files' | 'settings'>('content')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { mutate, loading: mutationLoading } = useApiMutation()
   const mediaModalTabs: { id: 'content' | 'files' | 'settings'; label: string; description: string }[] = [
@@ -124,7 +128,21 @@ export function MediaManager() {
 
   if (loading) return <Loading />
 
-  const list = Array.isArray(media) ? media : [];
+  const list = useMemo(() => Array.isArray(media) ? media : [], [media])
+  const totalMediaItems = list.length
+  const totalMediaPages = Math.max(1, Math.ceil(totalMediaItems / ITEMS_PER_PAGE))
+  const safeMediaPage = Math.min(currentPage, totalMediaPages)
+
+  useEffect(() => {
+    if (currentPage !== safeMediaPage) {
+      setCurrentPage(safeMediaPage)
+    }
+  }, [currentPage, safeMediaPage])
+
+  const paginatedMedia = useMemo(() => {
+    const startIndex = (safeMediaPage - 1) * ITEMS_PER_PAGE
+    return list.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [list, safeMediaPage])
 
   return (
     <div className="p-6">
@@ -148,7 +166,7 @@ export function MediaManager() {
               </tr>
             </thead>
             <tbody>
-              {list.map((item) => (
+              {paginatedMedia.length > 0 ? paginatedMedia.map((item) => (
                 <tr key={item.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
                     {item.media_type === 'image' && (item as any).file_url ? 
@@ -174,11 +192,24 @@ export function MediaManager() {
                     </div>
                   </td>
                 </tr>
-              ))}
+              )) : (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-white/60">
+                    {list.length === 0 ? 'Медиа не найдены' : 'Нет результатов для текущей страницы'}
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safeMediaPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalMediaItems}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -245,13 +276,12 @@ export function MediaManager() {
               <div className="space-y-5">
                 {formData.media_type === 'image' && (
                   <div>
-                    <label className="block text-sm font-medium mb-1">Файл изображения *</label>
+                    <label className="block text-sm font-medium mb-1">Файл изображения</label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => setFormData({ ...formData, file: e.target.files?.[0] })}
                       className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
-                      required={!editing}
                     />
                   </div>
                 )}

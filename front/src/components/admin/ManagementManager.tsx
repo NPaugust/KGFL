@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { API_ENDPOINTS } from '@/services/api'
 import { Manager } from '@/types'
 import { useApi } from '@/hooks/useApi'
@@ -8,6 +8,7 @@ import { Loading } from '../Loading'
 import Image from 'next/image'
 import { getImageUrl } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 interface ManagerFormData {
   first_name: string
@@ -20,6 +21,8 @@ interface ManagerFormData {
   order: number
   is_active: boolean
 }
+
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
 
 export function ManagementManager() {
   const { data: management, loading, error, refetch } = useApi<Manager[]>(API_ENDPOINTS.MANAGEMENT)
@@ -38,6 +41,7 @@ export function ManagementManager() {
     is_active: true
   })
   const [activeManagerTab, setActiveManagerTab] = useState<'general' | 'contacts' | 'bio'>('general')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const { mutate, loading: mutationLoading } = useApiMutation<Manager>()
   const managerModalTabs: { id: 'general' | 'contacts' | 'bio'; label: string; description: string }[] = [
@@ -141,7 +145,21 @@ export function ManagementManager() {
     return <Loading />
   }
 
-  const managersList = Array.isArray(management) ? management : []
+  const managersList = useMemo(() => Array.isArray(management) ? management : [], [management])
+  const totalManagers = managersList.length
+  const totalManagerPages = Math.max(1, Math.ceil(totalManagers / ITEMS_PER_PAGE))
+  const safeManagerPage = Math.min(currentPage, totalManagerPages)
+
+  useEffect(() => {
+    if (currentPage !== safeManagerPage) {
+      setCurrentPage(safeManagerPage)
+    }
+  }, [currentPage, safeManagerPage])
+
+  const paginatedManagers = useMemo(() => {
+    const startIndex = (safeManagerPage - 1) * ITEMS_PER_PAGE
+    return managersList.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+  }, [managersList, safeManagerPage])
 
   return (
     <div className="p-6">
@@ -164,7 +182,7 @@ export function ManagementManager() {
               </tr>
             </thead>
             <tbody>
-              {managersList.length > 0 ? managersList.map((manager) => (
+              {paginatedManagers.length > 0 ? paginatedManagers.map((manager) => (
                 <tr key={manager.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
                     {manager.photo_url || manager.photo ? (
@@ -200,13 +218,22 @@ export function ManagementManager() {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">Руководители не найдены</td>
+                  <td colSpan={6} className="px-4 py-8 text-center text-white/60">
+                    {managersList.length === 0 ? 'Руководители не найдены' : 'Нет результатов для текущей страницы'}
+                  </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safeManagerPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalManagers}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -359,13 +386,12 @@ export function ManagementManager() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Фото {editingManager ? '(не обязательно)' : '*'}</label>
+                    <label className="block text-sm font-medium mb-1">Фото</label>
                     <input
                       type="file"
                       accept="image/*"
                       onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
                       className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
-                      required={!editingManager}
                     />
                   </div>
                 </div>

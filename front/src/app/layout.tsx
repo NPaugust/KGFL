@@ -4,8 +4,9 @@ import { Manrope, Russo_One } from 'next/font/google'
 import { RevealProvider } from '@/components/RevealProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 
-const manrope = Manrope({ subsets: ['latin', 'cyrillic'], weight: ['300','400','600','700','800'], variable: '--font-manrope' })
-const russo = Russo_One({ subsets: ['latin', 'cyrillic'], weight: '400', variable: '--font-russo' })
+// Оптимизация: загружаем только используемые веса шрифтов (400, 600, 700, 800)
+const manrope = Manrope({ subsets: ['latin', 'cyrillic'], weight: ['400','600','700','800'], variable: '--font-manrope', display: 'swap' })
+const russo = Russo_One({ subsets: ['latin', 'cyrillic'], weight: '400', variable: '--font-russo', display: 'swap' })
 
 export const metadata: Metadata = {
   title: 'KGFL — Кыргызская футбольная лига',
@@ -13,6 +14,19 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'),
   alternates: {
     canonical: '/',
+  },
+  icons: {
+    icon: [
+      { url: '/logotip.png', type: 'image/png', sizes: 'any' },
+      { url: '/logo.png.png', type: 'image/png', sizes: 'any' },
+    ],
+    apple: [
+      { url: '/logotip.png', type: 'image/png' },
+    ],
+    shortcut: '/logotip.png',
+    other: [
+      { rel: 'icon', url: '/logotip.png', type: 'image/png' },
+    ],
   },
   openGraph: {
     title: 'KGFL — Кыргызская футбольная лига',

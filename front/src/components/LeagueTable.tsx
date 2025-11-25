@@ -55,12 +55,10 @@ export function LeagueTable({ headerMode = 'full', embedded = false, hideSubtitl
           <tbody>
             {teams.length > 0 ? teams.map((r, idx) => {
               const position = r.position || idx + 1;
-              // Цветные левые линии топ-5 разных цветов
-              const posColors = ['border-emerald-500','border-sky-500','border-amber-500','border-fuchsia-500','border-rose-500'] as const;
-              const bgColors   = ['bg-emerald-500/10','bg-sky-500/10','bg-amber-500/10','bg-fuchsia-500/10','bg-rose-500/10'] as const;
+              // Только зеленый цвет для топ-3 позиций, остальные без цвета
               let posClass = 'border-l-4 border-transparent';
-              if (position <= 5) {
-                posClass = `border-l-4 ${posColors[position-1]} ${bgColors[position-1]}`;
+              if (position >= 1 && position <= 3) {
+                posClass = 'border-l-4 border-emerald-500 bg-emerald-500/10';
               }
 
               const wins = Number((r as any).wins ?? (r as any).win ?? 0) || 0;

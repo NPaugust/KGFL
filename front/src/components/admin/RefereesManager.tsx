@@ -1,5 +1,5 @@
 "use client"
-import { useState, useMemo } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
@@ -8,6 +8,7 @@ import Image from 'next/image'
 import { getImageUrl } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { Search } from '@/components/Search'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 interface RefereeFormData {
   first_name: string
@@ -40,6 +41,8 @@ const categoryMap = {
   inspector: 'Инспектор матча',
 };
 
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
+
 export function RefereesManager() {
   const { data: referees, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.REFEREES)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -51,6 +54,7 @@ export function RefereesManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
+const [currentPage, setCurrentPage] = useState(1)
 
   const { mutate, loading: mutationLoading } = useApiMutation()
   const refereeModalTabs: { id: 'general' | 'details' | 'media'; label: string; description: string }[] = [
@@ -58,6 +62,10 @@ export function RefereesManager() {
     { id: 'details', label: 'Контакты', description: 'Регион, опыт, телефон, статус' },
     { id: 'media', label: 'Медиа', description: 'Фото судьи' }
   ]
+
+useEffect(() => {
+  setCurrentPage(1)
+}, [searchTerm, categoryFilter, statusFilter])
 
   const handleCreateClick = () => {
     setEditingReferee(null);
@@ -79,13 +87,9 @@ export function RefereesManager() {
       payload.append('nationality', formData.nationality || '')
       payload.append('is_active', String(formData.is_active))
       
-      // Добавляем фото только если оно было выбрано или при создании нового судьи
+      // Добавляем фото только если оно было выбрано
       if (formData.photo instanceof File) {
         payload.append('photo', formData.photo)
-      } else if (!editingReferee && !formData.photo) {
-        // При создании нового судьи фото обязательно
-        alert('Фото обязательно для нового судьи')
-        return
       }
 
       if (editingReferee) {
@@ -176,6 +180,21 @@ export function RefereesManager() {
     })
   }, [refereesList, searchTerm, categoryFilter, statusFilter])
 
+const totalReferees = filteredReferees.length
+const totalRefereePages = Math.max(1, Math.ceil(totalReferees / ITEMS_PER_PAGE))
+const safeRefereePage = Math.min(currentPage, totalRefereePages)
+
+useEffect(() => {
+  if (currentPage !== safeRefereePage) {
+    setCurrentPage(safeRefereePage)
+  }
+}, [currentPage, safeRefereePage])
+
+const paginatedReferees = useMemo(() => {
+  const startIndex = (safeRefereePage - 1) * ITEMS_PER_PAGE
+  return filteredReferees.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+}, [filteredReferees, safeRefereePage])
+
   if (loading) {
     return <Loading />
   }
@@ -250,7 +269,7 @@ export function RefereesManager() {
               </tr>
             </thead>
             <tbody>
-              {filteredReferees.length > 0 ? filteredReferees.map((referee) => (
+              {paginatedReferees.length > 0 ? paginatedReferees.map((referee) => (
                 <tr key={referee.id} className="border-b border-white/10">
                   <td className="px-4 py-3">
                     {referee.photo_url || referee.photo ? (
@@ -262,8 +281,14 @@ export function RefereesManager() {
                         className="w-8 h-8 rounded-full object-cover" 
                       />
                     ) : (
-                      <div className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-xs">
-                        {referee.first_name?.[0]}{referee.last_name?.[0]}
+                      <div className="w-8 h-8 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+                        <Image
+                          src="/images/player-silhouette.png"
+                          alt="Referee silhouette"
+                          width={24}
+                          height={24}
+                          className="opacity-40"
+                        />
                       </div>
                     )}
                   </td>
@@ -288,7 +313,7 @@ export function RefereesManager() {
               )) : (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-white/60">
-                    {refereesList.length === 0 ? 'Судьи не найдены' : 'Нет результатов по заданным фильтрам'}
+                    {filteredReferees.length === 0 ? 'Судьи не найдены' : 'Нет результатов для текущей страницы'}
                   </td>
                 </tr>
               )}
@@ -296,6 +321,13 @@ export function RefereesManager() {
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safeRefereePage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalReferees}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}
@@ -449,9 +481,6 @@ export function RefereesManager() {
                       onChange={(e) => setFormData({ ...formData, photo: e.target.files?.[0] })}
                       className="w-full file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-brand-primary/20 file:text-brand-primary hover:file:bg-brand-primary/30"
                     />
-                    {!editingReferee && (
-                      <div className="text-xs text-white/60 mt-2">Фото обязательно при создании нового судьи.</div>
-                    )}
                   </div>
                 </div>
               )}

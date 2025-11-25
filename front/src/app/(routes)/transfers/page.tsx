@@ -12,8 +12,8 @@ import Link from 'next/link'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 
 export default function TransfersPage() {
-  const { data: allTransfers, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.PLAYER_TRANSFERS)
-  const { data: seasons } = useApi<any[]>(API_ENDPOINTS.SEASONS)
+  const { data: allTransfers, loading, error, refetch } = useApi<any[]>(API_ENDPOINTS.PLAYER_TRANSFERS, undefined, [])
+  const { data: seasons, loading: seasonsLoading } = useApi<any[]>(API_ENDPOINTS.SEASONS, undefined, [])
   const [expandedSeasons, setExpandedSeasons] = useState<Set<string>>(new Set())
 
   // Группируем трансферы по сезонам
@@ -66,7 +66,7 @@ export default function TransfersPage() {
     }
   }, [refetch])
 
-  if (loading) {
+  if (loading || seasonsLoading) {
     return (
       <main className="container-px py-10">
         <Breadcrumbs items={[{ label: 'Трансферы' }]} />
@@ -84,7 +84,12 @@ export default function TransfersPage() {
         <Breadcrumbs items={[{ label: 'Трансферы' }]} />
         <h1 className="text-3xl font-bold text-center">Трансферы игроков</h1>
         <div className="mt-6 text-center text-red-400">
-          Ошибка загрузки данных
+          Ошибка загрузки данных: {typeof error === 'string' ? error : 'Неизвестная ошибка'}
+        </div>
+        <div className="mt-4 text-center">
+          <button onClick={() => refetch()} className="btn btn-outline">
+            Попробовать снова
+          </button>
         </div>
       </main>
     )

@@ -15,7 +15,10 @@ export function RevealProvider({ children }: { children: React.ReactNode }) {
             el.classList.add('reveal-in')
           } else {
             // Снимаем класс при уходе из вьюпорта для повторной анимации
-            el.classList.remove('reveal-in')
+            // Проверяем, что элемент еще в DOM перед операцией
+            if (el.isConnected) {
+              el.classList.remove('reveal-in')
+            }
           }
         })
       },
@@ -30,16 +33,23 @@ export function RevealProvider({ children }: { children: React.ReactNode }) {
       const elements = Array.from(document.querySelectorAll('.reveal')) as HTMLElement[]
       
       elements.forEach((el) => {
-        // Проверяем, не наблюдаем ли мы уже этот элемент
-        if (!observedElementsRef.current.has(el)) {
-          observerRef.current?.observe(el)
-          observedElementsRef.current.add(el)
-          
-          // Немедленная активация для уже видимых элементов
-          const rect = el.getBoundingClientRect()
-          const isVisible = rect.top < window.innerHeight * 0.9 && rect.bottom > 0
-          if (isVisible) {
-            el.classList.add('reveal-in')
+        // Проверяем, что элемент еще в DOM и не наблюдаем ли мы уже этот элемент
+        if (el.isConnected && !observedElementsRef.current.has(el) && observerRef.current) {
+          try {
+            observerRef.current.observe(el)
+            observedElementsRef.current.add(el)
+            
+            // Немедленная активация для уже видимых элементов
+            const rect = el.getBoundingClientRect()
+            const isVisible = rect.top < window.innerHeight * 0.9 && rect.bottom > 0
+            if (isVisible) {
+              el.classList.add('reveal-in')
+            }
+          } catch (error) {
+            // Игнорируем ошибки наблюдения (элемент может быть уже удален)
+            if (process.env.NODE_ENV === 'development') {
+              console.warn('RevealProvider: ошибка наблюдения элемента', error)
+            }
           }
         }
       })
@@ -82,7 +92,10 @@ export function RevealProvider({ children }: { children: React.ReactNode }) {
     // Очистка при размонтировании
     return () => {
       mutationObserver.disconnect()
-      observerRef.current?.disconnect()
+      if (observerRef.current) {
+        observerRef.current.disconnect()
+        observerRef.current = null
+      }
       observedElements.clear()
     }
   }, [])

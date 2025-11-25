@@ -1,5 +1,5 @@
 "use client"
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useApi } from '@/hooks/useApi'
 import { useApiMutation } from '@/hooks/useApi'
 import { API_ENDPOINTS } from '@/services/api'
@@ -10,6 +10,7 @@ import Image from 'next/image'
 import { getImageUrl } from '@/utils'
 import { Modal, ConfirmModal } from '../ui/Modal'
 import { Search } from '@/components/Search'
+import { PaginationControls, DEFAULT_PAGE_SIZE } from './PaginationControls'
 
 interface PlayerFormData {
   first_name: string
@@ -44,6 +45,8 @@ const statusMap = {
   withdrawn: 'Выбыл',
 };
 
+const ITEMS_PER_PAGE = DEFAULT_PAGE_SIZE
+
 export function PlayersManager() {
   const { data: players, loading, error, refetch } = useApi<Player[]>(API_ENDPOINTS.PLAYERS)
   const { data: clubs, loading: clubsLoading } = useApi<Club[]>(`${API_ENDPOINTS.CLUBS}?all=1`)
@@ -60,6 +63,7 @@ export function PlayersManager() {
   const [positionFilter, setPositionFilter] = useState<string>('')
   const [clubFilter, setClubFilter] = useState<string>('')
   const [statusFilter, setStatusFilter] = useState<string | null>(null)
+const [currentPage, setCurrentPage] = useState(1)
   const [formData, setFormData] = useState<PlayerFormData>({
     first_name: '',
     last_name: '',
@@ -86,6 +90,10 @@ export function PlayersManager() {
     setStatusFilter(null)
     setFilterSeasonId('')
   }
+
+useEffect(() => {
+  setCurrentPage(1)
+}, [searchTerm, positionFilter, clubFilter, statusFilter, filterSeasonId])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -312,6 +320,21 @@ export function PlayersManager() {
   })
   }, [filteredPlayers, sortField, sortDirection])
 
+const totalPlayers = sortedPlayers.length
+const totalPlayerPages = Math.max(1, Math.ceil(totalPlayers / ITEMS_PER_PAGE))
+const safePlayerPage = Math.min(currentPage, totalPlayerPages)
+
+useEffect(() => {
+  if (currentPage !== safePlayerPage) {
+    setCurrentPage(safePlayerPage)
+  }
+}, [currentPage, safePlayerPage])
+
+const paginatedPlayers = useMemo(() => {
+  const startIndex = (safePlayerPage - 1) * ITEMS_PER_PAGE
+  return sortedPlayers.slice(startIndex, startIndex + ITEMS_PER_PAGE)
+}, [sortedPlayers, safePlayerPage])
+
   if (loading || clubsLoading) {
     return <Loading />
   }
@@ -452,8 +475,8 @@ export function PlayersManager() {
               </tr>
             </thead>
             <tbody>
-              {sortedPlayers.length > 0 ? (
-                sortedPlayers.map((player) => (
+              {paginatedPlayers.length > 0 ? (
+                paginatedPlayers.map((player) => (
                       <tr key={player.id} className="border-b border-white/10">
                         <td className="px-4 py-3">
                           {((player as any).photo_url || player.photo) ? (
@@ -501,13 +524,22 @@ export function PlayersManager() {
                     ))
                 ) : (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-white/60">Игроки не найдены</td>
+                    <td colSpan={7} className="px-4 py-8 text-center text-white/60">
+                      {sortedPlayers.length === 0 ? 'Игроки не найдены' : 'Нет результатов для текущей страницы'}
+                    </td>
                   </tr>
                 )}
             </tbody>
           </table>
         </div>
       </div>
+
+      <PaginationControls
+        page={safePlayerPage}
+        pageSize={ITEMS_PER_PAGE}
+        totalItems={totalPlayers}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal
         isOpen={isModalOpen}

@@ -24,6 +24,15 @@ const nextConfig = {
         : []),
     ],
   },
+  // Оптимизация производительности
+  compress: true,
+  poweredByHeader: false,
+  reactStrictMode: true,
+  // Оптимизация сборки
+  swcMinify: true,
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'framer-motion'],
+  },
 }
 
 module.exports = nextConfig
