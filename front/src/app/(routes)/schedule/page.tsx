@@ -12,9 +12,55 @@ import { PaginationControls } from '@/components/admin/PaginationControls'
 
 const getMatchTimestamp = (match: any) => {
   if (!match?.date) return Number.MAX_SAFE_INTEGER
+  
+  // Получаем время из разных возможных полей
   const rawTime = (match as any).time || (match as any).match_time || '00:00'
-  const normalizedTime = rawTime.length === 5 ? `${rawTime}:00` : (rawTime || '00:00:00')
-  const value = Date.parse(`${match.date}T${normalizedTime}`)
+  
+  // Нормализуем время: если формат HH:MM, добавляем секунды; если уже HH:MM:SS, оставляем как есть
+  let normalizedTime = rawTime
+  if (rawTime && typeof rawTime === 'string') {
+    const timeParts = rawTime.split(':')
+    if (timeParts.length === 2) {
+      // Формат HH:MM - добавляем секунды
+      normalizedTime = `${rawTime}:00`
+    } else if (timeParts.length === 3) {
+      // Формат HH:MM:SS - оставляем как есть
+      normalizedTime = rawTime
+    } else {
+      normalizedTime = '00:00:00'
+    }
+  } else {
+    normalizedTime = '00:00:00'
+  }
+  
+  // Парсим дату - может быть строкой в формате ISO (YYYY-MM-DD) или Date объектом
+  let dateStr: string
+  if (typeof match.date === 'string') {
+    // Если строка, проверяем формат
+    if (match.date.includes('T')) {
+      // ISO формат с временем - берем только дату
+      dateStr = match.date.split('T')[0]
+    } else if (match.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+      // Формат YYYY-MM-DD
+      dateStr = match.date
+    } else {
+      // Пытаемся распарсить как дату
+      const parsed = new Date(match.date)
+      if (!isNaN(parsed.getTime())) {
+        dateStr = parsed.toISOString().split('T')[0]
+      } else {
+        return Number.MAX_SAFE_INTEGER
+      }
+    }
+  } else if (match.date instanceof Date) {
+    dateStr = match.date.toISOString().split('T')[0]
+  } else {
+    return Number.MAX_SAFE_INTEGER
+  }
+  
+  // Парсим дату и время вместе
+  const value = Date.parse(`${dateStr}T${normalizedTime}`)
+  
   return Number.isNaN(value) ? Number.MAX_SAFE_INTEGER : value
 }
 
