@@ -141,10 +141,6 @@ export function ManagementManager() {
     }
   }
 
-  if (loading) {
-    return <Loading />
-  }
-
   const managersList = useMemo(() => Array.isArray(management) ? management : [], [management])
   const totalManagers = managersList.length
   const totalManagerPages = Math.max(1, Math.ceil(totalManagers / ITEMS_PER_PAGE))
@@ -160,6 +156,10 @@ export function ManagementManager() {
     const startIndex = (safeManagerPage - 1) * ITEMS_PER_PAGE
     return managersList.slice(startIndex, startIndex + ITEMS_PER_PAGE)
   }, [managersList, safeManagerPage])
+
+  if (loading) {
+    return <Loading />
+  }
 
   return (
     <div className="p-6">

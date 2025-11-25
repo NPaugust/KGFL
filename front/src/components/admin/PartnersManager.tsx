@@ -148,10 +148,6 @@ export function PartnersManager() {
     }
   }
 
-  if (loading) {
-    return <Loading />
-  }
-
   const partnersList = useMemo(() => Array.isArray(partners) ? partners : [], [partners])
   const totalPartners = partnersList.length
   const totalPartnerPages = Math.max(1, Math.ceil(totalPartners / ITEMS_PER_PAGE))
@@ -167,6 +163,10 @@ export function PartnersManager() {
     const startIndex = (safePartnerPage - 1) * ITEMS_PER_PAGE
     return partnersList.slice(startIndex, startIndex + ITEMS_PER_PAGE)
   }, [partnersList, safePartnerPage])
+
+  if (loading) {
+    return <Loading />
+  }
 
   return (
     <div className="p-6">

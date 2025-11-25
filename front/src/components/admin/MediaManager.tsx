@@ -126,8 +126,6 @@ export function MediaManager() {
     }
   };
 
-  if (loading) return <Loading />
-
   const list = useMemo(() => Array.isArray(media) ? media : [], [media])
   const totalMediaItems = list.length
   const totalMediaPages = Math.max(1, Math.ceil(totalMediaItems / ITEMS_PER_PAGE))
@@ -143,6 +141,8 @@ export function MediaManager() {
     const startIndex = (safeMediaPage - 1) * ITEMS_PER_PAGE
     return list.slice(startIndex, startIndex + ITEMS_PER_PAGE)
   }, [list, safeMediaPage])
+
+  if (loading) return <Loading />
 
   return (
     <div className="p-6">
